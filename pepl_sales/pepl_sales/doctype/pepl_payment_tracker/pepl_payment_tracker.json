@@ -1,0 +1,469 @@
+{
+ "actions": [],
+ "autoname": "PAY-TRK-.YYYY.-.####",
+ "creation": "2026-05-05 19:00:00",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "linked_sales_invoice",
+  "linked_sales_order",
+  "customer",
+  "sector",
+  "column_break_basic",
+  "tracker_id",
+  "payment_status",
+  "invoice_date",
+  "invoice_amount",
+  "section_dispatch",
+  "dispatch_date",
+  "lr_rr_number",
+  "transporter",
+  "column_break_dispatch",
+  "vehicle_number",
+  "consignee_name",
+  "dispatch_document",
+  "section_railways",
+  "rnote_number",
+  "rnote_date",
+  "rnote_amount",
+  "rnote_file",
+  "column_break_rnote",
+  "co7_number",
+  "co7_date",
+  "co7_amount",
+  "paying_authority",
+  "bills_submission_date",
+  "bill_reference_number",
+  "section_defence",
+  "inote_number",
+  "inote_date",
+  "inote_amount",
+  "inote_file",
+  "inspection_officer",
+  "column_break_inote",
+  "jcc_number",
+  "jcc_date",
+  "jcc_amount",
+  "jcc_file",
+  "section_payment",
+  "payment_receipts_html",
+  "payment_receipts",
+  "section_deductions",
+  "tds_deducted",
+  "sd_deducted",
+  "ld_deducted",
+  "column_break_deductions",
+  "other_deductions",
+  "other_deduction_reason",
+  "gross_payment_realised",
+  "total_recoverable_held",
+  "total_written_off",
+  "section_summary",
+  "total_amount_received",
+  "total_outstanding",
+  "net_amount_receivable",
+  "amount_reconciled",
+  "column_break_summary",
+  "days_outstanding",
+  "ageing_bucket",
+  "last_update_date",
+  "section_remarks",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Payment Tracker"
+  },
+  {
+   "fieldname": "linked_sales_invoice",
+   "fieldtype": "Link",
+   "label": "Linked Sales Invoice",
+   "options": "Sales Invoice",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "linked_sales_order",
+   "fieldtype": "Link",
+   "label": "Linked Sales Order",
+   "options": "Sales Order",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "linked_sales_invoice.customer",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "label": "Sector",
+   "options": "\nRailways\nDefence\nPrivate\nOthers",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tracker_id",
+   "fieldtype": "Data",
+   "label": "Tracker ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending Dispatch\nDispatched\nR-Note Received\nI-Note Received\nJCC Issued\nBills Submitted\nCO7 Issued\nPayment Received\nReconciled\nClosed",
+   "default": "Pending Dispatch",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice_date",
+   "fieldtype": "Date",
+   "label": "Invoice Date",
+   "fetch_from": "linked_sales_invoice.posting_date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invoice_amount",
+   "fieldtype": "Currency",
+   "label": "Invoice Amount (INR)",
+   "fetch_from": "linked_sales_invoice.grand_total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_dispatch",
+   "fieldtype": "Section Break",
+   "label": "Dispatch Details",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "dispatch_date",
+   "fieldtype": "Date",
+   "label": "Dispatch Date"
+  },
+  {
+   "fieldname": "lr_rr_number",
+   "fieldtype": "Data",
+   "label": "LR / RR Number"
+  },
+  {
+   "fieldname": "transporter",
+   "fieldtype": "Data",
+   "label": "Transporter"
+  },
+  {
+   "fieldname": "column_break_dispatch",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vehicle_number",
+   "fieldtype": "Data",
+   "label": "Vehicle Number"
+  },
+  {
+   "fieldname": "consignee_name",
+   "fieldtype": "Data",
+   "label": "Consignee Name"
+  },
+  {
+   "fieldname": "dispatch_document",
+   "fieldtype": "Attach",
+   "label": "Dispatch Document"
+  },
+  {
+   "fieldname": "section_railways",
+   "fieldtype": "Section Break",
+   "label": "Railways - R-Note & CO7",
+   "collapsible": 1,
+   "depends_on": "eval:doc.sector==\"Railways\""
+  },
+  {
+   "fieldname": "rnote_number",
+   "fieldtype": "Data",
+   "label": "R-Note Number"
+  },
+  {
+   "fieldname": "rnote_date",
+   "fieldtype": "Date",
+   "label": "R-Note Date"
+  },
+  {
+   "fieldname": "rnote_amount",
+   "fieldtype": "Currency",
+   "label": "R-Note Amount (INR)"
+  },
+  {
+   "fieldname": "rnote_file",
+   "fieldtype": "Attach",
+   "label": "R-Note File"
+  },
+  {
+   "fieldname": "column_break_rnote",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "co7_number",
+   "fieldtype": "Data",
+   "label": "CO7 Number"
+  },
+  {
+   "fieldname": "co7_date",
+   "fieldtype": "Date",
+   "label": "CO7 Date"
+  },
+  {
+   "fieldname": "co7_amount",
+   "fieldtype": "Currency",
+   "label": "CO7 Amount (INR)"
+  },
+  {
+   "fieldname": "paying_authority",
+   "fieldtype": "Data",
+   "label": "Paying Authority"
+  },
+  {
+   "fieldname": "bills_submission_date",
+   "fieldtype": "Date",
+   "label": "Bills Submission Date"
+  },
+  {
+   "fieldname": "bill_reference_number",
+   "fieldtype": "Data",
+   "label": "Bill Reference Number"
+  },
+  {
+   "fieldname": "section_defence",
+   "fieldtype": "Section Break",
+   "label": "Defence - I-Note & JCC",
+   "collapsible": 1,
+   "depends_on": "eval:doc.sector==\"Defence\""
+  },
+  {
+   "fieldname": "inote_number",
+   "fieldtype": "Data",
+   "label": "I-Note Number"
+  },
+  {
+   "fieldname": "inote_date",
+   "fieldtype": "Date",
+   "label": "I-Note Date"
+  },
+  {
+   "fieldname": "inote_amount",
+   "fieldtype": "Currency",
+   "label": "I-Note Amount (INR)"
+  },
+  {
+   "fieldname": "inote_file",
+   "fieldtype": "Attach",
+   "label": "I-Note File"
+  },
+  {
+   "fieldname": "inspection_officer",
+   "fieldtype": "Data",
+   "label": "AHQ/DGQA Inspection Officer"
+  },
+  {
+   "fieldname": "column_break_inote",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "jcc_number",
+   "fieldtype": "Data",
+   "label": "JCC Number"
+  },
+  {
+   "fieldname": "jcc_date",
+   "fieldtype": "Date",
+   "label": "JCC Date"
+  },
+  {
+   "fieldname": "jcc_amount",
+   "fieldtype": "Currency",
+   "label": "JCC Amount (INR)"
+  },
+  {
+   "fieldname": "jcc_file",
+   "fieldtype": "Attach",
+   "label": "JCC File"
+  },
+  {
+   "fieldname": "section_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment Receipts (multiple installments allowed)"
+  },
+  {
+   "fieldname": "payment_receipts_html",
+   "fieldtype": "HTML",
+   "options": "<p style='color:#666; font-size:12px;'>Add one row per payment received. Government often pays in installments \u2014 each installment is a separate row. Total Amount Received is auto-summed.</p>"
+  },
+  {
+   "fieldname": "payment_receipts",
+   "fieldtype": "Table",
+   "label": "Payment Receipts",
+   "options": "PEPL Payment Receipt"
+  },
+  {
+   "fieldname": "section_deductions",
+   "fieldtype": "Section Break",
+   "label": "Deductions",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "tds_deducted",
+   "fieldtype": "Currency",
+   "label": "TDS Deducted (INR)",
+   "default": "0"
+  },
+  {
+   "fieldname": "sd_deducted",
+   "fieldtype": "Currency",
+   "label": "SD (Security Deposit) Deducted (INR)",
+   "default": "0"
+  },
+  {
+   "fieldname": "ld_deducted",
+   "fieldtype": "Currency",
+   "label": "LD (Liquidated Damages) Deducted (INR)",
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_deductions",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "other_deductions",
+   "fieldtype": "Currency",
+   "label": "Other Deductions (INR)",
+   "default": "0"
+  },
+  {
+   "fieldname": "other_deduction_reason",
+   "fieldtype": "Small Text",
+   "label": "Other Deduction Reason"
+  },
+  {
+   "fieldname": "gross_payment_realised",
+   "fieldtype": "Currency",
+   "label": "Gross Payment Realised",
+   "read_only": 1,
+   "description": "Bank credit + all deductions. This is the invoice value realised and what closes against the invoice."
+  },
+  {
+   "fieldname": "total_recoverable_held",
+   "fieldtype": "Currency",
+   "label": "Recoverable Held (TDS + SD)",
+   "read_only": 1,
+   "description": "Money held by customer or government, recoverable later via Form 26AS or NDC."
+  },
+  {
+   "fieldname": "total_written_off",
+   "fieldtype": "Currency",
+   "label": "Written Off (LD + Other)",
+   "read_only": 1,
+   "description": "Real loss. Not recoverable."
+  },
+  {
+   "fieldname": "section_summary",
+   "fieldtype": "Section Break",
+   "label": "Summary (Auto-calculated)"
+  },
+  {
+   "fieldname": "total_amount_received",
+   "fieldtype": "Currency",
+   "label": "Total Amount Received (INR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_outstanding",
+   "fieldtype": "Currency",
+   "label": "Total Outstanding (INR)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "net_amount_receivable",
+   "fieldtype": "Currency",
+   "label": "Net Amount Receivable (INR)",
+   "read_only": 1,
+   "description": "Invoice Amount - All Deductions"
+  },
+  {
+   "fieldname": "amount_reconciled",
+   "fieldtype": "Currency",
+   "label": "Amount Reconciled (INR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_summary",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "days_outstanding",
+   "fieldtype": "Int",
+   "label": "Days Outstanding",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ageing_bucket",
+   "fieldtype": "Select",
+   "label": "Ageing Bucket",
+   "options": "0-30 days\n31-45 days\n45+ days (MSME breach)",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "MSME Act mandates 45-day payment. 45+ days triggers legal interest."
+  },
+  {
+   "fieldname": "last_update_date",
+   "fieldtype": "Date",
+   "label": "Last Update Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_remarks",
+   "fieldtype": "Section Break",
+   "label": "Remarks",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 0,
+ "links": [],
+ "modified": "2026-05-05 19:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Payment Tracker",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Sales User", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1, "write": 1},
+  {"create": 0, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Engineering User", "share": 1, "write": 0},
+  {"create": 0, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Purchase User", "share": 1, "write": 0},
+  {"create": 0, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Stock User", "share": 1, "write": 0}
+ ],
+ "search_fields": "linked_sales_invoice,linked_sales_order,customer,tracker_id,payment_status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "tracker_id",
+ "track_changes": 1
+}

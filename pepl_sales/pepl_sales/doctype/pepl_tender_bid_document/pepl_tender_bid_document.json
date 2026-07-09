@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "creation": "2026-04-28 17:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_source",
+  "document_type",
+  "linked_company_document",
+  "linked_drawing_revision",
+  "linked_specification",
+  "document_name",
+  "file_attach",
+  "is_mandatory",
+  "is_attached",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Source",
+   "options": "Auto-Required\nUpload File\nCompany Library\nItem Drawing\nItem Specification",
+   "default": "Auto-Required",
+   "reqd": 1,
+   "description": "Auto-Required = system identified this from Vendor Approval Status. Upload File = item-specific, manual upload."
+  },
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Document Type"
+  },
+  {
+   "depends_on": "eval:doc.document_source==\"Company Library\"",
+   "fieldname": "linked_company_document",
+   "fieldtype": "Link",
+   "label": "Company Document",
+   "options": "PEPL Company Document"
+  },
+  {
+   "depends_on": "eval:doc.document_source==\"Item Drawing\"",
+   "fieldname": "linked_drawing_revision",
+   "fieldtype": "Data",
+   "label": "Drawing Reference",
+   "description": "PEPL Item Drawing record name"
+  },
+  {
+   "depends_on": "eval:doc.document_source==\"Item Specification\"",
+   "fieldname": "linked_specification",
+   "fieldtype": "Link",
+   "label": "Specification",
+   "options": "PEPL Specification"
+  },
+  {
+   "fieldname": "document_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Document Name / Description"
+  },
+  {
+   "fieldname": "file_attach",
+   "fieldtype": "Attach",
+   "label": "File",
+   "description": "Attach for Upload File source. Auto-fetched for Library sources."
+  },
+  {
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Mandatory",
+   "default": "0",
+   "description": "Required by tender — must be attached"
+  },
+  {
+   "fieldname": "is_attached",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Attached to Bid",
+   "default": "0"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-28 17:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Tender Bid Document",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

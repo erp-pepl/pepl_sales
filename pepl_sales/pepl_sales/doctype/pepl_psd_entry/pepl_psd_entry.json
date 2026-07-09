@@ -1,0 +1,162 @@
+{
+ "actions": [],
+ "creation": "2026-05-05 18:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "entry_label",
+  "psd_status",
+  "psd_percent",
+  "psd_amount",
+  "manual_override",
+  "column_break_1",
+  "order_value_basis",
+  "last_supply_date",
+  "expected_refund_date",
+  "section_ndc",
+  "ndc_requested_date",
+  "ndc_received_date",
+  "ndc_file",
+  "psd_refund_date",
+  "psd_refund_amount",
+  "letter_to_bank_date",
+  "section_submissions",
+  "submissions",
+  "section_remarks",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "entry_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "PSD Entry Label",
+   "reqd": 1,
+   "description": "e.g., 'Initial PSD' or 'Supplementary PSD - Amendment 1'"
+  },
+  {
+   "fieldname": "psd_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nRequested to Bank\nReceived from Bank / Dispatched to Customer\nActive\nNDC Submission\nPSD Refunded\nLetter to Bank for Closure\nClosed\nPSD Not Required",
+   "default": "Pending",
+   "reqd": 1
+  },
+  {
+   "fieldname": "psd_percent",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "PSD %",
+   "default": 0
+  },
+  {
+   "fieldname": "psd_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "PSD Amount (INR)",
+   "description": "Auto: order_value_basis x psd_percent / 100. Manually editable for override."
+  },
+  {
+   "fieldname": "manual_override",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Manual Override",
+   "default": "0",
+   "description": "Tick to STOP auto-calculation of PSD Amount. Useful when the bank issues a rounded BG amount that differs from the calculated %."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "order_value_basis",
+   "fieldtype": "Currency",
+   "label": "Order Value Basis (INR)",
+   "description": "Order value this PSD is calculated on. Defaults to SO grand_total but editable for supplementary PSDs."
+  },
+  {
+   "fieldname": "last_supply_date",
+   "fieldtype": "Date",
+   "label": "Last Supply Date",
+   "description": "When auto-set, Expected Refund Date = this + 14 months"
+  },
+  {
+   "fieldname": "expected_refund_date",
+   "fieldtype": "Date",
+   "label": "Expected Refund Date"
+  },
+  {
+   "fieldname": "section_ndc",
+   "fieldtype": "Section Break",
+   "label": "NDC & Refund Tracking",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "ndc_requested_date",
+   "fieldtype": "Date",
+   "label": "NDC Requested Date"
+  },
+  {
+   "fieldname": "ndc_received_date",
+   "fieldtype": "Date",
+   "label": "NDC Received Date"
+  },
+  {
+   "fieldname": "ndc_file",
+   "fieldtype": "Attach",
+   "label": "NDC Document"
+  },
+  {
+   "fieldname": "psd_refund_date",
+   "fieldtype": "Date",
+   "label": "PSD Refund Received Date"
+  },
+  {
+   "fieldname": "psd_refund_amount",
+   "fieldtype": "Currency",
+   "label": "PSD Refund Amount (INR)"
+  },
+  {
+   "fieldname": "letter_to_bank_date",
+   "fieldtype": "Date",
+   "label": "Letter to Bank Date"
+  },
+  {
+   "fieldname": "section_submissions",
+   "fieldtype": "Section Break",
+   "label": "Instrument Submissions (BG/DD/FDR with renewal trail)"
+  },
+  {
+   "fieldname": "submissions",
+   "fieldtype": "Table",
+   "label": "Submissions",
+   "options": "PEPL PSD Submission"
+  },
+  {
+   "fieldname": "section_remarks",
+   "fieldtype": "Section Break",
+   "label": "Remarks",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-05 18:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL PSD Entry",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

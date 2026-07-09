@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "autoname": "PSD-TRK-.YYYY.-.####",
+ "creation": "2026-05-05 18:00:00",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "linked_sales_order",
+  "customer",
+  "sector",
+  "column_break_1",
+  "tracker_id",
+  "active_entries_count",
+  "total_psd_amount",
+  "section_entries",
+  "psd_entries_html",
+  "psd_entries",
+  "section_remarks",
+  "tracker_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "PSD Tracker"
+  },
+  {
+   "fieldname": "linked_sales_order",
+   "fieldtype": "Link",
+   "label": "Linked Sales Order",
+   "options": "Sales Order",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "linked_sales_order.customer",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "label": "Sector",
+   "options": "\nRailways\nDefence\nPrivate\nOthers",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tracker_id",
+   "fieldtype": "Data",
+   "label": "Tracker ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "active_entries_count",
+   "fieldtype": "Int",
+   "label": "Active PSD Entries",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_psd_amount",
+   "fieldtype": "Currency",
+   "label": "Total PSD Locked (INR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_entries",
+   "fieldtype": "Section Break",
+   "label": "PSD Entries"
+  },
+  {
+   "fieldname": "psd_entries_html",
+   "fieldtype": "HTML",
+   "options": "<p style='color:#666; font-size:12px;'>Add PSD entries below. Each entry can be a separate PSD (e.g., Initial PSD, Supplementary PSD for amendment). Each entry can have multiple instrument submissions (BG renewal trail).</p>"
+  },
+  {
+   "fieldname": "psd_entries",
+   "fieldtype": "Table",
+   "label": "PSD Entries",
+   "options": "PEPL PSD Entry"
+  },
+  {
+   "fieldname": "section_remarks",
+   "fieldtype": "Section Break",
+   "label": "Tracker Remarks",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "tracker_remarks",
+   "fieldtype": "Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 0,
+ "links": [],
+ "modified": "2026-05-05 18:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL PSD Tracker",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Sales User", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1, "write": 1},
+  {"create": 0, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Engineering User", "share": 1, "write": 0},
+  {"create": 0, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Purchase User", "share": 1, "write": 0},
+  {"create": 0, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Stock User", "share": 1, "write": 0}
+ ],
+ "search_fields": "linked_sales_order,customer,tracker_id",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "tracker_id",
+ "track_changes": 1
+}

@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "creation": "2026-05-05 18:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_date",
+  "document_type",
+  "description",
+  "primary_attachment",
+  "section_details",
+  "reference_number",
+  "direction",
+  "document_status",
+  "column_break_1",
+  "source",
+  "source_reference",
+  "version_drift_flag",
+  "section_attachments",
+  "additional_attachments",
+  "section_remarks",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "default": "Today"
+  },
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Customer PO\nModification Advice\nNDA\nDrawing Approval\nQAP\nInspection Plan\nRM Reports\nRM Clearance\nPre-Inspection Documents\nPre-Inspection Report\nIC - Stage Inspection\nIC - Final Inspection\nLot Offer\nDispatch Documents\nCustomer Receipt\nR-Note\nI-Note\nJCC\nBill Submission\nPayment Advice\nPSD Documents\nNDC Documents\nCommunication\nOthers",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "primary_attachment",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "File"
+  },
+  {
+   "fieldname": "section_details",
+   "fieldtype": "Section Break",
+   "label": "Details",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "reference_number",
+   "fieldtype": "Data",
+   "label": "Reference No"
+  },
+  {
+   "fieldname": "direction",
+   "fieldtype": "Select",
+   "label": "Direction",
+   "options": "\nInbound (from Customer)\nOutbound (to Customer)\nInternal\nFrom Bank\nTo Bank"
+  },
+  {
+   "fieldname": "document_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nReceived\nSent\nFiled\nObsolete",
+   "default": "Pending"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "Manual Upload\nAuto-Copied from Tender\nAuto-Generated from PSD\nAuto-Generated\nReceived from Customer",
+   "default": "Manual Upload"
+  },
+  {
+   "fieldname": "source_reference",
+   "fieldtype": "Data",
+   "label": "Source Reference"
+  },
+  {
+   "fieldname": "version_drift_flag",
+   "fieldtype": "Check",
+   "label": "Version Drift",
+   "default": "0"
+  },
+  {
+   "fieldname": "section_attachments",
+   "fieldtype": "Section Break",
+   "label": "Additional Attachments",
+   "collapsible": 1,
+   "description": "Use Primary File for the main document. Add supplementary files here (e.g., cover letter + main doc + acknowledgement)."
+  },
+  {
+   "fieldname": "additional_attachments",
+   "fieldtype": "Table",
+   "label": "Additional Attachments",
+   "options": "PEPL Document Attachment"
+  },
+  {
+   "fieldname": "section_remarks",
+   "fieldtype": "Section Break",
+   "label": "Remarks",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-05 18:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Document Entry",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

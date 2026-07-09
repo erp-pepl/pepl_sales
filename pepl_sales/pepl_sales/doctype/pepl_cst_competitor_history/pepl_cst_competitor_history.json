@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "creation": "2026-04-29 11:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tender_reference",
+  "tender_date",
+  "competitor_name",
+  "competitor_price",
+  "rank",
+  "our_rank",
+  "outcome",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "tender_reference",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tender",
+   "options": "PEPL Tender"
+  },
+  {
+   "fieldname": "tender_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Tender Date"
+  },
+  {
+   "fieldname": "competitor_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Competitor",
+   "reqd": 1
+  },
+  {
+   "fieldname": "competitor_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Price"
+  },
+  {
+   "fieldname": "rank",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Rank",
+   "options": "\nL1\nL2\nL3\nL4\nL5\nDisqualified"
+  },
+  {
+   "fieldname": "our_rank",
+   "fieldtype": "Select",
+   "label": "Our Rank",
+   "options": "\nL1\nL2\nL3\nL4\nL5\nDisqualified"
+  },
+  {
+   "fieldname": "outcome",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Outcome",
+   "options": "Won\nLost\nUnknown"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-29 11:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL CST Competitor History",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "tender_date",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

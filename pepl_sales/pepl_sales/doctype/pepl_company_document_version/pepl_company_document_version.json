@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "creation": "2026-04-28 16:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "version_number",
+  "issue_date",
+  "expiry_date",
+  "is_current",
+  "file_attach",
+  "reference_no",
+  "issuing_authority",
+  "version_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "version_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Version",
+   "description": "e.g., v1, v2, 2024 renewal"
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Issue Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "is_current",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Current Version",
+   "default": "0",
+   "description": "Tick to mark this as the active version. Only one version should be marked current."
+  },
+  {
+   "fieldname": "file_attach",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "File",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Reference / Certificate Number"
+  },
+  {
+   "fieldname": "issuing_authority",
+   "fieldtype": "Data",
+   "label": "Issuing Authority"
+  },
+  {
+   "fieldname": "version_notes",
+   "fieldtype": "Small Text",
+   "label": "Version Notes",
+   "description": "What changed in this version, why it was renewed, etc."
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-28 16:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Company Document Version",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "issue_date",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

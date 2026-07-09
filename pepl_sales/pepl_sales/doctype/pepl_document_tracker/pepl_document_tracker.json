@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "autoname": "DOC-TRK-.YYYY.-.####",
+ "creation": "2026-05-05 18:00:00",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "linked_sales_order",
+  "customer",
+  "column_break_1",
+  "tracker_id",
+  "total_documents",
+  "section_entries",
+  "doc_entries_html",
+  "document_entries",
+  "section_remarks",
+  "tracker_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Document Tracker"
+  },
+  {
+   "fieldname": "linked_sales_order",
+   "fieldtype": "Link",
+   "label": "Linked Sales Order",
+   "options": "Sales Order",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "linked_sales_order.customer",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tracker_id",
+   "fieldtype": "Data",
+   "label": "Tracker ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_documents",
+   "fieldtype": "Int",
+   "label": "Total Documents",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_entries",
+   "fieldtype": "Section Break",
+   "label": "Document Entries"
+  },
+  {
+   "fieldname": "doc_entries_html",
+   "fieldtype": "HTML",
+   "options": "<p style='color:#666; font-size:12px;'>Add documents below. Each entry has a primary attachment + can hold multiple supplementary files (open the entry to add). Click into any row to expand for full details.</p>"
+  },
+  {
+   "fieldname": "document_entries",
+   "fieldtype": "Table",
+   "label": "Document Entries",
+   "options": "PEPL Document Entry"
+  },
+  {
+   "fieldname": "section_remarks",
+   "fieldtype": "Section Break",
+   "label": "Tracker Remarks",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "tracker_remarks",
+   "fieldtype": "Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 0,
+ "links": [],
+ "modified": "2026-05-05 18:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Document Tracker",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Sales User", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Engineering User", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Purchase User", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Stock User", "share": 1, "write": 1}
+ ],
+ "search_fields": "linked_sales_order,customer,tracker_id",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "tracker_id",
+ "track_changes": 1
+}

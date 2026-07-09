@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "creation": "2026-04-28 13:30:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_source",
+  "document_type",
+  "linked_company_document",
+  "linked_drawing_revision",
+  "linked_specification",
+  "document_name",
+  "file_attach",
+  "issue_date",
+  "expiry_date",
+  "reference_no",
+  "issuing_authority",
+  "customer",
+  "order_value",
+  "quantity",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Source",
+   "options": "Upload File\nCompany Library\nItem Drawing\nItem Specification",
+   "default": "Upload File",
+   "reqd": 1,
+   "description": "Where this document comes from"
+  },
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Document Type",
+   "options": "\n--- Approval Stage Documents ---\nUdyam Aadhaar\nGST Certificate\nPAN Card\nQAP\nPlant and Machinery List\nInstruments and Testing Facilities List\nQAP Approval Letter\nCCA Approval Letter\nFinal IC\nApproval Certificate\n60% Tender Completion Evidence\n--- Railways Performance Documents ---\nInspection Certificate (Railways)\nPurchase Order (Railways)\nR-Note (Railways)\n--- Defence Performance Documents ---\nSupply Order (Defence)\nI-Note (Defence)\n--- Private Sector Documents ---\nCustomer Approval Email (Private)\nCustomer Purchase Order (Private)\n--- Library References ---\nCompany Document\nItem Drawing\nItem Specification\n--- Other ---\nOther"
+  },
+  {
+   "depends_on": "eval:doc.document_source==\"Company Library\"",
+   "fieldname": "linked_company_document",
+   "fieldtype": "Link",
+   "label": "Company Document",
+   "options": "PEPL Company Document",
+   "description": "Pick from the master company document library"
+  },
+  {
+   "depends_on": "eval:doc.document_source==\"Item Drawing\"",
+   "fieldname": "linked_drawing_revision",
+   "fieldtype": "Data",
+   "label": "Drawing Revision",
+   "description": "Specify which revision letter (e.g., A, B, C) — must exist in parent Item's Drawings table"
+  },
+  {
+   "depends_on": "eval:doc.document_source==\"Item Specification\"",
+   "fieldname": "linked_specification",
+   "fieldtype": "Data",
+   "label": "Specification Title",
+   "description": "Specify which specification — must exist in parent Item's Specifications table"
+  },
+  {
+   "fieldname": "document_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Document Name / Description"
+  },
+  {
+   "fieldname": "file_attach",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "File",
+   "description": "For Upload File source — attach here. For Library sources — auto-fetched (read-only display)"
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Issue / Document Date"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reference / Document Number"
+  },
+  {
+   "fieldname": "issuing_authority",
+   "fieldtype": "Data",
+   "label": "Issuing Authority"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "description": "For performance documents — which customer issued this"
+  },
+  {
+   "fieldname": "order_value",
+   "fieldtype": "Currency",
+   "label": "Order Value (INR)",
+   "description": "For Purchase Orders / Supply Orders only"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "description": "For Inspection Certificates / R-Notes / I-Notes — quantity inspected or received"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-28 13:30:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "Vendor Approval Document",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,361 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:CST-{####}",
+ "creation": "2026-04-29 11:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identification_section",
+  "cst_no",
+  "cst_title",
+  "linked_product",
+  "linked_item",
+  "column_break_1",
+  "linked_tender",
+  "linked_tender_item",
+  "customer",
+  "sector",
+  "status_section",
+  "status",
+  "costing_date",
+  "valid_until",
+  "column_break_2",
+  "prepared_by",
+  "approved_by",
+  "approved_date",
+  "components_section",
+  "components",
+  "totals_section",
+  "total_components_cost",
+  "overhead_percent",
+  "overhead_amount",
+  "column_break_3",
+  "tender_other_charges",
+  "profit_percent",
+  "profit_amount",
+  "final_section",
+  "suggested_unit_price",
+  "final_bid_price",
+  "column_break_4",
+  "margin_amount",
+  "margin_percent",
+  "loss_warning",
+  "competitor_section",
+  "competitors",
+  "remarks_section",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "identification_section",
+   "fieldtype": "Section Break",
+   "label": "Cost Sheet Identification"
+  },
+  {
+   "fieldname": "cst_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "CST No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cst_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title / Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "linked_product",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Linked Product",
+   "options": "PEPL Product Master",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "linked_product.linked_item",
+   "fieldname": "linked_item",
+   "fieldtype": "Link",
+   "label": "Linked Item",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "linked_tender",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Linked Tender",
+   "options": "PEPL Tender"
+  },
+  {
+   "fieldname": "linked_tender_item",
+   "fieldtype": "Data",
+   "label": "Linked Tender Item Row",
+   "description": "Row reference within tender"
+  },
+  {
+   "fetch_from": "linked_product.primary_customer",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fetch_from": "linked_product.sector",
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Sector",
+   "options": "\nRailways\nDefence\nPrivate\nOthers",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Status & Validity"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nUnder Review\nApproved\nUsed in Bid\nSuperseded\nObsolete",
+   "default": "Draft",
+   "reqd": 1
+  },
+  {
+   "fieldname": "costing_date",
+   "fieldtype": "Date",
+   "label": "Costing Date",
+   "reqd": 1,
+   "default": "Today"
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Date",
+   "label": "Valid Until",
+   "description": "Rates valid until this date"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Prepared By",
+   "options": "User"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "approved_date",
+   "fieldtype": "Date",
+   "label": "Approved Date"
+  },
+  {
+   "fieldname": "components_section",
+   "fieldtype": "Section Break",
+   "label": "Component Cost Breakdown",
+   "description": "Each row is one component. Use 'Sync Components from Product' button to auto-populate from PEPL Product Master."
+  },
+  {
+   "fieldname": "components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "PEPL CST Component"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Tender-Level Costs"
+  },
+  {
+   "fieldname": "total_components_cost",
+   "fieldtype": "Currency",
+   "label": "Total Components Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overhead_percent",
+   "fieldtype": "Percent",
+   "label": "Overhead %",
+   "default": "10"
+  },
+  {
+   "fieldname": "overhead_amount",
+   "fieldtype": "Currency",
+   "label": "Overhead Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tender_other_charges",
+   "fieldtype": "Currency",
+   "label": "Other Charges (Tender Level)"
+  },
+  {
+   "fieldname": "profit_percent",
+   "fieldtype": "Percent",
+   "label": "Profit %",
+   "default": "12"
+  },
+  {
+   "fieldname": "profit_amount",
+   "fieldtype": "Currency",
+   "label": "Profit Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_section",
+   "fieldtype": "Section Break",
+   "label": "Final Pricing"
+  },
+  {
+   "fieldname": "suggested_unit_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Suggested Unit Price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_bid_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Final Bid Price",
+   "description": "What we actually quote — may differ from suggested"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "margin_amount",
+   "fieldtype": "Currency",
+   "label": "Margin (Bid - Cost)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "margin_percent",
+   "fieldtype": "Percent",
+   "label": "Margin %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "loss_warning",
+   "fieldtype": "HTML",
+   "label": "Loss Warning"
+  },
+  {
+   "fieldname": "competitor_section",
+   "fieldtype": "Section Break",
+   "label": "Competitor History (Financial Tabulation)",
+   "description": "Past tenders for this item — what competitors charged. Helps inform pricing decisions."
+  },
+  {
+   "fieldname": "competitors",
+   "fieldtype": "Table",
+   "label": "Competitor History",
+   "options": "PEPL CST Competitor History"
+  },
+  {
+   "fieldname": "remarks_section",
+   "fieldtype": "Section Break",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Text Editor",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "group": "References",
+   "link_doctype": "PEPL Tender Item",
+   "link_fieldname": "linked_cost_sheet"
+  }
+ ],
+ "modified": "2026-04-29 11:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL CST Cost Sheet",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 0,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Engineering Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_views": 1
+}

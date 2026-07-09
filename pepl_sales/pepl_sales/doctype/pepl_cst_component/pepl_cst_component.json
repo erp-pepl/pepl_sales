@@ -1,0 +1,185 @@
+{
+ "actions": [],
+ "creation": "2026-04-29 11:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "component_section",
+  "manufactured_or_bought_out",
+  "component_item",
+  "component_product",
+  "rm_group",
+  "column_break_1",
+  "quantity_per_assembly",
+  "uom",
+  "component_drawing_no",
+  "cost_section",
+  "raw_material_cost",
+  "machining_cost",
+  "surface_treatment_cost",
+  "column_break_2",
+  "bought_out_cost",
+  "component_other_charges",
+  "component_subtotal",
+  "reference_section",
+  "reference_rate_last_cst",
+  "reference_rate_purchase",
+  "remarks_section",
+  "component_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "component_section",
+   "fieldtype": "Section Break",
+   "label": "Component"
+  },
+  {
+   "fieldname": "manufactured_or_bought_out",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Manufactured\nBought Out",
+   "default": "Manufactured",
+   "reqd": 1
+  },
+  {
+   "fieldname": "component_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "description": "Direct ERPNext Item link"
+  },
+  {
+   "fieldname": "component_product",
+   "fieldtype": "Link",
+   "label": "Product (if Sub-Assembly)",
+   "options": "PEPL Product Master",
+   "description": "Use this if component is itself a PEPL Product"
+  },
+  {
+   "fieldname": "rm_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "RM Group",
+   "options": "PEPL RM Group",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "quantity_per_assembly",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty per Assembly",
+   "default": "1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "default": "Nos"
+  },
+  {
+   "fieldname": "component_drawing_no",
+   "fieldtype": "Data",
+   "label": "Component Drawing No"
+  },
+  {
+   "fieldname": "cost_section",
+   "fieldtype": "Section Break",
+   "label": "Cost Breakdown"
+  },
+  {
+   "depends_on": "eval:doc.manufactured_or_bought_out==\"Manufactured\"",
+   "fieldname": "raw_material_cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Raw Material"
+  },
+  {
+   "depends_on": "eval:doc.manufactured_or_bought_out==\"Manufactured\"",
+   "fieldname": "machining_cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Machining"
+  },
+  {
+   "fieldname": "surface_treatment_cost",
+   "fieldtype": "Currency",
+   "label": "Surface Treatment",
+   "description": "Can apply to both Manufactured and Bought-out items"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.manufactured_or_bought_out==\"Bought Out\"",
+   "fieldname": "bought_out_cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Bought Out Cost"
+  },
+  {
+   "fieldname": "component_other_charges",
+   "fieldtype": "Currency",
+   "label": "Other Charges (Component)"
+  },
+  {
+   "fieldname": "component_subtotal",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Subtotal",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "reference_section",
+   "fieldtype": "Section Break",
+   "label": "Reference Rates"
+  },
+  {
+   "fieldname": "reference_rate_last_cst",
+   "fieldtype": "Currency",
+   "label": "Last CST Rate",
+   "read_only": 1,
+   "description": "From most recent CST for this item"
+  },
+  {
+   "fieldname": "reference_rate_purchase",
+   "fieldtype": "Currency",
+   "label": "Latest Purchase Rate",
+   "read_only": 1,
+   "description": "From ERPNext purchase history"
+  },
+  {
+   "fieldname": "remarks_section",
+   "fieldtype": "Section Break",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "component_remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-29 11:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL CST Component",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

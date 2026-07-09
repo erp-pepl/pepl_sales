@@ -1,0 +1,525 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:TND-{####}-{customer}",
+ "creation": "2026-04-28 17:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identification_section",
+  "tender_no",
+  "nit_number",
+  "tender_title",
+  "column_break_1",
+  "publication_date",
+  "tender_portal_url",
+  "customer_section",
+  "customer",
+  "customer_group",
+  "column_break_2",
+  "sector",
+  "sub_sector",
+  "dates_section",
+  "pre_bid_meeting_date",
+  "bid_submission_deadline",
+  "column_break_3",
+  "bid_opening_date",
+  "decision_date",
+  "emd_section",
+  "bid_securing_declaration",
+  "emd_required",
+  "emd_amount",
+  "emd_mode",
+  "column_break_4",
+  "emd_reference",
+  "emd_submission_date",
+  "emd_expiry",
+  "emd_returned",
+  "emd_return_date",
+  "items_section",
+  "items",
+  "documents_section",
+  "bid_documents",
+  "outcome_section",
+  "status",
+  "bid_decision",
+  "no_bid_reason",
+  "column_break_5",
+  "technical_qualified",
+  "loss_reason",
+  "summary_section",
+  "total_estimated_value",
+  "total_bid_value",
+  "items_won",
+  "column_break_6",
+  "items_lost",
+  "win_rate",
+  "po_section",
+  "customer_po_received",
+  "po_number",
+  "po_date",
+  "po_payment_terms",
+  "po_schedule_section",
+  "po_schedule",
+  "po_amount_received",
+  "so_section",
+  "linked_sales_order",
+  "so_status_display",
+  "remarks_section",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "identification_section",
+   "fieldtype": "Section Break",
+   "label": "Tender Identification"
+  },
+  {
+   "fieldname": "tender_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tender No (Internal)",
+   "read_only": 1,
+   "description": "Auto-generated"
+  },
+  {
+   "fieldname": "nit_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "NIT Number / Tender Reference",
+   "reqd": 1,
+   "description": "Customer's NIT or tender reference number"
+  },
+  {
+   "fieldname": "tender_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tender Title"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "publication_date",
+   "fieldtype": "Date",
+   "label": "Publication Date"
+  },
+  {
+   "fieldname": "tender_portal_url",
+   "fieldtype": "Data",
+   "label": "Tender Portal URL",
+   "description": "Link to source tender posting"
+  },
+  {
+   "fieldname": "customer_section",
+   "fieldtype": "Section Break",
+   "label": "Customer & Sector"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_group",
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "label": "Customer Group",
+   "options": "Customer Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sector",
+   "options": "\nRailways\nDefence\nPrivate\nOthers",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sub_sector",
+   "fieldtype": "Select",
+   "label": "Sub-Sector",
+   "options": "\nRailways - Loco\nRailways - Coaches\nRailways - Zonal\nDefence - MIL\nDefence - YIL\nDefence - AWEIL\nDefence - Private\nPrivate Sector\nPSU\nOther"
+  },
+  {
+   "fieldname": "dates_section",
+   "fieldtype": "Section Break",
+   "label": "Important Dates"
+  },
+  {
+   "fieldname": "pre_bid_meeting_date",
+   "fieldtype": "Datetime",
+   "label": "Pre-Bid Meeting Date"
+  },
+  {
+   "fieldname": "bid_submission_deadline",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Bid Submission Deadline",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bid_opening_date",
+   "fieldtype": "Datetime",
+   "label": "Bid Opening Date"
+  },
+  {
+   "fieldname": "decision_date",
+   "fieldtype": "Date",
+   "label": "Decision Date"
+  },
+  {
+   "fieldname": "emd_section",
+   "fieldtype": "Section Break",
+   "label": "EMD / Bid Securing"
+  },
+  {
+   "fieldname": "bid_securing_declaration",
+   "fieldtype": "Check",
+   "label": "Bid Securing Declaration Submitted",
+   "default": "1",
+   "description": "Default for MSME — alternative to EMD"
+  },
+  {
+   "fieldname": "emd_required",
+   "fieldtype": "Check",
+   "label": "EMD Required",
+   "default": "0"
+  },
+  {
+   "depends_on": "eval:doc.emd_required==1",
+   "fieldname": "emd_amount",
+   "fieldtype": "Currency",
+   "label": "EMD Amount (INR)"
+  },
+  {
+   "depends_on": "eval:doc.emd_required==1",
+   "fieldname": "emd_mode",
+   "fieldtype": "Select",
+   "label": "EMD Mode",
+   "options": "\nDD\nBG\nOnline\nExemption"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.emd_required==1",
+   "fieldname": "emd_reference",
+   "fieldtype": "Data",
+   "label": "EMD Reference Number"
+  },
+  {
+   "depends_on": "eval:doc.emd_required==1",
+   "fieldname": "emd_submission_date",
+   "fieldtype": "Date",
+   "label": "EMD Submission Date"
+  },
+  {
+   "depends_on": "eval:doc.emd_required==1",
+   "fieldname": "emd_expiry",
+   "fieldtype": "Date",
+   "label": "EMD Validity / Expiry"
+  },
+  {
+   "depends_on": "eval:doc.emd_required==1",
+   "fieldname": "emd_returned",
+   "fieldtype": "Check",
+   "label": "EMD Returned",
+   "default": "0"
+  },
+  {
+   "depends_on": "eval:doc.emd_required==1 && doc.emd_returned==1",
+   "fieldname": "emd_return_date",
+   "fieldtype": "Date",
+   "label": "EMD Return Date"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Tender Line Items",
+   "description": "Items being tendered. One NIT may have multiple items."
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "PEPL Tender Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "documents_section",
+   "fieldtype": "Section Break",
+   "label": "Bid Documents",
+   "description": "Documents to attach with bid submission. Use 'Auto-Generate Document Checklist' button to populate based on Vendor Approval Status."
+  },
+  {
+   "fieldname": "bid_documents",
+   "fieldtype": "Table",
+   "label": "Bid Documents",
+   "options": "PEPL Tender Bid Document"
+  },
+  {
+   "fieldname": "outcome_section",
+   "fieldtype": "Section Break",
+   "label": "Status & Outcome"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Active Bid\nSubmitted\nWon\nPartially Won\nOrder Received\nLost\nNo Bid\nCancelled\nRe-tendered",
+   "default": "Active Bid",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bid_decision",
+   "fieldtype": "Select",
+   "label": "Bid Decision",
+   "options": "Bid\nNo Bid",
+   "default": "Bid"
+  },
+  {
+   "depends_on": "eval:doc.bid_decision==\"No Bid\"",
+   "fieldname": "no_bid_reason",
+   "fieldtype": "Small Text",
+   "label": "No Bid Reason",
+   "description": "Why we decided not to bid"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "technical_qualified",
+   "fieldtype": "Select",
+   "label": "Technical Qualification",
+   "options": "\nQualified\nDisqualified\nNot Evaluated"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Lost\"",
+   "fieldname": "loss_reason",
+   "fieldtype": "Select",
+   "label": "Loss Reason",
+   "options": "\nPrice\nTechnical\nDelivery\nRelationship\nVendor Status\nOther"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break",
+   "label": "Summary (Auto-calculated)"
+  },
+  {
+   "fieldname": "total_estimated_value",
+   "fieldtype": "Currency",
+   "label": "Total Estimated Value (INR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_bid_value",
+   "fieldtype": "Currency",
+   "label": "Our Total Bid Value (INR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_won",
+   "fieldtype": "Int",
+   "label": "Items Won",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "items_lost",
+   "fieldtype": "Int",
+   "label": "Items Lost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "win_rate",
+   "fieldtype": "Percent",
+   "label": "Win Rate (%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "po_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Purchase Order",
+   "depends_on": "eval:doc.status==\"Won\" || doc.status==\"Partially Won\" || doc.status==\"Order Received\"",
+   "description": "Once tender is Won, enter Customer's PO/LOA details to enable Sales Order creation"
+  },
+  {
+   "fieldname": "customer_po_received",
+   "fieldtype": "Check",
+   "label": "Customer PO/LOA Received",
+   "default": "0"
+  },
+  {
+   "fieldname": "po_number",
+   "fieldtype": "Data",
+   "label": "Customer PO Number",
+   "depends_on": "eval:doc.customer_po_received==1"
+  },
+  {
+   "fieldname": "po_date",
+   "fieldtype": "Date",
+   "label": "PO Date",
+   "depends_on": "eval:doc.customer_po_received==1"
+  },
+  {
+   "fieldname": "po_payment_terms",
+   "fieldtype": "Link",
+   "label": "Payment Terms",
+   "options": "Payment Terms Template",
+   "depends_on": "eval:doc.customer_po_received==1"
+  },
+  {
+   "fieldname": "po_amount_received",
+   "fieldtype": "Currency",
+   "label": "Total PO Value (INR)",
+   "read_only": 1,
+   "depends_on": "eval:doc.customer_po_received==1",
+   "description": "Auto-calculated: sum of all PO Schedule line totals"
+  },
+  {
+   "fieldname": "po_schedule_section",
+   "fieldtype": "Section Break",
+   "label": "PO Schedule (Sl. No. wise delivery batches)",
+   "depends_on": "eval:doc.customer_po_received==1",
+   "description": "Add one row per delivery batch. Same item can be added multiple times with different delivery dates and quantities."
+  },
+  {
+   "fieldname": "po_schedule",
+   "fieldtype": "Table",
+   "label": "PO Schedule",
+   "options": "PEPL Tender PO Schedule",
+   "depends_on": "eval:doc.customer_po_received==1"
+  },
+  {
+   "fieldname": "so_section",
+   "fieldtype": "Section Break",
+   "label": "Sales Order",
+   "depends_on": "eval:doc.linked_sales_order"
+  },
+  {
+   "fieldname": "linked_sales_order",
+   "fieldtype": "Link",
+   "label": "Linked Sales Order",
+   "options": "Sales Order",
+   "read_only": 1,
+   "description": "Auto-created via 'Create Sales Order' button"
+  },
+  {
+   "fieldname": "so_status_display",
+   "fieldtype": "Data",
+   "label": "SO Status",
+   "read_only": 1,
+   "fetch_from": "linked_sales_order.status"
+  },
+  {
+   "fieldname": "remarks_section",
+   "fieldtype": "Section Break",
+   "label": "Notes & Remarks"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Text Editor",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-28 17:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Tender",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 0,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Engineering Manager"
+  },
+  {
+   "email": 0,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Engineering User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_views": 1
+}

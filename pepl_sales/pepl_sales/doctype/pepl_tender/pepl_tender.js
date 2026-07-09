@@ -1,0 +1,238 @@
+frappe.ui.form.on("PEPL Tender", {
+	refresh(frm) {
+		const status_colors = {
+			"Active Bid": "blue",
+			"Submitted": "yellow",
+			"Won": "green",
+			"Partially Won": "green",
+			"Order Received": "purple",
+			"Lost": "red",
+			"No Bid": "grey",
+			"Cancelled": "grey",
+			"Re-tendered": "orange"
+		};
+		if (frm.doc.status) {
+			frm.page.set_indicator(frm.doc.status, status_colors[frm.doc.status]);
+		}
+
+		// Deadline urgency indicator
+		if (frm.doc.bid_submission_deadline && frm.doc.status === "Active Bid") {
+			const deadline = frappe.datetime.str_to_obj(frm.doc.bid_submission_deadline);
+			const now = new Date();
+			const days_left = Math.floor((deadline - now) / (1000 * 60 * 60 * 24));
+
+			if (days_left < 0) {
+				frm.dashboard.add_indicator(__("DEADLINE PASSED"), "red");
+			} else if (days_left <= 1) {
+				frm.dashboard.add_indicator(__("Deadline in {0} day(s)", [days_left]), "red");
+			} else if (days_left <= 3) {
+				frm.dashboard.add_indicator(__("Deadline in {0} days", [days_left]), "orange");
+			} else if (days_left <= 7) {
+				frm.dashboard.add_indicator(__("Deadline in {0} days", [days_left]), "yellow");
+			}
+		}
+
+		// Auto-Generate Document Checklist button
+		if (!frm.is_new() && frm.doc.items && frm.doc.items.length > 0) {
+			frm.add_custom_button(__("Auto-Generate Document Checklist"), function() {
+				frappe.call({
+					method: "pepl_sales.pepl_sales.doctype.pepl_tender.pepl_tender.auto_populate_bid_documents",
+					args: { tender_name: frm.doc.name },
+					callback: function(r) {
+						if (r.message) {
+							frappe.show_alert({
+								message: __("Added {0} required documents to checklist (total {1})",
+									[r.message.added, r.message.total_required]),
+								indicator: "green"
+							});
+							frm.reload_doc();
+						}
+					}
+				});
+			}, __("Documents"));
+		}
+
+		// RED warning dashboard indicator for PO Schedule items not in Won list
+		if (frm.doc.po_schedule && frm.doc.po_schedule.length > 0) {
+			const invalid_items = frm.doc.po_schedule.filter(s =>
+				s.item && s.is_in_won_list === 0
+			);
+
+			if (invalid_items.length > 0) {
+				const item_names = [...new Set(invalid_items.map(s => s.item))].join(", ");
+				frm.dashboard.add_indicator(
+					__("\u26a0 {0} PO Schedule item(s) NOT in Won list: {1}",
+						[invalid_items.length, item_names]),
+					"red"
+				);
+			}
+		}
+
+		// Create Sales Order button — uses PO Schedule lines
+		const can_create_so = !frm.is_new()
+			&& (frm.doc.status === "Won" || frm.doc.status === "Partially Won")
+			&& frm.doc.customer_po_received === 1
+			&& frm.doc.po_number
+			&& frm.doc.po_schedule
+			&& frm.doc.po_schedule.length > 0
+			&& !frm.doc.linked_sales_order;
+
+		if (can_create_so) {
+			frm.add_custom_button(__("Create Sales Order"), function() {
+				const lines_count = (frm.doc.po_schedule || []).length;
+
+				frappe.confirm(
+					__("Create Sales Order with {0} delivery lines? Each PO Schedule line becomes a separate SO line item with its own delivery date. You can edit values in the Sales Order before submitting.", [lines_count]),
+					function() {
+						frappe.call({
+							method: "pepl_sales.pepl_sales.doctype.pepl_tender.pepl_tender.create_sales_order_from_tender",
+							args: { tender_name: frm.doc.name },
+							freeze: true,
+							freeze_message: __("Creating Sales Order..."),
+							callback: function(r) {
+								if (r.message) {
+									frappe.show_alert({
+										message: __("Sales Order {0} created with {1} delivery line(s)",
+											[r.message.sales_order, r.message.lines_added]),
+										indicator: "green"
+									});
+									setTimeout(() => {
+										frappe.set_route("Form", "Sales Order", r.message.sales_order);
+									}, 1500);
+								}
+							}
+						});
+					}
+				);
+			}, __("Order")).addClass("btn-primary");
+		}
+
+		// If SO already linked — View Sales Order button + indicator
+		if (frm.doc.linked_sales_order) {
+			frm.add_custom_button(__("View Sales Order"), function() {
+				frappe.set_route("Form", "Sales Order", frm.doc.linked_sales_order);
+			}, __("Order"));
+
+			frm.dashboard.add_indicator(
+				__("Order Received: {0}", [frm.doc.linked_sales_order]),
+				"purple"
+			);
+		}
+
+		// Financial summary in dashboard
+		if (!frm.is_new() && frm.doc.total_estimated_value) {
+			const win_info = frm.doc.win_rate ? ` | Win Rate: ${frm.doc.win_rate.toFixed(1)}%` : "";
+			const est = frappe.format(frm.doc.total_estimated_value, { fieldtype: "Currency" });
+			const bid = frappe.format(frm.doc.total_bid_value || 0, { fieldtype: "Currency" });
+			frm.dashboard.add_comment(
+				`Est: \u20b9${est} | Bid: \u20b9${bid}${win_info}`,
+				"blue",
+				true
+			);
+		}
+	},
+
+	customer(frm) {
+		if (frm.doc.customer) {
+			frappe.db.get_value("Customer", frm.doc.customer, "customer_group", (r) => {
+				if (r && r.customer_group) {
+					frm.set_value("customer_group", r.customer_group);
+
+					if (r.customer_group.includes("Railways")) {
+						frm.set_value("sector", "Railways");
+					} else if (r.customer_group.includes("Defence")) {
+						frm.set_value("sector", "Defence");
+					} else if (r.customer_group.includes("Private")) {
+						frm.set_value("sector", "Private");
+					}
+
+					frm.set_value("sub_sector", r.customer_group);
+				}
+			});
+		}
+	},
+
+	bid_securing_declaration(frm) {
+		if (frm.doc.bid_securing_declaration) {
+			frm.set_value("emd_required", 0);
+		}
+	},
+
+	emd_required(frm) {
+		if (frm.doc.emd_required) {
+			frm.set_value("bid_securing_declaration", 0);
+		}
+	},
+
+	customer_po_received(frm) {
+		if (frm.doc.customer_po_received && !frm.doc.po_date) {
+			frm.set_value("po_date", frappe.datetime.get_today());
+		}
+	}
+});
+
+frappe.ui.form.on("PEPL Tender Item", {
+	quantity(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.quantity && row.estimated_unit_price) {
+			frappe.model.set_value(cdt, cdn, "estimated_total_value",
+				row.quantity * row.estimated_unit_price);
+		}
+		if (row.quantity && row.our_bid_unit_price) {
+			frappe.model.set_value(cdt, cdn, "our_bid_total_value",
+				row.quantity * row.our_bid_unit_price);
+		}
+	},
+
+	estimated_unit_price(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.quantity && row.estimated_unit_price) {
+			frappe.model.set_value(cdt, cdn, "estimated_total_value",
+				row.quantity * row.estimated_unit_price);
+		}
+	},
+
+	our_bid_unit_price(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.quantity && row.our_bid_unit_price) {
+			frappe.model.set_value(cdt, cdn, "our_bid_total_value",
+				row.quantity * row.our_bid_unit_price);
+		}
+	}
+});
+
+// PO Schedule child table — real-time recalc + item-in-won-list warning
+frappe.ui.form.on("PEPL Tender PO Schedule", {
+	item(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (!row.item) return;
+
+		// Warn if item is not in the Won items list
+		const won_items = (frm.doc.items || [])
+			.filter(i => i.outcome === "Won")
+			.map(i => i.item);
+
+		if (won_items.length > 0 && !won_items.includes(row.item)) {
+			frappe.show_alert({
+				message: __("\u26a0 Warning: Item {0} is NOT in the Won items list of this tender. Please verify.", [row.item]),
+				indicator: "red"
+			}, 6);
+		}
+	},
+
+	po_quantity(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.po_quantity && row.po_rate) {
+			frappe.model.set_value(cdt, cdn, "po_total",
+				row.po_quantity * row.po_rate);
+		}
+	},
+
+	po_rate(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.po_quantity && row.po_rate) {
+			frappe.model.set_value(cdt, cdn, "po_total",
+				row.po_quantity * row.po_rate);
+		}
+	}
+});

@@ -1,0 +1,207 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:VAS-{item}-{sector}",
+ "creation": "2026-04-25 12:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_section",
+  "item",
+  "pl_no",
+  "drawing_no",
+  "drawing_rev",
+  "column_break_1",
+  "item_description",
+  "sector_section",
+  "sector",
+  "column_break_2",
+  "railways_stage",
+  "defence_stage",
+  "approval_section",
+  "approval_date",
+  "approval_reference",
+  "column_break_3",
+  "approving_authority",
+  "next_review_date",
+  "documents_section",
+  "vendor_approval_documents",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_section",
+   "fieldtype": "Section Break",
+   "label": "Item Details"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pl_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "PL Number",
+   "description": "Auto-fetched on save from Item custom fields"
+  },
+  {
+   "fieldname": "drawing_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Drawing Number",
+   "description": "Auto-fetched on save from Item custom fields"
+  },
+  {
+   "fieldname": "drawing_rev",
+   "fieldtype": "Data",
+   "label": "Drawing Revision",
+   "description": "Auto-fetched on save from Item custom fields"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "item.item_name",
+   "fieldname": "item_description",
+   "fieldtype": "Data",
+   "label": "Item Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sector_section",
+   "fieldtype": "Section Break",
+   "label": "Sector & Approval Stage"
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Sector",
+   "options": "Railways\nDefence",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.sector==\"Railways\"",
+   "fieldname": "railways_stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Railways Approval Stage",
+   "options": "\nUnapproved\nDevelopmental\nApproved"
+  },
+  {
+   "depends_on": "eval:doc.sector==\"Defence\"",
+   "fieldname": "defence_stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Defence Approval Stage",
+   "options": "\nSource Development\nApproved / Established"
+  },
+  {
+   "fieldname": "approval_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Details"
+  },
+  {
+   "fieldname": "approval_date",
+   "fieldtype": "Date",
+   "label": "Approval Date"
+  },
+  {
+   "fieldname": "approval_reference",
+   "fieldtype": "Data",
+   "label": "Approval Certificate / Reference Number"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approving_authority",
+   "fieldtype": "Data",
+   "label": "Approving Authority"
+  },
+  {
+   "fieldname": "next_review_date",
+   "fieldtype": "Date",
+   "label": "Next Review / Renewal Date"
+  },
+  {
+   "fieldname": "documents_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Documents"
+  },
+  {
+   "fieldname": "vendor_approval_documents",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "Vendor Approval Document"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-25 12:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "Vendor Approval Status",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_views": 1
+}

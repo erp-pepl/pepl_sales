@@ -1,0 +1,188 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "Prompt",
+ "creation": "2026-04-28 16:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "document_section",
+  "document_type",
+  "document_type_other",
+  "column_break_1",
+  "category",
+  "is_active",
+  "current_version_section",
+  "current_version_file",
+  "current_version_number",
+  "column_break_2",
+  "current_issue_date",
+  "current_expiry_date",
+  "current_reference_no",
+  "version_history_section",
+  "versions",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_section",
+   "fieldtype": "Section Break",
+   "label": "Document Identification"
+  },
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Document Type",
+   "options": "\nUdyam Aadhaar\nMSME Certificate (SSI)\nGST Certificate\nPAN Card\nIncorporation Certificate\nFactory License\nTrade License\nElectricity Certificate / Connection\nRent Agreement / Lease Deed\nPollution Certificate (CTE/CTO)\nCentralised Vendor Registration Certificate\nBank Statement\nPlant and Machinery List\nInstruments and Testing Facilities List\nISO 9001:2015 Certificate\nISO 14001 Certificate\nISO 45001 Certificate\nAS9100D Certificate\nIATF 16949 Certificate\nIRIS Certificate\nIncome Tax Return Acknowledgement\nBalance Sheet\nAudited Financials\nOther",
+   "reqd": 1,
+   "unique": 0
+  },
+  {
+   "depends_on": "eval:doc.document_type==\"Other\"",
+   "fieldname": "document_type_other",
+   "fieldtype": "Data",
+   "label": "Specify Document Type (if Other)",
+   "description": "If document type is 'Other', specify what this document is"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Category",
+   "options": "Statutory\nQuality Certification\nCompany Records\nFinancial\nOther",
+   "description": "For grouping in reports"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "description": "Untick if this document is no longer relevant (e.g., expired ISO cert not renewed)"
+  },
+  {
+   "fieldname": "current_version_section",
+   "fieldtype": "Section Break",
+   "label": "Current Version (Auto-populated from latest)"
+  },
+  {
+   "fieldname": "current_version_file",
+   "fieldtype": "Attach",
+   "label": "Current File",
+   "read_only": 1,
+   "description": "Auto-fetched from the version marked 'Current' in version history below"
+  },
+  {
+   "fieldname": "current_version_number",
+   "fieldtype": "Data",
+   "label": "Current Version Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "current_issue_date",
+   "fieldtype": "Date",
+   "label": "Current Issue Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_expiry_date",
+   "fieldtype": "Date",
+   "label": "Current Expiry Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_reference_no",
+   "fieldtype": "Data",
+   "label": "Current Reference Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "version_history_section",
+   "fieldtype": "Section Break",
+   "label": "Version History",
+   "description": "Add a new row each time the document is renewed/updated. Tick 'Current Version' on the latest one."
+  },
+  {
+   "fieldname": "versions",
+   "fieldtype": "Table",
+   "label": "Versions",
+   "options": "PEPL Company Document Version",
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-28 16:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Company Document",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_views": 1
+}

@@ -1,0 +1,105 @@
+{
+ "creation": "2026-05-20 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enable_heat_consumption_tracking",
+  "oee_planned_time_excludes_pm",
+  "col_break_1",
+  "cycle_deviation_threshold_high",
+  "cycle_deviation_threshold_low",
+  "csm_reconciliation_tolerance_kg",
+  "section_break_gates",
+  "dn_material_gate_mode",
+  "skill_check_mode",
+  "col_break_2",
+  "standup_email_group"
+ ],
+ "fields": [
+  {
+   "fieldname": "enable_heat_consumption_tracking",
+   "fieldtype": "Check",
+   "label": "Enable Heat Consumption Tracking",
+   "default": "0"
+  },
+  {
+   "fieldname": "oee_planned_time_excludes_pm",
+   "fieldtype": "Check",
+   "label": "OEE: Exclude PM/Calibration from Planned Time",
+   "default": "1"
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cycle_deviation_threshold_high",
+   "fieldtype": "Float",
+   "label": "Cycle Deviation Threshold High",
+   "default": "1.2",
+   "description": "Flag if actual cycle > std × this multiplier"
+  },
+  {
+   "fieldname": "cycle_deviation_threshold_low",
+   "fieldtype": "Float",
+   "label": "Cycle Deviation Threshold Low",
+   "default": "0.8",
+   "description": "Flag if actual cycle < std × this multiplier"
+  },
+  {
+   "fieldname": "csm_reconciliation_tolerance_kg",
+   "fieldtype": "Float",
+   "label": "CSM Reconciliation Tolerance (kg)",
+   "default": "0.5"
+  },
+  {
+   "fieldname": "section_break_gates",
+   "fieldtype": "Section Break",
+   "label": "Gate Modes"
+  },
+  {
+   "fieldname": "dn_material_gate_mode",
+   "fieldtype": "Select",
+   "label": "Delivery Note Material Gate Mode",
+   "options": "Off\nWarn at Validate, Block at Submit\nHard Block",
+   "default": "Warn at Validate, Block at Submit"
+  },
+  {
+   "fieldname": "skill_check_mode",
+   "fieldtype": "Select",
+   "label": "Operator Skill Check Mode",
+   "options": "Advisory\nSoft Block\nHard Block",
+   "default": "Soft Block"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "standup_email_group",
+   "fieldtype": "Link",
+   "label": "Standup Email Group",
+   "options": "Email Group"
+  }
+ ],
+ "issingle": 1,
+ "istable": 0,
+ "modified": "2026-05-20 00:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL System Parameters",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1
+  },
+  {
+   "role": "Manufacturing Manager",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
