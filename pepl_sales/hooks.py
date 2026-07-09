@@ -247,3 +247,14 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+doc_events = {
+    "Sales Order": {
+        "on_submit": [
+            "pepl_sales.pepl_sales.doctype.pepl_psd_tracker.pepl_psd_tracker.create_psd_tracker_for_so",
+            "pepl_sales.pepl_sales.doctype.pepl_document_tracker.pepl_document_tracker.create_doc_tracker_for_so"
+        ]
+    },
+    "Sales Invoice": {
+        "on_submit": "pepl_sales.pepl_sales.doctype.pepl_payment_tracker.pepl_payment_tracker.create_payment_tracker_for_invoice"
+    }
+}
