@@ -258,3 +258,9 @@ doc_events = {
         "on_submit": "pepl_sales.pepl_sales.doctype.pepl_payment_tracker.pepl_payment_tracker.create_payment_tracker_for_invoice"
     }
 }
+
+scheduler_events = {
+    "daily": [
+        "pepl_sales.pepl_sales.api.payment_tracker_jobs.update_all_payment_trackers_daily"
+    ]
+}
