@@ -37,6 +37,33 @@ def create_doc_tracker_for_so(sales_order_name, source_tender=None):
         "source": "Auto-Generated"
     })
 
+    # Add sector-specific payment-critical document rows
+    sector = "Others"
+    if so.customer:
+        cg = frappe.db.get_value("Customer", so.customer, "customer_group") or ""
+        if "Railway" in cg:
+            sector = "Railways"
+        elif "Defence" in cg:
+            sector = "Defence"
+        elif "Private" in cg:
+            sector = "Private"
+
+    if sector == "Railways":
+        required_docs = ["R-Note", "CO7", "JCC"]
+    elif sector == "Defence":
+        required_docs = ["I-Note", "JCC"]
+    else:
+        required_docs = ["JCC"]
+
+    for doc_type in required_docs:
+        tracker.append("document_entries", {
+            "document_type": doc_type,
+            "description": f"{doc_type} — Required for payment",
+            "direction": "Inbound (from Customer)",
+            "document_status": "Pending",
+            "source": "Auto-Generated"
+        })
+
     if source_tender:
         try:
             tender = frappe.get_doc("PEPL Tender", source_tender)
