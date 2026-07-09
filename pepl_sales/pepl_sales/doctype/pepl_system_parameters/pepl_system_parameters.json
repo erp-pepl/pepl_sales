@@ -37,14 +37,14 @@
    "fieldtype": "Float",
    "label": "Cycle Deviation Threshold High",
    "default": "1.2",
-   "description": "Flag if actual cycle > std × this multiplier"
+   "description": "Flag if actual cycle > std \u00d7 this multiplier"
   },
   {
    "fieldname": "cycle_deviation_threshold_low",
    "fieldtype": "Float",
    "label": "Cycle Deviation Threshold Low",
    "default": "0.8",
-   "description": "Flag if actual cycle < std × this multiplier"
+   "description": "Flag if actual cycle < std \u00d7 this multiplier"
   },
   {
    "fieldname": "csm_reconciliation_tolerance_kg",
@@ -80,6 +80,45 @@
    "fieldtype": "Link",
    "label": "Standup Email Group",
    "options": "Email Group"
+  },
+  {
+   "fieldname": "section_sales",
+   "fieldtype": "Section Break",
+   "label": "Sales & Payment Parameters"
+  },
+  {
+   "fieldname": "psd_default_percent",
+   "fieldtype": "Float",
+   "label": "PSD Default % (of order value)",
+   "default": "5.0"
+  },
+  {
+   "fieldname": "psd_expiry_alert_days",
+   "fieldtype": "Int",
+   "label": "PSD Expiry Alert Days",
+   "default": "30"
+  },
+  {
+   "fieldname": "col_break_sales",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "margin_floor_percent",
+   "fieldtype": "Float",
+   "label": "Minimum Margin Floor (%)",
+   "default": "15.0"
+  },
+  {
+   "fieldname": "payment_ageing_amber_days",
+   "fieldtype": "Int",
+   "label": "Payment Ageing Amber Days",
+   "default": "60"
+  },
+  {
+   "fieldname": "payment_ageing_red_days",
+   "fieldtype": "Int",
+   "label": "Payment Ageing Red Days",
+   "default": "90"
   }
  ],
  "issingle": 1,
@@ -92,7 +131,8 @@
  "permissions": [
   {
    "role": "System Manager",
-   "read": 1, "write": 1
+   "read": 1,
+   "write": 1
   },
   {
    "role": "Manufacturing Manager",
