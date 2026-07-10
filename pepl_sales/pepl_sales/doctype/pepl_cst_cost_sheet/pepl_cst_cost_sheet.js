@@ -93,3 +93,94 @@ function calculate_subtotal(frm, cdt, cdn) {
 
 	frappe.model.set_value(cdt, cdn, "component_subtotal", subtotal);
 }
+
+
+// Permanent app-level replacement for earlier PEPL Cost Sheet Client Script
+frappe.ui.form.on("PEPL CST Cost Sheet", {
+        linked_tender(frm) {
+                if (!frm.doc.linked_tender) return;
+
+                frappe.db.get_doc("PEPL Tender", frm.doc.linked_tender).then(tender => {
+                        frm.set_value("customer", tender.customer);
+                        frm.set_value("sector", tender.sector);
+
+                        if (tender.items && tender.items.length) {
+                                const first_item = tender.items[0];
+
+                                if (first_item.item) {
+                                        frm.set_value("linked_item", first_item.item);
+                                }
+
+                                if (first_item.item_name && !frm.doc.cst_title) {
+                                        frm.set_value("cst_title", `${tender.tender_title || tender.name} - ${first_item.item_name}`);
+                                }
+                        }
+
+                        frappe.show_alert({
+                                message: __("Tender details copied to Cost Sheet"),
+                                indicator: "green"
+                        });
+                });
+        },
+
+        overhead_percent(frm) {
+                calculate_cst_totals(frm);
+        },
+
+        profit_percent(frm) {
+                calculate_cst_totals(frm);
+        },
+
+        tender_other_charges(frm) {
+                calculate_cst_totals(frm);
+        }
+});
+
+frappe.ui.form.on("PEPL CST Component", {
+        components_remove(frm) {
+                calculate_cst_totals(frm);
+        }
+});
+
+function calculate_cst_totals(frm) {
+        let total_components_cost = 0;
+
+        (frm.doc.components || []).forEach(row => {
+                let subtotal = 0;
+
+                if (row.manufactured_or_bought_out === "Manufactured") {
+                        subtotal = flt(row.raw_material_cost)
+                                + flt(row.machining_cost)
+                                + flt(row.surface_treatment_cost)
+                                + flt(row.component_other_charges);
+                } else {
+                        subtotal = flt(row.bought_out_cost)
+                                + flt(row.surface_treatment_cost)
+                                + flt(row.component_other_charges);
+                }
+
+                row.component_subtotal = subtotal;
+                total_components_cost += subtotal;
+        });
+
+        const overhead_amount = total_components_cost * flt(frm.doc.overhead_percent) / 100;
+        const cost_before_profit = total_components_cost + overhead_amount + flt(frm.doc.tender_other_charges);
+        const profit_amount = cost_before_profit * flt(frm.doc.profit_percent) / 100;
+        const suggested_unit_price = cost_before_profit + profit_amount;
+
+        frm.set_value("total_components_cost", total_components_cost);
+        frm.set_value("overhead_amount", overhead_amount);
+        frm.set_value("profit_amount", profit_amount);
+        frm.set_value("suggested_unit_price", suggested_unit_price);
+
+        if (frm.doc.final_bid_price) {
+                const total_cost = total_components_cost + overhead_amount + flt(frm.doc.tender_other_charges);
+                const margin_amount = flt(frm.doc.final_bid_price) - total_cost;
+                const margin_percent = frm.doc.final_bid_price ? (margin_amount / flt(frm.doc.final_bid_price)) * 100 : 0;
+
+                frm.set_value("margin_amount", margin_amount);
+                frm.set_value("margin_percent", margin_percent);
+        }
+
+        frm.refresh_field("components");
+}

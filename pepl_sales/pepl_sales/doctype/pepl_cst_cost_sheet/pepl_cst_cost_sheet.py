@@ -15,6 +15,23 @@ class PEPLCSTCostSheet(Document):
             for comp in self.components:
                 self._fetch_reference_rates(comp)
 
+    def after_save(self):
+        self.link_cost_sheet_to_tender()
+
+    def link_cost_sheet_to_tender(self):
+        if not self.linked_tender:
+            return
+
+        tender = frappe.get_doc("PEPL Tender", self.linked_tender)
+
+        if hasattr(tender, "linked_cost_sheet"):
+            tender.linked_cost_sheet = self.name
+
+        if hasattr(tender, "status"):
+            tender.status = "Costed"
+
+        tender.save(ignore_permissions=True)
+
     def validate(self):
         for comp in self.components:
             if comp.manufactured_or_bought_out == "Manufactured":
