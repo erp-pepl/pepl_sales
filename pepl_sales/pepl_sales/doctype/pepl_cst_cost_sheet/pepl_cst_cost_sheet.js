@@ -91,36 +91,73 @@ function calculate_subtotal(frm, cdt, cdn) {
 			+ (row.component_other_charges || 0);
 	}
 
-	frappe.model.set_value(cdt, cdn, "component_subtotal", subtotal);
+	frappe.model
+        .set_value(cdt, cdn, "component_subtotal", subtotal)
+        .then(() => {
+            calculate_cst_totals(frm);
+        });
 }
 
 
 // Permanent app-level replacement for earlier PEPL Cost Sheet Client Script
 frappe.ui.form.on("PEPL CST Cost Sheet", {
-        linked_tender(frm) {
+        async linked_tender(frm) {
                 if (!frm.doc.linked_tender) return;
 
-                frappe.db.get_doc("PEPL Tender", frm.doc.linked_tender).then(tender => {
-                        frm.set_value("customer", tender.customer);
-                        frm.set_value("sector", tender.sector);
+                try {
+                        const tender = await frappe.db.get_doc(
+                                "PEPL Tender",
+                                frm.doc.linked_tender
+                        );
+
+                        await frm.set_value("customer", tender.customer);
+                        await frm.set_value("sector", tender.sector);
 
                         if (tender.items && tender.items.length) {
                                 const first_item = tender.items[0];
 
-                                if (first_item.item) {
-                                        frm.set_value("linked_item", first_item.item);
-                                }
+                                await frm.set_value(
+                                        "linked_tender_item",
+                                        first_item.name
+                                );
 
-                                if (first_item.item_name && !frm.doc.cst_title) {
-                                        frm.set_value("cst_title", `${tender.tender_title || tender.name} - ${first_item.item_name}`);
+                                if (first_item.item) {
+                                        await frm.set_value(
+                                                "linked_item",
+                                                first_item.item
+                                        );
+
+                                        if (!frm.doc.cst_title) {
+                                                const item_result =
+                                                        await frappe.db.get_value(
+                                                                "Item",
+                                                                first_item.item,
+                                                                "item_name"
+                                                        );
+
+                                                const item_name =
+                                                        item_result.message?.item_name
+                                                        || first_item.item;
+
+                                                await frm.set_value(
+                                                        "cst_title",
+                                                        `${tender.tender_title || tender.name} - ${item_name}`
+                                                );
+                                        }
                                 }
                         }
 
                         frappe.show_alert({
-                                message: __("Tender details copied to Cost Sheet"),
+                                message: __(
+                                        "Tender details copied to Cost Sheet"
+                                ),
                                 indicator: "green"
                         });
-                });
+                } catch (error) {
+                        frappe.msgprint(
+                                __("Unable to load the selected Tender.")
+                        );
+                }
         },
 
         overhead_percent(frm) {
@@ -183,4 +220,182 @@ function calculate_cst_totals(frm) {
         }
 
         frm.refresh_field("components");
+}
+
+frappe.ui.form.on("PEPL CST Cost Sheet", {
+    refresh(frm) {
+        if (frm.is_new()) {
+            return;
+        }
+
+        frm.add_custom_button(
+            __("Clone for New Tender"),
+            function () {
+                open_clone_for_new_tender_dialog(frm);
+            },
+            __("Actions")
+        );
+    }
+});
+
+
+function open_clone_for_new_tender_dialog(frm) {
+    const tender_item_map = {};
+
+    const dialog = new frappe.ui.Dialog({
+        title: __("Clone Cost Sheet for New Tender"),
+
+        fields: [
+            {
+                label: __("New Tender"),
+                fieldname: "new_tender",
+                fieldtype: "Link",
+                options: "PEPL Tender",
+                reqd: 1,
+
+                onchange() {
+                    const tender_name = dialog.get_value("new_tender");
+                    const tender_item_field = dialog.get_field("tender_item");
+
+                    Object.keys(tender_item_map).forEach(key => {
+                        delete tender_item_map[key];
+                    });
+
+                    tender_item_field.df.options = "";
+                    tender_item_field.refresh();
+
+                    if (!tender_name) {
+                        return;
+                    }
+
+                    frappe.db
+                        .get_doc("PEPL Tender", tender_name)
+                        .then(tender => {
+                            const tender_items = tender.items || [];
+
+                            if (!tender_items.length) {
+                                frappe.msgprint(
+                                    __("The selected Tender has no items.")
+                                );
+                                return;
+                            }
+
+                            const options = tender_items.map(row => {
+                                const label = [
+                                    row.item || __("Item"),
+                                    row.quantity
+                                        ? __("Qty: {0}", [row.quantity])
+                                        : null,
+                                    row.uom || null
+                                ]
+                                    .filter(Boolean)
+                                    .join(" — ");
+
+                                tender_item_map[label] = row.name;
+
+                                return label;
+                            });
+
+                            tender_item_field.df.options = options.join("\n");
+                            tender_item_field.refresh();
+
+                            if (options.length === 1) {
+                                dialog.set_value(
+                                    "tender_item",
+                                    options[0]
+                                );
+                            }
+                        })
+                        .catch(() => {
+                            frappe.msgprint(
+                                __("Unable to load Tender Items.")
+                            );
+                        });
+                }
+            },
+
+            {
+                label: __("Tender Item"),
+                fieldname: "tender_item",
+                fieldtype: "Select",
+                options: "",
+                reqd: 1,
+                description: __(
+                    "Select the Tender Item for the cloned Cost Sheet."
+                )
+            }
+        ],
+
+        primary_action_label: __("Clone Cost Sheet"),
+
+        primary_action(values) {
+            if (!values.new_tender) {
+                frappe.msgprint(__("Please select a Tender."));
+                return;
+            }
+
+            if (!values.tender_item) {
+                frappe.msgprint(__("Please select a Tender Item."));
+                return;
+            }
+
+            const tender_item_name =
+                tender_item_map[values.tender_item];
+
+            if (!tender_item_name) {
+                frappe.msgprint(
+                    __("Unable to identify the selected Tender Item.")
+                );
+                return;
+            }
+
+            dialog.disable_primary_action();
+
+            frappe.call({
+                method: "pepl_sales.pepl_sales.doctype.pepl_cst_cost_sheet.pepl_cst_cost_sheet.clone_cost_sheet_for_new_tender",
+
+                args: {
+                    cst_name: frm.doc.name,
+                    new_tender: values.new_tender,
+                    tender_item: tender_item_name
+                },
+
+                freeze: true,
+                freeze_message: __("Cloning Cost Sheet..."),
+
+                callback(r) {
+                    dialog.enable_primary_action();
+
+                    if (!r.message || !r.message.cost_sheet) {
+                        frappe.msgprint(
+                            __("Cost Sheet could not be created.")
+                        );
+                        return;
+                    }
+
+                    dialog.hide();
+
+                    frappe.show_alert({
+                        message: __(
+                            "New Cost Sheet {0} created successfully.",
+                            [r.message.cost_sheet]
+                        ),
+                        indicator: "green"
+                    });
+
+                    frappe.set_route(
+                        "Form",
+                        "PEPL CST Cost Sheet",
+                        r.message.cost_sheet
+                    );
+                },
+
+                error() {
+                    dialog.enable_primary_action();
+                }
+            });
+        }
+    });
+
+    dialog.show();
 }
