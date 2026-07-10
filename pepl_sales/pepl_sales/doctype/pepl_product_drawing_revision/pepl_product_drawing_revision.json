@@ -1,0 +1,95 @@
+{
+ "actions": [],
+ "creation": "2026-04-29 10:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "revision",
+  "issue_date",
+  "is_current",
+  "drawing_file",
+  "issued_by",
+  "customer_approved",
+  "customer_approval_date",
+  "change_description",
+  "supersedes_revision",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "revision",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Revision",
+   "reqd": 1,
+   "description": "A, B, C, 0, 1, 2, etc."
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Issue Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "is_current",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Current",
+   "default": "0"
+  },
+  {
+   "fieldname": "drawing_file",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Drawing File",
+   "reqd": 1
+  },
+  {
+   "fieldname": "issued_by",
+   "fieldtype": "Data",
+   "label": "Issued By"
+  },
+  {
+   "fieldname": "customer_approved",
+   "fieldtype": "Check",
+   "label": "Customer Approved",
+   "default": "0"
+  },
+  {
+   "fieldname": "customer_approval_date",
+   "fieldtype": "Date",
+   "label": "Customer Approval Date",
+   "depends_on": "eval:doc.customer_approved==1"
+  },
+  {
+   "fieldname": "change_description",
+   "fieldtype": "Small Text",
+   "label": "What Changed"
+  },
+  {
+   "fieldname": "supersedes_revision",
+   "fieldtype": "Data",
+   "label": "Supersedes Revision"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-29 10:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Product Drawing Revision",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "issue_date",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

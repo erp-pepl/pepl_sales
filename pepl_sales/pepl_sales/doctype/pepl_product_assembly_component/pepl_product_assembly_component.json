@@ -1,0 +1,91 @@
+{
+ "actions": [],
+ "creation": "2026-04-29 10:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "component_type",
+  "component_product",
+  "component_item",
+  "component_drawing_no",
+  "quantity",
+  "uom",
+  "is_critical",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "component_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Component Type",
+   "options": "Sub-Assembly (PEPL Product)\nSimple Component (Item only)",
+   "default": "Simple Component (Item only)",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.component_type==\"Sub-Assembly (PEPL Product)\"",
+   "fieldname": "component_product",
+   "fieldtype": "Link",
+   "label": "Sub-Assembly Product",
+   "options": "PEPL Product Master",
+   "description": "Pick if this component is itself a PEPL Product (sub-assembly)"
+  },
+  {
+   "depends_on": "eval:doc.component_type==\"Simple Component (Item only)\"",
+   "fieldname": "component_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Component Item",
+   "options": "Item",
+   "description": "Pick if this component is a simple item"
+  },
+  {
+   "fieldname": "component_drawing_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Component Drawing No"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty per Assembly",
+   "default": "1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "default": "Nos"
+  },
+  {
+   "fieldname": "is_critical",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Critical",
+   "default": "0"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-29 10:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL Product Assembly Component",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

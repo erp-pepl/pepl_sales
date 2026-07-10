@@ -1,0 +1,185 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:group_name",
+ "creation": "2026-04-29 11:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identification_section",
+  "group_name",
+  "material_base",
+  "column_break_1",
+  "default_uom",
+  "typical_wastage_percent",
+  "is_active",
+  "stores_section",
+  "linked_item_group",
+  "auto_sync_to_item_group",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "identification_section",
+   "fieldtype": "Section Break",
+   "label": "RM Group Details"
+  },
+  {
+   "fieldname": "group_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Group Name",
+   "reqd": 1,
+   "unique": 1,
+   "description": "e.g., Brass Rod, Steel Sheet, Aluminium Section"
+  },
+  {
+   "fieldname": "material_base",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Material Base",
+   "options": "Brass\nSteel\nAluminium\nCopper\nPlastic-Rubber\nPackaging\nBought Out\nHardware\nForgings\nCastings\nPlastic\nHardware and Fasteners\nBought-out Components\nProcess Service\nIT Hardware\nElectrical\nConsumable\nTooling\nTool\nCapital\nInspection\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_uom",
+   "fieldtype": "Link",
+   "label": "Default UOM",
+   "options": "UOM",
+   "default": "Kg"
+  },
+  {
+   "fieldname": "typical_wastage_percent",
+   "fieldtype": "Percent",
+   "label": "Typical Wastage %",
+   "default": "5",
+   "description": "Used in cost estimation — wastage above standard quantity"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1"
+  },
+  {
+   "fieldname": "stores_section",
+   "fieldtype": "Section Break",
+   "label": "Stores Integration"
+  },
+  {
+   "fieldname": "linked_item_group",
+   "fieldtype": "Link",
+   "label": "Linked ERPNext Item Group",
+   "options": "Item Group",
+   "read_only": 1,
+   "description": "Auto-created and synced — used by stores team for inventory classification"
+  },
+  {
+   "fieldname": "auto_sync_to_item_group",
+   "fieldtype": "Check",
+   "label": "Auto-Sync to Item Group",
+   "default": "1",
+   "description": "When ticked, PEPL RM Group is mirrored as an ERPNext Item Group under 'Raw Material' parent"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-29 11:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL OS",
+ "name": "PEPL RM Group",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Engineering Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Engineering User"
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Purchase User"
+  }
+ ],
+ "sort_field": "group_name",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1,
+ "track_views": 1
+}
