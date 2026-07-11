@@ -42,11 +42,41 @@ frappe.ui.form.on("PEPL CST Cost Sheet", {
 					args: { cst_name: frm.doc.name },
 					callback: function(r) {
 						if (r.message) {
-							frappe.show_alert({
-								message: __("Loaded {0} competitor records from past tenders", [r.message.added]),
-								indicator: "green"
-							});
-							frm.reload_doc();
+							const match_level =
+                                                                r.message.match_level
+                                                                || __("None");
+                                                        const added =
+                                                                r.message.added
+                                                                || 0;
+                                                        const total_found =
+                                                                r.message.total_found
+                                                                || 0;
+
+                                                        frappe.msgprint({
+                                                                title: __(
+                                                                        "Competitor History Loaded"
+                                                                ),
+                                                                indicator:
+                                                                        added
+                                                                                ? "green"
+                                                                                : "orange",
+                                                                message: [
+                                                                        __(
+                                                                                "Match Level: {0}",
+                                                                                [match_level]
+                                                                        ),
+                                                                        __(
+                                                                                "Rows Loaded: {0}",
+                                                                                [added]
+                                                                        ),
+                                                                        __(
+                                                                                "Total Found: {0}",
+                                                                                [total_found]
+                                                                        )
+                                                                ].join("<br>")
+                                                        });
+
+                                                        frm.reload_doc();
 						}
 					}
 				});

@@ -1,8 +1,11 @@
 frappe.ui.form.on("PEPL Tender", {
 	refresh(frm) {
 		const status_colors = {
-			"Active Bid": "blue",
-			"Submitted": "yellow",
+                        "Draft": "grey",
+                        "Active Bid": "blue",
+                        "Costing": "orange",
+                        "Costed": "cyan",
+                        "Submitted": "yellow",
 			"Won": "green",
 			"Partially Won": "green",
 			"Order Received": "purple",
@@ -73,7 +76,8 @@ frappe.ui.form.on("PEPL Tender", {
 			&& (frm.doc.status === "Won" || frm.doc.status === "Partially Won")
 			&& frm.doc.customer_po_received === 1
 			&& frm.doc.po_number
-			&& frm.doc.po_schedule
+			&& frm.doc.po_date
+                        && frm.doc.po_schedule
 			&& frm.doc.po_schedule.length > 0
 			&& !frm.doc.linked_sales_order;
 
@@ -209,7 +213,9 @@ frappe.ui.form.on("PEPL Tender PO Schedule", {
 
 		// Warn if item is not in the Won items list
 		const won_items = (frm.doc.items || [])
-			.filter(i => i.outcome === "Won")
+			.filter(i =>
+                                ["Won", "Partially Won"].includes(i.outcome)
+                        )
 			.map(i => i.item);
 
 		if (won_items.length > 0 && !won_items.includes(row.item)) {
@@ -367,3 +373,202 @@ async function refresh_vendor_approval_for_tender_item(frm, cdt, cdn) {
         );
     }
 }
+
+
+// PEPL COMPETITOR WORKFLOW HELPERS
+function pepl_get_all_competitor_rows(frm) {
+    const rows = [];
+
+    (frm.doc.items || []).forEach(item => {
+        (item.competitors || []).forEach(row => {
+            rows.push({ item, row });
+        });
+    });
+
+    return rows;
+}
+
+function pepl_add_competitor_actions(frm) {
+    if (frm.is_new()) {
+        return;
+    }
+
+    frm.add_custom_button(
+        __("Calculate Competitor Analysis"),
+        function () {
+            const rows = pepl_get_all_competitor_rows(frm);
+
+            if (!rows.length) {
+                frappe.msgprint(
+                    __("Add at least one competitor row before calculating.")
+                );
+                return;
+            }
+
+            frm.save()
+                .then(() => frm.reload_doc())
+                .then(() => {
+                    frappe.show_alert(
+                        {
+                            message: __(
+                                "Competitor analysis recalculated successfully."
+                            ),
+                            indicator: "green"
+                        },
+                        6
+                    );
+                });
+        },
+        __("Competitor Analysis")
+    );
+
+    if (
+        ["Won", "Partially Won", "Lost", "Cancelled"]
+            .includes(frm.doc.status)
+    ) {
+        frm.add_custom_button(
+            __("Finalize Tender Outcome"),
+            function () {
+                const summary = [
+                    __("Status: {0}", [frm.doc.status || "-"]),
+                    __("Items Won/Partially Won: {0}", [
+                        frm.doc.items_won || 0
+                    ]),
+                    __("Items Lost: {0}", [
+                        frm.doc.items_lost || 0
+                    ]),
+                    __("PEPL Rank: {0}", [
+                        frm.doc.our_overall_rank || "-"
+                    ]),
+                    __("Winning Competitor: {0}", [
+                        frm.doc.winning_competitor || "-"
+                    ]),
+                    __("Winning Price: {0}", [
+                        frappe.format(
+                            frm.doc.winning_price || 0,
+                            { fieldtype: "Currency" }
+                        )
+                    ])
+                ].join("<br>");
+
+                frappe.confirm(
+                    __(
+                        "Finalize this Tender outcome?<br><br>{0}",
+                        [summary]
+                    ),
+                    function () {
+                        frm.save()
+                            .then(() => frm.reload_doc())
+                            .then(() => {
+                                frappe.show_alert(
+                                    {
+                                        message: __(
+                                            "Tender outcome finalized successfully."
+                                        ),
+                                        indicator: "green"
+                                    },
+                                    6
+                                );
+                            });
+                    }
+                );
+            },
+            __("Competitor Analysis")
+        );
+    }
+}
+
+function pepl_add_competitor_guidance(frm) {
+    const entries = pepl_get_all_competitor_rows(frm);
+
+    if (!entries.length) {
+        return;
+    }
+
+    const pepl_rows = entries.filter(entry => entry.row.is_pepl);
+
+    const winner_rows = entries.filter(entry =>
+        entry.row.is_winner
+        || entry.row.buyer_selected
+        || entry.row.is_l1
+        || Number(entry.row.rank_number || 0) === 1
+    );
+
+    const unpriced_rows = entries.filter(entry =>
+        Number(entry.row.competitor_price || 0) <= 0
+        && Number(entry.row.evaluated_unit_rate || 0) <= 0
+        && Number(entry.row.total_bid_value || 0) <= 0
+    );
+
+    if (!pepl_rows.length) {
+        frm.dashboard.add_indicator(
+            __("No competitor row is marked Is PEPL"),
+            "orange"
+        );
+    }
+
+    if (!winner_rows.length) {
+        frm.dashboard.add_indicator(
+            __("No L1, Winner, or Buyer Selected row is identified"),
+            "orange"
+        );
+    }
+
+    if (unpriced_rows.length) {
+        frm.dashboard.add_indicator(
+            __(
+                "{0} competitor row(s) have no evaluated price",
+                [unpriced_rows.length]
+            ),
+            "orange"
+        );
+    }
+
+    if (
+        ["Won", "Partially Won", "Lost"].includes(frm.doc.status)
+        && !frm.doc.financial_result_attachment
+    ) {
+        frm.dashboard.add_indicator(
+            __("Official financial-result attachment is missing"),
+            "orange"
+        );
+    }
+
+    if (frm.doc.competitor_analysis_completed) {
+        frm.dashboard.add_indicator(
+            __("Competitor Analysis Finalised"),
+            "green"
+        );
+    }
+}
+
+frappe.ui.form.on("PEPL Tender", {
+    refresh(frm) {
+        pepl_add_competitor_actions(frm);
+        pepl_add_competitor_guidance(frm);
+    }
+});
+
+frappe.ui.form.on("PEPL Tender Item Competitor", {
+    rank(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        const match = String(row.rank || "")
+            .trim()
+            .toUpperCase()
+            .match(/^L\s*0*(\d+)$/);
+
+        frappe.model.set_value(
+            cdt,
+            cdn,
+            "rank_number",
+            match ? Number(match[1]) : 0
+        );
+
+        frappe.model.set_value(
+            cdt,
+            cdn,
+            "is_l1",
+            match && Number(match[1]) === 1 ? 1 : 0
+        );
+    }
+});
