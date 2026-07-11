@@ -28,6 +28,25 @@
   "bid_section",
   "our_bid_unit_price",
   "our_bid_total_value",
+  "item_result_section",
+  "evaluation_basis",
+  "gst_applicable",
+  "gst_rate",
+  "warranty_period",
+  "item_result_column_break",
+  "lowest_evaluated_price",
+  "winning_competitor",
+  "winning_price",
+  "our_price_difference",
+  "our_price_difference_percent",
+  "our_rank_number",
+  "award_section",
+  "awarded_quantity",
+  "award_share_percent",
+  "award_column_break",
+  "item_loss_category",
+  "item_loss_reason",
+  "item_outcome_summary",
   "column_break_3",
   "our_rank",
   "outcome",
@@ -173,7 +192,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Outcome",
-   "options": "Pending\nWon\nLost\nCancelled",
+   "options": "Pending\nWon\nPartially Won\nLost\nCancelled",
    "default": "Pending"
   },
   {
@@ -223,6 +242,118 @@
    "fieldname": "vendor_approval_warning",
    "fieldtype": "Small Text",
    "label": "Approval Warning",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_result_section",
+   "fieldtype": "Section Break",
+   "label": "Item Financial Evaluation",
+   "description": "Store and calculate item-level Railway, GeM or other financial evaluation results."
+  },
+  {
+   "fieldname": "evaluation_basis",
+   "fieldtype": "Select",
+   "label": "Evaluation Basis",
+   "options": "\nUnit Rate\nConsignee-wise Unit Rate\nTotal Bid Value\nItem Total Value\nOther"
+  },
+  {
+   "fieldname": "gst_applicable",
+   "fieldtype": "Check",
+   "label": "GST Applicable",
+   "default": "0"
+  },
+  {
+   "fieldname": "gst_rate",
+   "fieldtype": "Percent",
+   "label": "GST Rate %",
+   "depends_on": "eval:doc.gst_applicable==1"
+  },
+  {
+   "fieldname": "warranty_period",
+   "fieldtype": "Data",
+   "label": "Warranty Period",
+   "description": "Example: 30 months after delivery."
+  },
+  {
+   "fieldname": "item_result_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lowest_evaluated_price",
+   "fieldtype": "Currency",
+   "label": "Lowest Evaluated Price / Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "winning_competitor",
+   "fieldtype": "Data",
+   "label": "Winning Competitor",
+   "read_only": 1
+  },
+  {
+   "fieldname": "winning_price",
+   "fieldtype": "Currency",
+   "label": "Winning Price / Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "our_price_difference",
+   "fieldtype": "Currency",
+   "label": "PEPL Price Difference",
+   "read_only": 1,
+   "description": "PEPL evaluated price minus winning evaluated price."
+  },
+  {
+   "fieldname": "our_price_difference_percent",
+   "fieldtype": "Percent",
+   "label": "PEPL Price Difference %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "our_rank_number",
+   "fieldtype": "Int",
+   "label": "PEPL Rank Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "award_section",
+   "fieldtype": "Section Break",
+   "label": "Award / Loss Details"
+  },
+  {
+   "fieldname": "awarded_quantity",
+   "fieldtype": "Float",
+   "label": "Awarded Quantity",
+   "depends_on": "eval:doc.outcome==\"Won\" || doc.outcome==\"Partially Won\""
+  },
+  {
+   "fieldname": "award_share_percent",
+   "fieldtype": "Percent",
+   "label": "Award Share %",
+   "depends_on": "eval:doc.outcome==\"Won\" || doc.outcome==\"Partially Won\"",
+   "description": "Supports split awards such as 60:40."
+  },
+  {
+   "fieldname": "award_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_loss_category",
+   "fieldtype": "Select",
+   "label": "Item Loss Category",
+   "options": "\nPrice\nTechnical Non-Compliance\nDelivery Schedule\nVendor Approval / Eligibility\nCommercial Terms\nDocumentation\nCustomer Preference\nCompetitor Relationship\nPurchase Preference / Policy\nTender Cancelled\nNo Bid / Withdrawn\nOther",
+   "depends_on": "eval:doc.outcome==\"Lost\" || doc.outcome==\"Partially Won\""
+  },
+  {
+   "fieldname": "item_loss_reason",
+   "fieldtype": "Small Text",
+   "label": "Item Loss Reason",
+   "depends_on": "eval:doc.outcome==\"Lost\" || doc.outcome==\"Partially Won\""
+  },
+  {
+   "fieldname": "item_outcome_summary",
+   "fieldtype": "Small Text",
+   "label": "Item Outcome Summary",
    "read_only": 1
   }
  ],
