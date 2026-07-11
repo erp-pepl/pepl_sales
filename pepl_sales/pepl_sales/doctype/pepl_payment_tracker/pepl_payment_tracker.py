@@ -73,7 +73,7 @@ class PEPLPaymentTracker(Document):
         cg = frappe.db.get_value("Customer", customer, "customer_group")
         if not cg:
             return
-        if "Railways" in cg:
+        if "Railway" in cg:
             self.sector = "Railways"
         elif "Defence" in cg:
             self.sector = "Defence"
@@ -159,7 +159,7 @@ def create_payment_tracker_for_invoice(sales_invoice_name):
     if invoice.customer:
         cg = frappe.db.get_value("Customer", invoice.customer, "customer_group")
         if cg:
-            if "Railways" in cg:
+            if "Railway" in cg:
                 sector = "Railways"
             elif "Defence" in cg:
                 sector = "Defence"

@@ -49,7 +49,7 @@ class PEPLPSDTracker(Document):
         cg = frappe.db.get_value("Customer", customer, "customer_group")
         if not cg:
             return
-        if "Railways" in cg:
+        if "Railway" in cg:
             self.sector = "Railways"
         elif "Defence" in cg:
             self.sector = "Defence"
@@ -74,7 +74,7 @@ def create_psd_tracker_for_so(sales_order_name):
     if so.customer:
         cg = frappe.db.get_value("Customer", so.customer, "customer_group")
         if cg:
-            if "Railways" in cg:
+            if "Railway" in cg:
                 sector = "Railways"
             elif "Defence" in cg:
                 sector = "Defence"

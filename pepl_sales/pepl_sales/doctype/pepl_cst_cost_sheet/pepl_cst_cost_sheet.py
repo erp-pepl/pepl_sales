@@ -15,6 +15,55 @@ class PEPLCSTCostSheet(Document):
             for comp in self.components:
                 self._fetch_reference_rates(comp)
 
+    def on_update(self):
+        self.link_cost_sheet_to_tender()
+
+    def link_cost_sheet_to_tender(self):
+        """Link this Cost Sheet to its specific Tender Item row."""
+
+        if not self.linked_tender:
+            return
+
+        tender = frappe.get_doc("PEPL Tender", self.linked_tender)
+        linked_row = None
+
+        if self.linked_tender_item:
+            linked_row = next(
+                (
+                    row
+                    for row in tender.items or []
+                    if row.name == self.linked_tender_item
+                ),
+                None,
+            )
+
+        if not linked_row and self.linked_item:
+            linked_row = next(
+                (
+                    row
+                    for row in tender.items or []
+                    if row.item == self.linked_item
+                ),
+                None,
+            )
+
+        if linked_row and linked_row.linked_cost_sheet != self.name:
+            linked_row.linked_cost_sheet = self.name
+
+        status_field = tender.meta.get_field("status")
+
+        if status_field and status_field.options:
+            allowed_statuses = [
+                option.strip()
+                for option in status_field.options.splitlines()
+                if option.strip()
+            ]
+
+            if "Costed" in allowed_statuses:
+                tender.status = "Costed"
+
+        tender.save(ignore_permissions=True)
+
     def validate(self):
         for comp in self.components:
             if comp.manufactured_or_bought_out == "Manufactured":
@@ -202,6 +251,7 @@ def fetch_competitor_history(cst_name):
                 "tender_reference": c.tender_ref,
                 "tender_date": c.tender_date,
                 "competitor_name": c.competitor_name,
+
                 "competitor_price": c.competitor_price,
                 "rank": c.rank,
                 "our_rank": c.our_rank,
@@ -211,3 +261,109 @@ def fetch_competitor_history(cst_name):
 
     cst.save()
     return {"added": len(competitors)}
+
+@frappe.whitelist()
+def clone_cost_sheet_for_new_tender(cst_name, new_tender, tender_item=None):
+    """
+    Clone an existing CST Cost Sheet for another Tender.
+
+    Copies:
+    - Components and costing structure
+    - Overhead percentage
+    - Profit percentage
+    - Remarks where useful
+
+    Resets:
+    - Approval details
+    - Final bid price
+    - Margin
+    - Competitor history
+    - Status
+    """
+
+    if not cst_name:
+        frappe.throw(_("Source Cost Sheet is required."))
+
+    if not new_tender:
+        frappe.throw(_("New Tender is required."))
+
+    source_cst = frappe.get_doc("PEPL CST Cost Sheet", cst_name)
+    tender = frappe.get_doc("PEPL Tender", new_tender)
+
+    selected_tender_item = None
+
+    if tender_item:
+        for row in tender.items or []:
+            if row.name == tender_item:
+                selected_tender_item = row
+                break
+
+        if not selected_tender_item:
+            frappe.throw(
+                _("The selected Tender Item does not belong to Tender {0}.").format(
+                    new_tender
+                )
+            )
+
+    elif tender.items:
+        selected_tender_item = tender.items[0]
+
+    new_cst = frappe.copy_doc(source_cst)
+
+    # Link new tender
+    new_cst.linked_tender = tender.name
+    new_cst.customer = tender.customer
+    new_cst.sector = tender.sector
+    new_cst.status = "Draft"
+    new_cst.costing_date = today()
+
+    # Clear approval and lifecycle fields
+    new_cst.prepared_by = frappe.session.user
+    new_cst.approved_by = None
+    new_cst.approved_date = None
+    new_cst.valid_until = None
+
+    # Reset bid-specific values
+    new_cst.final_bid_price = 0
+    new_cst.margin_amount = 0
+    new_cst.margin_percent = 0
+    new_cst.loss_warning = ""
+
+    # Competitor history must be loaded separately for the new Tender
+    new_cst.set("competitors", [])
+
+    if selected_tender_item:
+        new_cst.linked_tender_item = selected_tender_item.name
+        new_cst.linked_item = selected_tender_item.item
+
+        item_label = selected_tender_item.item or "Item"
+
+        if selected_tender_item.item:
+            item_label = (
+                frappe.db.get_value(
+                    "Item",
+                    selected_tender_item.item,
+                    "item_name",
+                )
+                or selected_tender_item.item
+            )
+
+        new_cst.cst_title = "{0} - {1}".format(
+            tender.tender_title or tender.name,
+            item_label
+        )
+    else:
+        new_cst.linked_tender_item = None
+        new_cst.linked_item = None
+        new_cst.cst_title = "{} - Cloned Cost Sheet".format(
+            tender.tender_title or tender.name
+        )
+
+    new_cst.insert(ignore_permissions=True)
+
+    return {
+        "created": True,
+        "cost_sheet": new_cst.name,
+        "tender": tender.name,
+        "linked_item": new_cst.linked_item
+    }

@@ -1,12 +1,12 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "format:VAS-{item}-{sector}",
  "creation": "2026-04-25 12:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "item_section",
+  "customer",
   "item",
   "pl_no",
   "drawing_no",
@@ -24,6 +24,10 @@
   "column_break_3",
   "approving_authority",
   "next_review_date",
+  "approval_health",
+  "effective_expiry_date",
+  "days_to_expiry",
+  "approval_warning",
   "documents_section",
   "vendor_approval_documents",
   "notes_section",
@@ -34,6 +38,16 @@
    "fieldname": "item_section",
    "fieldtype": "Section Break",
    "label": "Item Details"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "reqd": 1
   },
   {
    "fieldname": "item",
@@ -156,15 +170,40 @@
    "fieldname": "notes",
    "fieldtype": "Text Editor",
    "label": "Notes"
+  },
+  {
+   "fieldname": "approval_health",
+   "fieldtype": "Select",
+   "label": "Approval Health",
+   "options": "Active\nExpiring Soon\nExpired\nNo Expiry Set",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "effective_expiry_date",
+   "fieldtype": "Date",
+   "label": "Effective Expiry Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "days_to_expiry",
+   "fieldtype": "Int",
+   "label": "Days to Expiry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_warning",
+   "fieldtype": "Small Text",
+   "label": "Approval Warning",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
  "modified": "2026-04-25 12:00:00",
  "modified_by": "Administrator",
- "module": "PEPL OS",
+ "module": "PEPL Sales",
  "name": "Vendor Approval Status",
- "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

@@ -8,7 +8,7 @@ app_license = "mit"
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -137,113 +137,17 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+    "Sales Order": {
+        "on_submit": "pepl_sales.events.on_sales_order_submit"
+    },
+    "Sales Invoice": {
+        "on_submit": "pepl_sales.events.on_sales_invoice_submit"
+    }
+}
 
-# Scheduled Tasks
-# ---------------
-
-# scheduler_events = {
-# 	"all": [
-# 		"pepl_sales.tasks.all"
-# 	],
-# 	"daily": [
-# 		"pepl_sales.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"pepl_sales.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"pepl_sales.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"pepl_sales.tasks.monthly"
-# 	],
-# }
-
-# Testing
-# -------
-
-# before_tests = "pepl_sales.install.before_tests"
-
-# Overriding Methods
-# ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "pepl_sales.event.get_events"
-# }
-#
-# each overriding function accepts a `data` argument;
-# generated from the base implementation of the doctype dashboard,
-# along with any modifications made in other Frappe apps
-# override_doctype_dashboards = {
-# 	"Task": "pepl_sales.task.get_dashboard_data"
-# }
-
-# exempt linked doctypes from being automatically cancelled
-#
-# auto_cancel_exempted_doctypes = ["Auto Repeat"]
-
-# Ignore links to specified DocTypes when deleting documents
-# -----------------------------------------------------------
-
-# ignore_links_on_delete = ["Communication", "ToDo"]
-
-# Request Events
-# ----------------
-# before_request = ["pepl_sales.utils.before_request"]
-# after_request = ["pepl_sales.utils.after_request"]
-
-# Job Events
-# ----------
-# before_job = ["pepl_sales.utils.before_job"]
-# after_job = ["pepl_sales.utils.after_job"]
-
-# User Data Protection
-# --------------------
-
-# user_data_fields = [
-# 	{
-# 		"doctype": "{doctype_1}",
-# 		"filter_by": "{filter_by}",
-# 		"redact_fields": ["{field_1}", "{field_2}"],
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_2}",
-# 		"filter_by": "{filter_by}",
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_3}",
-# 		"strict": False,
-# 	},
-# 	{
-# 		"doctype": "{doctype_4}"
-# 	}
-# ]
-
-# Authentication and authorization
-# --------------------------------
-
-# auth_hooks = [
-# 	"pepl_sales.auth.validate"
-# ]
-
-# Automatically update python controller files with type annotations for this app.
-# export_python_type_annotations = True
-
-# default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
-# }
-
-# Translation
-# ------------
-# List of apps whose translatable strings should be excluded from this app's translations.
-# ignore_translatable_strings_from = []
-
+scheduler_events = {
+    "daily": [
+        "pepl_sales.pepl_sales.api.payment_tracker_jobs.update_all_payment_trackers_daily"
+    ]
+}

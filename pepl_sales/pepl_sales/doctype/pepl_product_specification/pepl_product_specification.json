@@ -1,0 +1,91 @@
+{
+ "actions": [],
+ "creation": "2026-04-29 10:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "spec_type",
+  "spec_title",
+  "reference_no",
+  "issuing_authority",
+  "issue_date",
+  "status",
+  "spec_file",
+  "spec_text",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "spec_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Specification Type",
+   "options": "Performance Specification\nCustomer Specification\nRDSO Specification\nDQA Specification\nIRIS Specification\nMaterial Specification\nTest Specification\nAcceptance Criteria\nPackaging Specification\nMarking and Identification\nAssembly Specification\nBOM Reference\nInternal Specification\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "spec_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Specification Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reference Number"
+  },
+  {
+   "fieldname": "issuing_authority",
+   "fieldtype": "Data",
+   "label": "Issuing Authority",
+   "description": "RDSO / DQA / Customer / PEPL Internal"
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "label": "Issue Date"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Active\nSuperseded\nDraft\nUnder Review",
+   "default": "Active",
+   "reqd": 1
+  },
+  {
+   "fieldname": "spec_file",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Specification File"
+  },
+  {
+   "fieldname": "spec_text",
+   "fieldtype": "Text Editor",
+   "label": "Specification Details (Text)",
+   "description": "For short specs without separate file"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-29 10:00:00",
+ "modified_by": "Administrator",
+ "module": "PEPL Sales",
+ "name": "PEPL Product Specification",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "issue_date",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
