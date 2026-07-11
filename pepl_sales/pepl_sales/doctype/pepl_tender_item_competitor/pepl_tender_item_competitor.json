@@ -5,10 +5,56 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "identity_section",
   "competitor_name",
-  "competitor_price",
+  "is_pepl",
+  "bid_id",
+  "bid_datetime",
+  "identity_column_break",
   "rank",
+  "rank_number",
+  "is_l1",
+  "is_winner",
+  "buyer_selected",
+  "evaluation_section",
+  "consignee",
+  "consignee_quantity",
+  "offered_quantity",
+  "uom",
+  "evaluation_column_break",
+  "evaluation_basis",
+  "technical_status",
+  "commercial_status",
+  "eligibility_status",
+  "price_section",
+  "basic_rate",
+  "unconditional_discount_percent",
+  "packing_charges",
+  "gst_percent",
+  "price_column_break",
+  "freight",
+  "forwarding",
+  "other_charges_amount",
+  "other_charges_percent",
+  "calculated_unit_rate",
+  "evaluated_unit_rate",
+  "total_bid_value",
+  "competitor_price",
+  "currency",
+  "original_rate_components",
+  "policy_section",
   "is_msme",
+  "is_mii",
+  "mse_social_category",
+  "award_section",
+  "award_share_percent",
+  "awarded_quantity",
+  "awarded_value",
+  "award_column_break",
+  "difference_from_pepl",
+  "difference_from_pepl_percent",
+  "difference_from_l1",
+  "difference_from_l1_percent",
   "remarks"
  ],
  "fields": [
@@ -23,27 +69,291 @@
    "fieldname": "competitor_price",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Bid Price (INR)"
+   "label": "Primary Evaluated Price / Value",
+   "description": "Main comparison price. Server logic will derive this from Evaluated Unit Rate or Total Bid Value.",
+   "read_only": 1
   },
   {
    "fieldname": "rank",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Rank",
-   "options": "\nL1\nL2\nL3\nL4\nL5\nDisqualified"
+   "description": "Enter L1, L2, L10, L15, Disqualified or another source-defined rank."
   },
   {
    "fieldname": "is_msme",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "MSME",
+   "label": "MSE / MSME",
    "default": "0",
-   "description": "Tick if this competitor is an MSME (relevant for purchase preference)"
+   "description": "Mark when the bidder qualifies as MSE/MSME."
   },
   {
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Bidder Identity"
+  },
+  {
+   "fieldname": "is_pepl",
+   "fieldtype": "Check",
+   "label": "Is PEPL",
+   "default": "0",
+   "in_list_view": 1,
+   "description": "Mark the Parasramka Engineering / PEPL bidder row explicitly."
+  },
+  {
+   "fieldname": "bid_id",
+   "fieldtype": "Data",
+   "label": "Bid ID",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "bid_datetime",
+   "fieldtype": "Datetime",
+   "label": "Bid Date / Time"
+  },
+  {
+   "fieldname": "identity_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rank_number",
+   "fieldtype": "Int",
+   "label": "Rank Number",
+   "read_only": 1,
+   "description": "Numeric rank extracted from values such as L1 or L15."
+  },
+  {
+   "fieldname": "is_l1",
+   "fieldtype": "Check",
+   "label": "Is L1",
+   "default": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_winner",
+   "fieldtype": "Check",
+   "label": "Is Winner",
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "buyer_selected",
+   "fieldtype": "Check",
+   "label": "Buyer Selected",
+   "default": "0",
+   "description": "Used for GeM or other buyer-selected awards."
+  },
+  {
+   "fieldname": "evaluation_section",
+   "fieldtype": "Section Break",
+   "label": "Evaluation Group"
+  },
+  {
+   "fieldname": "consignee",
+   "fieldtype": "Data",
+   "label": "Consignee",
+   "in_list_view": 1,
+   "description": "Railway consignee or evaluation destination, for example AMM/ELSD/RPM."
+  },
+  {
+   "fieldname": "consignee_quantity",
+   "fieldtype": "Float",
+   "label": "Consignee Quantity"
+  },
+  {
+   "fieldname": "offered_quantity",
+   "fieldtype": "Float",
+   "label": "Offered Quantity"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "evaluation_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "evaluation_basis",
+   "fieldtype": "Select",
+   "label": "Evaluation Basis",
+   "options": "\nUnit Rate\nConsignee-wise Unit Rate\nTotal Bid Value\nItem Total Value\nOther"
+  },
+  {
+   "fieldname": "technical_status",
+   "fieldtype": "Select",
+   "label": "Technical Status",
+   "options": "\nQualified\nDisqualified\nNot Evaluated\nUnknown"
+  },
+  {
+   "fieldname": "commercial_status",
+   "fieldtype": "Select",
+   "label": "Commercial Status",
+   "options": "\nAccepted\nRejected\nUnder Evaluation\nUnknown"
+  },
+  {
+   "fieldname": "eligibility_status",
+   "fieldtype": "Select",
+   "label": "Eligibility Status",
+   "options": "\nEligible\nIneligible\nNot Evaluated\nUnknown"
+  },
+  {
+   "fieldname": "price_section",
+   "fieldtype": "Section Break",
+   "label": "Structured Price Components"
+  },
+  {
+   "fieldname": "basic_rate",
+   "fieldtype": "Currency",
+   "label": "Basic Rate",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "unconditional_discount_percent",
+   "fieldtype": "Percent",
+   "label": "Unconditional Discount %"
+  },
+  {
+   "fieldname": "packing_charges",
+   "fieldtype": "Currency",
+   "label": "Packing Charges"
+  },
+  {
+   "fieldname": "gst_percent",
+   "fieldtype": "Percent",
+   "label": "GST %"
+  },
+  {
+   "fieldname": "price_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "freight",
+   "fieldtype": "Currency",
+   "label": "Freight"
+  },
+  {
+   "fieldname": "forwarding",
+   "fieldtype": "Currency",
+   "label": "Forwarding Charges"
+  },
+  {
+   "fieldname": "other_charges_amount",
+   "fieldtype": "Currency",
+   "label": "Other Charges Amount"
+  },
+  {
+   "fieldname": "other_charges_percent",
+   "fieldtype": "Percent",
+   "label": "Other Charges %"
+  },
+  {
+   "fieldname": "calculated_unit_rate",
+   "fieldtype": "Currency",
+   "label": "Calculated Unit Rate",
+   "read_only": 1,
+   "description": "Calculated from the entered structured rate components."
+  },
+  {
+   "fieldname": "evaluated_unit_rate",
+   "fieldtype": "Currency",
+   "label": "Evaluated Unit Rate / TUR",
+   "in_list_view": 1,
+   "description": "Official source value. Kept editable because evaluation rules may differ from the simple calculated value."
+  },
+  {
+   "fieldname": "total_bid_value",
+   "fieldtype": "Currency",
+   "label": "Total Bid Value",
+   "description": "Used for GeM and total-value evaluations."
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "default": "INR"
+  },
+  {
+   "fieldname": "original_rate_components",
+   "fieldtype": "Small Text",
+   "label": "Original Rate Components",
+   "description": "Preserve the exact source wording for rate conditions."
+  },
+  {
+   "fieldname": "policy_section",
+   "fieldtype": "Section Break",
+   "label": "Policy / Classification"
+  },
+  {
+   "fieldname": "is_mii",
+   "fieldtype": "Check",
+   "label": "Make in India (MII)",
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "mse_social_category",
+   "fieldtype": "Select",
+   "label": "MSE Social Category",
+   "options": "\nGeneral\nSC\nST\nWomen\nOther\nNot Available"
+  },
+  {
+   "fieldname": "award_section",
+   "fieldtype": "Section Break",
+   "label": "Award and Comparison"
+  },
+  {
+   "fieldname": "award_share_percent",
+   "fieldtype": "Percent",
+   "label": "Award Share %",
+   "description": "Supports split awards such as 60:40."
+  },
+  {
+   "fieldname": "awarded_quantity",
+   "fieldtype": "Float",
+   "label": "Awarded Quantity"
+  },
+  {
+   "fieldname": "awarded_value",
+   "fieldtype": "Currency",
+   "label": "Awarded Value"
+  },
+  {
+   "fieldname": "award_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "difference_from_pepl",
+   "fieldtype": "Currency",
+   "label": "Difference from PEPL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "difference_from_pepl_percent",
+   "fieldtype": "Percent",
+   "label": "Difference from PEPL %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "difference_from_l1",
+   "fieldtype": "Currency",
+   "label": "Difference from L1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "difference_from_l1_percent",
+   "fieldtype": "Percent",
+   "label": "Difference from L1 %",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,
