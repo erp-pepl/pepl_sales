@@ -5,14 +5,45 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "context_section",
   "tender_reference",
   "tender_date",
+  "customer",
+  "sector",
+  "item",
+  "context_column_break",
+  "consignee",
+  "evaluation_basis",
+  "result_source_type",
+  "source_bid_id",
+  "source_bid_datetime",
   "competitor_name",
-  "competitor_price",
   "rank",
   "our_rank",
   "outcome",
-  "remarks"
+  "price_section",
+  "basic_rate",
+  "gst_percent",
+  "evaluated_unit_rate",
+  "total_bid_value",
+  "competitor_price",
+  "price_column_break",
+  "pepl_price",
+  "winning_price",
+  "difference_from_pepl",
+  "difference_from_pepl_percent",
+  "award_section",
+  "is_pepl",
+  "is_l1",
+  "is_winner",
+  "buyer_selected",
+  "award_column_break",
+  "is_msme",
+  "is_mii",
+  "award_share_percent",
+  "awarded_quantity",
+  "remarks",
+  "history_key"
  ],
  "fields": [
   {
@@ -39,20 +70,21 @@
    "fieldname": "competitor_price",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Price"
+   "label": "Primary Evaluated Price / Value",
+   "description": "Main comparison value retained from the Tender result."
   },
   {
    "fieldname": "rank",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Rank",
-   "options": "\nL1\nL2\nL3\nL4\nL5\nDisqualified"
+   "label": "Competitor Rank",
+   "description": "Supports L1, L2, L10, L15, Disqualified or another source-defined rank."
   },
   {
    "fieldname": "our_rank",
-   "fieldtype": "Select",
-   "label": "Our Rank",
-   "options": "\nL1\nL2\nL3\nL4\nL5\nDisqualified"
+   "fieldtype": "Data",
+   "label": "PEPL Rank",
+   "description": "Supports L1, L2, L10, L15, Disqualified or another source-defined rank."
   },
   {
    "fieldname": "outcome",
@@ -65,6 +97,177 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "context_section",
+   "fieldtype": "Section Break",
+   "label": "Historical Context"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sector",
+   "fieldtype": "Select",
+   "label": "Sector",
+   "options": "\nRailways\nDefence\nPrivate\nOthers",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "context_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "consignee",
+   "fieldtype": "Data",
+   "label": "Consignee",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "evaluation_basis",
+   "fieldtype": "Select",
+   "label": "Evaluation Basis",
+   "options": "\nUnit Rate\nConsignee-wise Unit Rate\nTotal Bid Value\nItem Total Value\nOther"
+  },
+  {
+   "fieldname": "result_source_type",
+   "fieldtype": "Select",
+   "label": "Result Source Type",
+   "options": "\nRailway Tabulation Statement\nGeM Bid Result\nCustomer Evaluation Statement\nManual Result\nOther"
+  },
+  {
+   "fieldname": "source_bid_id",
+   "fieldtype": "Data",
+   "label": "Source Bid ID"
+  },
+  {
+   "fieldname": "source_bid_datetime",
+   "fieldtype": "Datetime",
+   "label": "Source Bid Date / Time"
+  },
+  {
+   "fieldname": "price_section",
+   "fieldtype": "Section Break",
+   "label": "Historical Price Details"
+  },
+  {
+   "fieldname": "basic_rate",
+   "fieldtype": "Currency",
+   "label": "Basic Rate"
+  },
+  {
+   "fieldname": "gst_percent",
+   "fieldtype": "Percent",
+   "label": "GST %"
+  },
+  {
+   "fieldname": "evaluated_unit_rate",
+   "fieldtype": "Currency",
+   "label": "Evaluated Unit Rate / TUR",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "total_bid_value",
+   "fieldtype": "Currency",
+   "label": "Total Bid Value"
+  },
+  {
+   "fieldname": "price_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pepl_price",
+   "fieldtype": "Currency",
+   "label": "PEPL Price / Value"
+  },
+  {
+   "fieldname": "winning_price",
+   "fieldtype": "Currency",
+   "label": "Winning Price / Value"
+  },
+  {
+   "fieldname": "difference_from_pepl",
+   "fieldtype": "Currency",
+   "label": "Difference from PEPL"
+  },
+  {
+   "fieldname": "difference_from_pepl_percent",
+   "fieldtype": "Percent",
+   "label": "Difference from PEPL %"
+  },
+  {
+   "fieldname": "award_section",
+   "fieldtype": "Section Break",
+   "label": "Award and Policy History"
+  },
+  {
+   "fieldname": "is_pepl",
+   "fieldtype": "Check",
+   "label": "Is PEPL",
+   "default": "0"
+  },
+  {
+   "fieldname": "is_l1",
+   "fieldtype": "Check",
+   "label": "Is L1",
+   "default": "0"
+  },
+  {
+   "fieldname": "is_winner",
+   "fieldtype": "Check",
+   "label": "Is Winner",
+   "default": "0"
+  },
+  {
+   "fieldname": "buyer_selected",
+   "fieldtype": "Check",
+   "label": "Buyer Selected",
+   "default": "0"
+  },
+  {
+   "fieldname": "award_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_msme",
+   "fieldtype": "Check",
+   "label": "MSE / MSME",
+   "default": "0"
+  },
+  {
+   "fieldname": "is_mii",
+   "fieldtype": "Check",
+   "label": "Make in India (MII)",
+   "default": "0"
+  },
+  {
+   "fieldname": "award_share_percent",
+   "fieldtype": "Percent",
+   "label": "Award Share %"
+  },
+  {
+   "fieldname": "awarded_quantity",
+   "fieldtype": "Float",
+   "label": "Awarded Quantity"
+  },
+  {
+   "fieldname": "history_key",
+   "fieldtype": "Data",
+   "label": "History Key",
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Deterministic key used by server logic to prevent duplicate historical rows."
   }
  ],
  "index_web_pages_for_search": 0,
