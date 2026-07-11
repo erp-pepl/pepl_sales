@@ -1,12 +1,53 @@
+import re
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, today, flt, add_days
+from frappe.utils import add_days, flt, getdate, today
+
+
+FINAL_OUTCOMES = {"Won", "Partially Won", "Lost", "Cancelled"}
+
+
+def parse_rank_number(rank):
+    """Return numeric rank from values such as L1, L2, L15.
+
+    Non-numeric source values such as Disqualified or Mixed return 0.
+    """
+    value = (rank or "").strip().upper()
+    match = re.fullmatch(r"L\s*0*(\d+)", value)
+    return int(match.group(1)) if match else 0
+
+
+def get_primary_evaluated_price(row, item_row=None):
+    """Return the correct comparison value for a competitor row."""
+    basis = (
+        row.evaluation_basis
+        or getattr(item_row, "evaluation_basis", None)
+        or ""
+    )
+
+    total_value_basis = basis in {"Total Bid Value", "Item Total Value"}
+
+    if total_value_basis and flt(row.total_bid_value) > 0:
+        return flt(row.total_bid_value)
+
+    if flt(row.evaluated_unit_rate) > 0:
+        return flt(row.evaluated_unit_rate)
+
+    if flt(row.total_bid_value) > 0:
+        return flt(row.total_bid_value)
+
+    if flt(row.calculated_unit_rate) > 0:
+        return flt(row.calculated_unit_rate)
+
+    return 0
 
 
 class PEPLTender(Document):
     def autoname(self):
         from frappe.model.naming import make_autoname
+
         self.tender_no = make_autoname("TND-.YYYY.-.####")
         self.name = self.tender_no
 
@@ -23,7 +64,7 @@ class PEPLTender(Document):
                 "Defence - AWEIL": "Defence - AWEIL",
                 "Defence - Private": "Defence - Private",
                 "Private Sector": "Private Sector",
-                "PSU": "PSU"
+                "PSU": "PSU",
             }
             if cg in mapping:
                 self.sub_sector = mapping[cg]
@@ -45,11 +86,12 @@ class PEPLTender(Document):
                 if item_row.item and self.sector:
                     self._fetch_item_details(item_row)
 
-        # Calculate summary fields
+        # Calculate competitor analysis before parent summaries/status.
+        self._calculate_competitor_analysis()
         self._calculate_summary()
-
-        # Auto-update overall status based on item outcomes
         self._update_overall_status()
+        self._validate_outcomes()
+        self._build_outcome_summary()
 
         # Process PO Schedule: recalc totals, flag won-list status, sum parent total
         self._process_po_schedule()
@@ -62,14 +104,11 @@ class PEPLTender(Document):
                         self.bid_submission_deadline
                     ),
                     indicator="orange",
-                    alert=True
+                    alert=True,
                 )
 
     def _fetch_item_details(self, item_row):
-        """Fetch drawing, spec, vendor approval stage, PL number for an item row.
-        Uses frappe.db.has_column to check field existence before query —
-        bypasses field-level permission errors on custom fields."""
-
+        """Fetch drawing, spec, vendor approval stage, PL number for an item row."""
         if item_row.item:
             has_pl = frappe.db.has_column("Item", "custom_pl_no")
             has_drawing = frappe.db.has_column("Item", "custom_drawing_no")
@@ -83,12 +122,16 @@ class PEPLTender(Document):
 
                 fields_str = ", ".join(select_fields)
 
-                item_data = frappe.db.sql(f"""
+                item_data = frappe.db.sql(
+                    f"""
                     SELECT {fields_str}
                     FROM `tabItem`
                     WHERE name = %s
                     LIMIT 1
-                """, item_row.item, as_dict=True)
+                    """,
+                    item_row.item,
+                    as_dict=True,
+                )
 
                 if item_data:
                     if has_pl and "custom_pl_no" in item_data[0]:
@@ -100,7 +143,7 @@ class PEPLTender(Document):
             "PEPL Product Master",
             {"linked_item": item_row.item},
             ["name", "current_drawing_revision", "drawing_number", "pl_number"],
-            as_dict=True
+            as_dict=True,
         )
 
         if product:
@@ -112,11 +155,15 @@ class PEPLTender(Document):
             if not item_row.drawing_no and product.drawing_number:
                 item_row.drawing_no = product.drawing_number
 
-            primary_spec = frappe.db.sql("""
+            primary_spec = frappe.db.sql(
+                """
                 SELECT spec_title FROM `tabPEPL Product Specification`
                 WHERE parent = %s AND status = 'Active'
                 ORDER BY creation ASC LIMIT 1
-            """, product.name, as_dict=True)
+                """,
+                product.name,
+                as_dict=True,
+            )
 
             if primary_spec:
                 item_row.current_specification = primary_spec[0].spec_title
@@ -132,86 +179,560 @@ class PEPLTender(Document):
         )
 
         item_row.vendor_approval_record = approval.get("name")
-        item_row.vendor_approval_stage = (
-            approval.get("stage") or "No Record"
-        )
-        item_row.vendor_approval_health = (
-            approval.get("health") or "Missing"
-        )
+        item_row.vendor_approval_stage = approval.get("stage") or "No Record"
+        item_row.vendor_approval_health = approval.get("health") or "Missing"
         item_row.vendor_approval_expiry = approval.get("expiry_date")
         item_row.vendor_approval_warning = approval.get("warning") or ""
 
+    def _calculate_competitor_analysis(self):
+        """Calculate row, consignee-group and Tender Item competitor analysis."""
+        for item_row in self.items or []:
+            groups = {}
+
+            for row in item_row.competitors or []:
+                self._calculate_competitor_row(row, item_row)
+
+                group_key = (row.consignee or "").strip() or "__DEFAULT__"
+                groups.setdefault(group_key, []).append(row)
+
+            if not groups:
+                self._clear_item_competitor_summary(item_row)
+                continue
+
+            group_summaries = []
+
+            for group_key, rows in groups.items():
+                summary = self._analyse_competitor_group(
+                    group_key,
+                    rows,
+                    item_row,
+                )
+                if summary:
+                    group_summaries.append(summary)
+
+            self._apply_item_competitor_summary(
+                item_row,
+                group_summaries,
+            )
+
+    def _calculate_competitor_row(self, row, item_row):
+        """Calculate one competitor row without overwriting official TUR."""
+        rank_number = parse_rank_number(row.rank)
+        row.rank_number = rank_number
+        row.is_l1 = 1 if rank_number == 1 else 0
+
+        discounted_basic = flt(row.basic_rate) * (
+            1 - flt(row.unconditional_discount_percent) / 100
+        )
+        percentage_other_charges = (
+            discounted_basic * flt(row.other_charges_percent) / 100
+        )
+
+        subtotal_before_gst = (
+            discounted_basic
+            + flt(row.packing_charges)
+            + flt(row.freight)
+            + flt(row.forwarding)
+            + flt(row.other_charges_amount)
+            + percentage_other_charges
+        )
+
+        gst_amount = subtotal_before_gst * flt(row.gst_percent) / 100
+        row.calculated_unit_rate = subtotal_before_gst + gst_amount
+
+        row.competitor_price = get_primary_evaluated_price(
+            row,
+            item_row,
+        )
+
+    def _analyse_competitor_group(self, group_key, rows, item_row):
+        """Analyse a single consignee/evaluation group."""
+        priced_rows = [
+            row
+            for row in rows
+            if flt(row.competitor_price) > 0
+        ]
+
+        if not priced_rows:
+            for row in rows:
+                row.difference_from_pepl = 0
+                row.difference_from_pepl_percent = 0
+                row.difference_from_l1 = 0
+                row.difference_from_l1_percent = 0
+            return None
+
+        pepl_rows = [row for row in priced_rows if row.is_pepl]
+        pepl_row = min(
+            pepl_rows,
+            key=lambda row: flt(row.competitor_price),
+            default=None,
+        )
+
+        explicit_l1 = [
+            row
+            for row in priced_rows
+            if row.is_l1 or row.rank_number == 1
+        ]
+        l1_row = min(
+            explicit_l1 or priced_rows,
+            key=lambda row: flt(row.competitor_price),
+        )
+
+        winner_rows = [
+            row
+            for row in priced_rows
+            if row.is_winner or row.buyer_selected
+        ]
+        winner_row = min(
+            winner_rows or [l1_row],
+            key=lambda row: flt(row.competitor_price),
+        )
+
+        pepl_price = (
+            flt(pepl_row.competitor_price)
+            if pepl_row
+            else 0
+        )
+        l1_price = flt(l1_row.competitor_price)
+
+        for row in rows:
+            row_price = flt(row.competitor_price)
+
+            if pepl_price > 0 and row_price > 0:
+                row.difference_from_pepl = row_price - pepl_price
+                row.difference_from_pepl_percent = (
+                    row.difference_from_pepl / pepl_price
+                ) * 100
+            else:
+                row.difference_from_pepl = 0
+                row.difference_from_pepl_percent = 0
+
+            if l1_price > 0 and row_price > 0:
+                row.difference_from_l1 = row_price - l1_price
+                row.difference_from_l1_percent = (
+                    row.difference_from_l1 / l1_price
+                ) * 100
+            else:
+                row.difference_from_l1 = 0
+                row.difference_from_l1_percent = 0
+
+        quantity = max(
+            [
+                flt(row.consignee_quantity)
+                for row in rows
+                if flt(row.consignee_quantity) > 0
+            ]
+            or [flt(item_row.quantity) or 1]
+        )
+
+        basis = (
+            winner_row.evaluation_basis
+            or item_row.evaluation_basis
+            or ""
+        )
+        is_total_value = basis in {
+            "Total Bid Value",
+            "Item Total Value",
+        }
+
+        winning_price = flt(winner_row.competitor_price)
+        pepl_comparison_price = pepl_price
+
+        if not is_total_value:
+            winning_value = winning_price * quantity
+            pepl_value = pepl_comparison_price * quantity
+        else:
+            winning_value = winning_price
+            pepl_value = pepl_comparison_price
+
+        return {
+            "group_key": group_key,
+            "winner_name": winner_row.competitor_name,
+            "winner_price": winning_price,
+            "winner_value": winning_value,
+            "lowest_price": l1_price,
+            "pepl_price": pepl_comparison_price,
+            "pepl_value": pepl_value,
+            "pepl_rank": pepl_row.rank if pepl_row else "",
+            "pepl_rank_number": pepl_row.rank_number if pepl_row else 0,
+            "quantity": quantity,
+            "basis": basis,
+        }
+
+    def _clear_item_competitor_summary(self, item_row):
+        item_row.lowest_evaluated_price = 0
+        item_row.winning_competitor = ""
+        item_row.winning_price = 0
+        item_row.our_price_difference = 0
+        item_row.our_price_difference_percent = 0
+        item_row.our_rank_number = 0
+        item_row.item_outcome_summary = ""
+
+    def _apply_item_competitor_summary(
+        self,
+        item_row,
+        group_summaries,
+    ):
+        if not group_summaries:
+            self._clear_item_competitor_summary(item_row)
+            return
+
+        winner_names = sorted(
+            {
+                summary["winner_name"]
+                for summary in group_summaries
+                if summary["winner_name"]
+            }
+        )
+        pepl_ranks = sorted(
+            {
+                summary["pepl_rank"]
+                for summary in group_summaries
+                if summary["pepl_rank"]
+            },
+            key=lambda value: parse_rank_number(value) or 999999,
+        )
+        rank_numbers = [
+            summary["pepl_rank_number"]
+            for summary in group_summaries
+            if summary["pepl_rank_number"] > 0
+        ]
+
+        total_winning_value = sum(
+            flt(summary["winner_value"])
+            for summary in group_summaries
+        )
+        total_pepl_value = sum(
+            flt(summary["pepl_value"])
+            for summary in group_summaries
+        )
+
+        item_row.lowest_evaluated_price = min(
+            flt(summary["lowest_price"])
+            for summary in group_summaries
+            if flt(summary["lowest_price"]) > 0
+        )
+        item_row.winning_price = total_winning_value
+        item_row.winning_competitor = (
+            winner_names[0]
+            if len(winner_names) == 1
+            else "Multiple / Consignee-wise"
+        )
+
+        if total_pepl_value > 0 and total_winning_value > 0:
+            item_row.our_price_difference = (
+                total_pepl_value - total_winning_value
+            )
+            item_row.our_price_difference_percent = (
+                item_row.our_price_difference / total_winning_value
+            ) * 100
+        else:
+            item_row.our_price_difference = 0
+            item_row.our_price_difference_percent = 0
+
+        if len(pepl_ranks) == 1:
+            item_row.our_rank = pepl_ranks[0]
+        elif len(pepl_ranks) > 1:
+            item_row.our_rank = "Mixed"
+
+        item_row.our_rank_number = (
+            rank_numbers[0]
+            if rank_numbers and len(set(rank_numbers)) == 1
+            else 0
+        )
+
+        group_count = len(group_summaries)
+        rank_text = item_row.our_rank or "Not available"
+        winner_text = item_row.winning_competitor or "Not available"
+
+        item_row.item_outcome_summary = _(
+            "Analysed {0} evaluation group(s). "
+            "PEPL rank: {1}. Winner: {2}. "
+            "Winning value: {3}. "
+            "PEPL difference: {4} ({5:.2f}%)."
+        ).format(
+            group_count,
+            rank_text,
+            winner_text,
+            frappe.format_value(
+                item_row.winning_price,
+                {"fieldtype": "Currency"},
+            ),
+            frappe.format_value(
+                item_row.our_price_difference,
+                {"fieldtype": "Currency"},
+            ),
+            flt(item_row.our_price_difference_percent),
+        )
+
     def _calculate_summary(self):
-        """Server-side recalculation of row totals — independent of JS state."""
+        """Server-side recalculation of Tender totals and outcome counts."""
         if not self.items:
+            self.total_estimated_value = 0
+            self.total_bid_value = 0
+            self.items_won = 0
+            self.items_lost = 0
+            self.win_rate = 0
             return
 
         for item in self.items:
-            qty = flt(item.quantity) or 0
-            est_unit = flt(item.estimated_unit_price) or 0
-            our_unit = flt(item.our_bid_unit_price) or 0
+            qty = flt(item.quantity)
+            est_unit = flt(item.estimated_unit_price)
+            our_unit = flt(item.our_bid_unit_price)
 
             item.estimated_total_value = qty * est_unit
             item.our_bid_total_value = qty * our_unit
 
-        self.total_estimated_value = sum(flt(i.estimated_total_value) for i in self.items)
-        self.total_bid_value = sum(flt(i.our_bid_total_value) for i in self.items)
+        self.total_estimated_value = sum(
+            flt(item.estimated_total_value)
+            for item in self.items
+        )
+        self.total_bid_value = sum(
+            flt(item.our_bid_total_value)
+            for item in self.items
+        )
 
-        self.items_won = sum(1 for i in self.items if i.outcome == "Won")
-        self.items_lost = sum(1 for i in self.items if i.outcome == "Lost")
+        self.items_won = sum(
+            1
+            for item in self.items
+            if item.outcome in {"Won", "Partially Won"}
+        )
+        self.items_lost = sum(
+            1
+            for item in self.items
+            if item.outcome == "Lost"
+        )
 
-        total_decided = self.items_won + self.items_lost
-        if total_decided > 0:
-            self.win_rate = (self.items_won / total_decided) * 100
+        decided_items = [
+            item
+            for item in self.items
+            if item.outcome in FINAL_OUTCOMES
+        ]
+
+        if decided_items:
+            won_weight = sum(
+                1
+                if item.outcome == "Won"
+                else flt(item.award_share_percent) / 100
+                if item.outcome == "Partially Won"
+                else 0
+                for item in decided_items
+            )
+            self.win_rate = (
+                won_weight / len(decided_items)
+            ) * 100
         else:
             self.win_rate = 0
 
     def _update_overall_status(self):
-        """Derive tender-level status from item-level outcomes.
-        Skip auto-update if status is already 'Order Received' — SO is locked."""
-
-        if self.status == "Order Received":
+        """Derive Tender status from fully decided item outcomes."""
+        if self.status == "Order Received" or not self.items:
             return
 
-        if not self.items:
+        outcomes = [item.outcome for item in self.items]
+
+        if not outcomes or any(
+            outcome in {None, "", "Pending"}
+            for outcome in outcomes
+        ):
             return
 
-        outcomes = [i.outcome for i in self.items if i.outcome]
-        if not outcomes:
-            return
-
-        if all(o == "Won" for o in outcomes) and len(outcomes) == len(self.items):
+        if all(outcome == "Won" for outcome in outcomes):
             self.status = "Won"
-        elif all(o == "Lost" for o in outcomes) and len(outcomes) == len(self.items):
+        elif all(outcome == "Lost" for outcome in outcomes):
             self.status = "Lost"
-        elif "Won" in outcomes and "Lost" in outcomes:
+        elif all(outcome == "Cancelled" for outcome in outcomes):
+            self.status = "Cancelled"
+        elif (
+            "Partially Won" in outcomes
+            or (
+                any(outcome == "Won" for outcome in outcomes)
+                and any(
+                    outcome in {"Lost", "Cancelled"}
+                    for outcome in outcomes
+                )
+            )
+        ):
             self.status = "Partially Won"
 
+    def _validate_outcomes(self):
+        """Enforce essential item- and Tender-level outcome information."""
+        for index, item in enumerate(self.items or [], start=1):
+            if item.outcome == "Lost":
+                if not item.item_loss_category:
+                    frappe.throw(
+                        _(
+                            "Tender Item row {0}: Item Loss Category "
+                            "is required for a Lost item."
+                        ).format(index)
+                    )
+                if not item.item_loss_reason:
+                    frappe.throw(
+                        _(
+                            "Tender Item row {0}: Item Loss Reason "
+                            "is required for a Lost item."
+                        ).format(index)
+                    )
+
+            if item.outcome == "Partially Won":
+                if (
+                    flt(item.awarded_quantity) <= 0
+                    and flt(item.award_share_percent) <= 0
+                ):
+                    frappe.throw(
+                        _(
+                            "Tender Item row {0}: enter Awarded Quantity "
+                            "or Award Share % for a Partially Won item."
+                        ).format(index)
+                    )
+
+        if self.status == "Lost":
+            if self.linked_sales_order:
+                frappe.throw(
+                    _(
+                        "A Lost Tender cannot remain linked to "
+                        "Sales Order {0}."
+                    ).format(self.linked_sales_order)
+                )
+            if not self.outcome_date:
+                frappe.throw(_("Outcome Date is required for a Lost Tender."))
+            if not self.loss_reason:
+                frappe.throw(_("Loss Category is required for a Lost Tender."))
+            if not self.detailed_loss_reason:
+                frappe.throw(
+                    _("Detailed Loss Reason is required for a Lost Tender.")
+                )
+
+        if self.status == "Won":
+            if not self.outcome_date:
+                frappe.throw(_("Outcome Date is required for a Won Tender."))
+            if not any(
+                item.outcome == "Won"
+                for item in self.items or []
+            ):
+                frappe.throw(
+                    _("At least one Tender Item must be marked Won.")
+                )
+            if not self.win_reason:
+                frappe.throw(_("Win Reason is required for a Won Tender."))
+
+        if self.status == "Partially Won":
+            if not self.outcome_date:
+                frappe.throw(
+                    _("Outcome Date is required for a Partially Won Tender.")
+                )
+            if not any(
+                item.outcome in {"Won", "Partially Won"}
+                for item in self.items or []
+            ):
+                frappe.throw(
+                    _(
+                        "At least one Tender Item must be Won "
+                        "or Partially Won."
+                    )
+                )
+
+    def _build_outcome_summary(self):
+        """Create a concise parent-level outcome summary."""
+        if self.status not in {
+            "Won",
+            "Partially Won",
+            "Lost",
+            "Cancelled",
+        }:
+            self.outcome_summary = ""
+            self.competitor_analysis_completed = 0
+            return
+
+        analysed_items = [
+            item
+            for item in self.items or []
+            if item.competitors
+        ]
+
+        winning_names = sorted(
+            {
+                item.winning_competitor
+                for item in analysed_items
+                if item.winning_competitor
+            }
+        )
+
+        ranks = sorted(
+            {
+                item.our_rank
+                for item in analysed_items
+                if item.our_rank
+            },
+            key=lambda value: parse_rank_number(value) or 999999,
+        )
+
+        self.winning_competitor = (
+            winning_names[0]
+            if len(winning_names) == 1
+            else "Multiple / Item-wise"
+            if winning_names
+            else self.winning_competitor
+        )
+        self.our_overall_rank = (
+            ranks[0]
+            if len(ranks) == 1
+            else "Mixed"
+            if ranks
+            else ""
+        )
+        self.winning_price = sum(
+            flt(item.winning_price)
+            for item in analysed_items
+        )
+
+        details = [
+            _("Tender outcome: {0}.").format(self.status),
+            _("Items Won/Partially Won: {0}.").format(self.items_won),
+            _("Items Lost: {0}.").format(self.items_lost),
+        ]
+
+        if self.our_overall_rank:
+            details.append(
+                _("PEPL overall rank: {0}.").format(
+                    self.our_overall_rank
+                )
+            )
+        if self.winning_competitor:
+            details.append(
+                _("Winning competitor: {0}.").format(
+                    self.winning_competitor
+                )
+            )
+        if self.loss_reason:
+            details.append(
+                _("Loss category: {0}.").format(self.loss_reason)
+            )
+        if self.win_reason:
+            details.append(
+                _("Win reason: {0}.").format(self.win_reason)
+            )
+
+        self.outcome_summary = " ".join(details)
+        self.competitor_analysis_completed = 1 if analysed_items else 0
+
     def _process_po_schedule(self):
-        """Process PO Schedule rows:
-        1. Auto-fetch PL Number and Drawing Number from Item
-        2. Recalculate po_total per row (qty x rate)
-        3. Flag is_in_won_list (1 if item is in Won tender items, 0 otherwise)
-        4. Sum total to po_amount_received on parent
-        """
+        """Recalculate PO Schedule, won-list flags and parent total."""
         if not self.po_schedule:
             self.po_amount_received = 0
             return
 
-        # Build set of Won item codes from tender items
-        won_item_codes = set()
-        if self.items:
-            for tender_item in self.items:
-                if tender_item.outcome == "Won":
-                    won_item_codes.add(tender_item.item)
+        won_item_codes = {
+            tender_item.item
+            for tender_item in self.items or []
+            if tender_item.outcome in {"Won", "Partially Won"}
+        }
 
-        # Cache has_column results — avoid repeated DB checks per row
         has_pl = frappe.db.has_column("Item", "custom_pl_no")
         has_drawing = frappe.db.has_column("Item", "custom_drawing_no")
 
         total = 0
         for schedule_row in self.po_schedule:
-            # Auto-fetch PL/Drawing from Item
             if schedule_row.item and (has_pl or has_drawing):
                 select_fields = ["name"]
                 if has_pl:
@@ -220,12 +741,16 @@ class PEPLTender(Document):
                     select_fields.append("custom_drawing_no")
 
                 fields_str = ", ".join(select_fields)
-                item_data = frappe.db.sql(f"""
+                item_data = frappe.db.sql(
+                    f"""
                     SELECT {fields_str}
                     FROM `tabItem`
                     WHERE name = %s
                     LIMIT 1
-                """, schedule_row.item, as_dict=True)
+                    """,
+                    schedule_row.item,
+                    as_dict=True,
+                )
 
                 if item_data:
                     if has_pl and "custom_pl_no" in item_data[0]:
@@ -233,13 +758,15 @@ class PEPLTender(Document):
                     if has_drawing and "custom_drawing_no" in item_data[0]:
                         schedule_row.drawing_no = item_data[0].custom_drawing_no
 
-            # Flag if item is in Won list
             if schedule_row.item:
-                schedule_row.is_in_won_list = 1 if schedule_row.item in won_item_codes else 0
+                schedule_row.is_in_won_list = (
+                    1
+                    if schedule_row.item in won_item_codes
+                    else 0
+                )
 
-            # Recalc po_total
-            qty = flt(schedule_row.po_quantity) or 0
-            rate = flt(schedule_row.po_rate) or 0
+            qty = flt(schedule_row.po_quantity)
+            rate = flt(schedule_row.po_rate)
             schedule_row.po_total = qty * rate
             total += schedule_row.po_total
 
@@ -248,22 +775,15 @@ class PEPLTender(Document):
 
 @frappe.whitelist()
 def auto_populate_bid_documents(tender_name):
-    """
-    Auto-populate bid documents from Customer-specific approval records.
-
-    Missing or expired approvals generate warnings but do not block the Tender.
-    """
-
+    """Auto-populate bid documents from customer-specific approvals."""
     tender = frappe.get_doc("PEPL Tender", tender_name)
 
     if not tender.items:
         frappe.throw(
             _("Add Tender Items before generating the document checklist.")
         )
-
     if not tender.customer:
         frappe.throw(_("Customer must be set on the Tender."))
-
     if not tender.sector:
         frappe.throw(_("Sector must be set on the Tender."))
 
@@ -282,26 +802,20 @@ def auto_populate_bid_documents(tender_name):
         )
 
         item_row.vendor_approval_record = approval.get("name")
-        item_row.vendor_approval_stage = (
-            approval.get("stage") or "No Record"
-        )
-        item_row.vendor_approval_health = (
-            approval.get("health") or "Missing"
-        )
+        item_row.vendor_approval_stage = approval.get("stage") or "No Record"
+        item_row.vendor_approval_health = approval.get("health") or "Missing"
         item_row.vendor_approval_expiry = approval.get("expiry_date")
-        item_row.vendor_approval_warning = (
-            approval.get("warning") or ""
-        )
+        item_row.vendor_approval_warning = approval.get("warning") or ""
 
         all_required_docs.extend(
             approval.get("required_documents") or []
         )
 
-        if approval.get("health") in [
+        if approval.get("health") in {
             "Expired",
             "Expiring Soon",
             "Missing",
-        ]:
+        }:
             approval_warnings.append(
                 "{0}: {1}".format(
                     item_row.item,
@@ -319,7 +833,6 @@ def auto_populate_bid_documents(tender_name):
     }
 
     added = 0
-
     for document_type in all_required_docs:
         if document_type in existing_doc_types:
             continue
@@ -348,9 +861,9 @@ def auto_populate_bid_documents(tender_name):
 
 @frappe.whitelist()
 def get_tender_summary(filters=None):
-    """Returns aggregated tender pipeline summary for dashboards."""
-
-    summary = frappe.db.sql("""
+    """Return aggregated Tender pipeline summary."""
+    return frappe.db.sql(
+        """
         SELECT
             sector,
             status,
@@ -361,21 +874,24 @@ def get_tender_summary(filters=None):
         FROM `tabPEPL Tender`
         GROUP BY sector, status
         ORDER BY sector, status
-    """, as_dict=True)
-
-    return summary
+        """,
+        as_dict=True,
+    )
 
 
 def _custom_field_exists_on_so(field_name):
-    """Check if a custom field column exists on tabSales Order."""
+    """Check if a custom field column exists on Sales Order."""
     try:
-        result = frappe.db.sql("""
+        result = frappe.db.sql(
+            """
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = 'tabSales Order'
               AND COLUMN_NAME = %s
             LIMIT 1
-        """, field_name)
+            """,
+            field_name,
+        )
         return len(result) > 0
     except Exception:
         return False
@@ -383,103 +899,107 @@ def _custom_field_exists_on_so(field_name):
 
 @frappe.whitelist()
 def create_sales_order_from_tender(tender_name):
-    """Create Sales Order from Tender PO Schedule.
-    Each PO Schedule row becomes a separate SO line item with its own delivery date.
-
-    Validation gates:
-    - Tender must be Won or Partially Won
-    - Customer PO must be received
-    - PO Number and PO Date required
-    - PO Schedule must have at least one row
-    - No existing linked Sales Order (prevents duplicates)
-    """
-
+    """Create Sales Order from Tender PO Schedule."""
     tender = frappe.get_doc("PEPL Tender", tender_name)
 
-    if tender.status not in ["Won", "Partially Won"]:
+    if tender.status not in {"Won", "Partially Won"}:
         frappe.throw(
-            _("Tender must be in 'Won' or 'Partially Won' status. Current status: {0}").format(
-                tender.status
-            )
+            _(
+                "Tender must be Won or Partially Won. "
+                "Current status: {0}"
+            ).format(tender.status)
         )
-
     if not tender.customer_po_received:
         frappe.throw(
-            _("Customer PO/LOA must be received before creating Sales Order. "
-              "Tick 'Customer PO/LOA Received' first.")
+            _(
+                "Customer PO/LOA must be received before creating "
+                "the Sales Order."
+            )
         )
-
     if not tender.po_number:
-        frappe.throw(_("Customer PO Number is required"))
-
+        frappe.throw(_("Customer PO Number is required."))
     if not tender.po_date:
-        frappe.throw(_("Customer PO Date is required"))
-
+        frappe.throw(_("Customer PO Date is required."))
     if tender.linked_sales_order:
         frappe.throw(
-            _("Sales Order {0} is already linked to this tender. "
-              "Delete the existing Sales Order first if you want to recreate.").format(
+            _("Sales Order {0} is already linked.").format(
                 tender.linked_sales_order
             )
         )
-
     if not tender.po_schedule:
-        frappe.throw(_("PO Schedule is empty. Add at least one delivery line."))
+        frappe.throw(_("PO Schedule is empty."))
 
-    # Validate each schedule row
-    for idx, schedule_row in enumerate(tender.po_schedule, start=1):
+    for index, schedule_row in enumerate(
+        tender.po_schedule,
+        start=1,
+    ):
         if not schedule_row.item:
-            frappe.throw(_("Row {0}: Item is required").format(idx))
-        if not schedule_row.po_quantity or schedule_row.po_quantity <= 0:
-            frappe.throw(_("Row {0}: PO Quantity must be greater than 0").format(idx))
-        if not schedule_row.po_rate or schedule_row.po_rate <= 0:
-            frappe.throw(_("Row {0}: PO Rate must be greater than 0").format(idx))
+            frappe.throw(_("Row {0}: Item is required.").format(index))
+        if flt(schedule_row.po_quantity) <= 0:
+            frappe.throw(
+                _("Row {0}: PO Quantity must be greater than zero.").format(
+                    index
+                )
+            )
+        if flt(schedule_row.po_rate) <= 0:
+            frappe.throw(
+                _("Row {0}: PO Rate must be greater than zero.").format(
+                    index
+                )
+            )
         if not schedule_row.delivery_date:
-            frappe.throw(_("Row {0}: Delivery Date is required").format(idx))
+            frappe.throw(
+                _("Row {0}: Delivery Date is required.").format(index)
+            )
 
-    # Set SO header delivery_date as earliest from schedule
     earliest_delivery = min(
-        (s.delivery_date for s in tender.po_schedule if s.delivery_date),
-        default=None
+        (
+            row.delivery_date
+            for row in tender.po_schedule
+            if row.delivery_date
+        ),
+        default=None,
     )
 
-    so = frappe.new_doc("Sales Order")
-    so.customer = tender.customer
-    so.po_no = tender.po_number
-    so.po_date = tender.po_date
-    so.delivery_date = earliest_delivery or add_days(today(), 30)
-    so.transaction_date = today()
+    sales_order = frappe.new_doc("Sales Order")
+    sales_order.customer = tender.customer
+    sales_order.po_no = tender.po_number
+    sales_order.po_date = tender.po_date
+    sales_order.delivery_date = (
+        earliest_delivery or add_days(today(), 30)
+    )
+    sales_order.transaction_date = today()
 
     if tender.po_payment_terms:
-        so.payment_terms_template = tender.po_payment_terms
+        sales_order.payment_terms_template = tender.po_payment_terms
 
     if _custom_field_exists_on_so("custom_tender_reference"):
-        so.custom_tender_reference = tender.name
-
+        sales_order.custom_tender_reference = tender.name
     if _custom_field_exists_on_so("custom_nit_number"):
-        so.custom_nit_number = tender.nit_number
-
+        sales_order.custom_nit_number = tender.nit_number
     if _custom_field_exists_on_so("custom_sector"):
-        so.custom_sector = tender.sector
+        sales_order.custom_sector = tender.sector
 
-    # One SO line per PO Schedule row (preserves multiplicity + per-line delivery dates)
     for schedule_row in tender.po_schedule:
-        so.append("items", {
-            "item_code": schedule_row.item,
-            "qty": schedule_row.po_quantity,
-            "rate": schedule_row.po_rate,
-            "delivery_date": schedule_row.delivery_date
-        })
+        sales_order.append(
+            "items",
+            {
+                "item_code": schedule_row.item,
+                "qty": schedule_row.po_quantity,
+                "rate": schedule_row.po_rate,
+                "delivery_date": schedule_row.delivery_date,
+            },
+        )
 
-    so.insert(ignore_permissions=True)
+    sales_order.insert(ignore_permissions=True)
 
-    tender.linked_sales_order = so.name
+    tender.linked_sales_order = sales_order.name
     tender.status = "Order Received"
     tender.save(ignore_permissions=True)
 
     return {
-        "sales_order": so.name,
-        "url": f"/app/sales-order/{so.name}",
+        "sales_order": sales_order.name,
+        "url": f"/app/sales-order/{sales_order.name}",
         "lines_added": len(tender.po_schedule),
-        "total_value": flt(tender.po_amount_received)
+        "total_value": flt(tender.po_amount_received),
     }
