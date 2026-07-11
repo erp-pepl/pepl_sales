@@ -1,7 +1,6 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "format:VAS-{item}-{sector}",
  "creation": "2026-04-25 12:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -205,7 +204,6 @@
  "modified_by": "Administrator",
  "module": "PEPL Sales",
  "name": "Vendor Approval Status",
- "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
