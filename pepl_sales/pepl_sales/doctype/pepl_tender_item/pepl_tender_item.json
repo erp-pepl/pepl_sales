@@ -13,6 +13,10 @@
   "current_drawing_revision",
   "current_specification",
   "vendor_approval_stage",
+  "vendor_approval_record",
+  "vendor_approval_health",
+  "vendor_approval_expiry",
+  "vendor_approval_warning",
   "qty_section",
   "quantity",
   "uom",
@@ -51,14 +55,14 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "PL Number",
-   "description": "Auto-fetched on save. Editable — type to override or fill manually."
+   "description": "Auto-fetched on save. Editable \u2014 type to override or fill manually."
   },
   {
    "fieldname": "drawing_no",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Drawing Number",
-   "description": "Auto-fetched on save. Editable — type to override or fill manually."
+   "description": "Auto-fetched on save. Editable \u2014 type to override or fill manually."
   },
   {
    "fieldname": "column_break_1",
@@ -69,21 +73,21 @@
    "fieldtype": "Data",
    "label": "Current Drawing Revision",
    "read_only": 1,
-   "description": "Auto-fetched from PEPL Product Master. Read-only — managed in Product Master."
+   "description": "Auto-fetched from PEPL Product Master. Read-only \u2014 managed in Product Master."
   },
   {
    "fieldname": "current_specification",
    "fieldtype": "Data",
    "label": "Current Specification",
    "read_only": 1,
-   "description": "Auto-fetched from PEPL Product Master. Read-only — managed in Product Master."
+   "description": "Auto-fetched from PEPL Product Master. Read-only \u2014 managed in Product Master."
   },
   {
    "fieldname": "vendor_approval_stage",
    "fieldtype": "Data",
    "label": "Vendor Approval Stage",
    "read_only": 1,
-   "description": "Auto-fetched from Vendor Approval Status. Read-only — managed in VAS DocType."
+   "description": "Auto-fetched from Vendor Approval Status. Read-only \u2014 managed in VAS DocType."
   },
   {
    "fieldname": "qty_section",
@@ -193,6 +197,33 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "vendor_approval_record",
+   "fieldtype": "Link",
+   "label": "Vendor Approval Record",
+   "options": "Vendor Approval Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vendor_approval_health",
+   "fieldtype": "Select",
+   "label": "Approval Health",
+   "options": "Active\nExpiring Soon\nExpired\nNo Expiry Set\nMissing",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vendor_approval_expiry",
+   "fieldtype": "Date",
+   "label": "Approval Expiry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vendor_approval_warning",
+   "fieldtype": "Small Text",
+   "label": "Approval Warning",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,

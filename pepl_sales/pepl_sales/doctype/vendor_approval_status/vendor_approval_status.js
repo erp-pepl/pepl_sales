@@ -126,3 +126,35 @@ frappe.ui.form.on("Vendor Approval Document", {
 		}
 	}
 });
+
+
+frappe.ui.form.on("Vendor Approval Status", {
+    refresh(frm) {
+        const health_colors = {
+            "Active": "green",
+            "Expiring Soon": "orange",
+            "Expired": "red",
+            "No Expiry Set": "grey"
+        };
+
+        if (frm.doc.approval_health) {
+            frm.dashboard.add_indicator(
+                __(
+                    "Approval Health: {0}",
+                    [frm.doc.approval_health]
+                ),
+                health_colors[frm.doc.approval_health] || "grey"
+            );
+        }
+
+        if (frm.doc.approval_warning) {
+            frm.dashboard.add_comment(
+                frm.doc.approval_warning,
+                frm.doc.approval_health === "Expired"
+                    ? "red"
+                    : "orange",
+                true
+            );
+        }
+    }
+});

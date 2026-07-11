@@ -236,3 +236,134 @@ frappe.ui.form.on("PEPL Tender PO Schedule", {
 		}
 	}
 });
+
+
+// Customer-specific Vendor Approval Gate
+frappe.ui.form.on("PEPL Tender", {
+    refresh(frm) {
+        const approval_issues = (frm.doc.items || []).filter(row =>
+            ["Expired", "Expiring Soon", "Missing"].includes(
+                row.vendor_approval_health
+            )
+        );
+
+        if (approval_issues.length) {
+            const labels = approval_issues
+                .map(row =>
+                    `${row.item}: ${row.vendor_approval_health}`
+                )
+                .join(", ");
+
+            frm.dashboard.add_indicator(
+                __(
+                    "Vendor Approval attention required for {0} item(s)",
+                    [approval_issues.length]
+                ),
+                "orange"
+            );
+
+            frm.dashboard.add_comment(
+                __("Approval warnings: {0}", [labels]),
+                "orange",
+                true
+            );
+        }
+    }
+});
+
+
+frappe.ui.form.on("PEPL Tender Item", {
+    item(frm, cdt, cdn) {
+        refresh_vendor_approval_for_tender_item(frm, cdt, cdn);
+    }
+});
+
+
+async function refresh_vendor_approval_for_tender_item(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+
+    if (
+        !frm.doc.customer
+        || !frm.doc.sector
+        || !row.item
+    ) {
+        return;
+    }
+
+    try {
+        const response = await frappe.call({
+            method: "pepl_sales.pepl_sales.doctype.vendor_approval_status.vendor_approval_status.get_approval_status_for_item",
+            args: {
+                customer: frm.doc.customer,
+                item: row.item,
+                sector: frm.doc.sector
+            }
+        });
+
+        const approval = response.message || {};
+
+        await frappe.model.set_value(
+            cdt,
+            cdn,
+            "vendor_approval_record",
+            approval.name || ""
+        );
+
+        await frappe.model.set_value(
+            cdt,
+            cdn,
+            "vendor_approval_stage",
+            approval.stage || "No Record"
+        );
+
+        await frappe.model.set_value(
+            cdt,
+            cdn,
+            "vendor_approval_health",
+            approval.health || "Missing"
+        );
+
+        await frappe.model.set_value(
+            cdt,
+            cdn,
+            "vendor_approval_expiry",
+            approval.expiry_date || ""
+        );
+
+        await frappe.model.set_value(
+            cdt,
+            cdn,
+            "vendor_approval_warning",
+            approval.warning || ""
+        );
+
+        if (
+            ["Expired", "Expiring Soon", "Missing"].includes(
+                approval.health
+            )
+        ) {
+            frappe.show_alert(
+                {
+                    message: approval.warning
+                        || __(
+                            "Vendor Approval requires attention for {0}.",
+                            [row.item]
+                        ),
+                    indicator: "orange"
+                },
+                8
+            );
+        }
+    } catch (error) {
+        frappe.show_alert(
+            {
+                message: __(
+                    "Unable to retrieve Vendor Approval for {0}.",
+                    [row.item]
+                ),
+                indicator: "orange"
+            },
+            6
+        );
+    }
+}

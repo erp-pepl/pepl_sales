@@ -121,19 +121,25 @@ class PEPLTender(Document):
             if primary_spec:
                 item_row.current_specification = primary_spec[0].spec_title
 
-        vas = frappe.db.get_value(
-            "Vendor Approval Status",
-            {"item": item_row.item, "sector": self.sector},
-            ["railways_stage", "defence_stage"],
-            as_dict=True
+        from pepl_sales.pepl_sales.doctype.vendor_approval_status.vendor_approval_status import (
+            get_approval_status_for_item,
         )
-        if vas:
-            if self.sector == "Railways":
-                item_row.vendor_approval_stage = vas.railways_stage or "Unapproved"
-            elif self.sector == "Defence":
-                item_row.vendor_approval_stage = vas.defence_stage or "Source Development"
-        else:
-            item_row.vendor_approval_stage = "No Record"
+
+        approval = get_approval_status_for_item(
+            self.customer,
+            item_row.item,
+            self.sector,
+        )
+
+        item_row.vendor_approval_record = approval.get("name")
+        item_row.vendor_approval_stage = (
+            approval.get("stage") or "No Record"
+        )
+        item_row.vendor_approval_health = (
+            approval.get("health") or "Missing"
+        )
+        item_row.vendor_approval_expiry = approval.get("expiry_date")
+        item_row.vendor_approval_warning = approval.get("warning") or ""
 
     def _calculate_summary(self):
         """Server-side recalculation of row totals — independent of JS state."""
@@ -242,51 +248,102 @@ class PEPLTender(Document):
 
 @frappe.whitelist()
 def auto_populate_bid_documents(tender_name):
-    """Auto-populate bid documents based on items' Vendor Approval Status."""
+    """
+    Auto-populate bid documents from Customer-specific approval records.
+
+    Missing or expired approvals generate warnings but do not block the Tender.
+    """
 
     tender = frappe.get_doc("PEPL Tender", tender_name)
 
     if not tender.items:
-        frappe.throw(_("Add tender items first before generating document checklist"))
+        frappe.throw(
+            _("Add Tender Items before generating the document checklist.")
+        )
 
-    sector = tender.sector
-    if not sector:
-        frappe.throw(_("Sector must be set on tender"))
+    if not tender.customer:
+        frappe.throw(_("Customer must be set on the Tender."))
 
-    stages_seen = set()
+    if not tender.sector:
+        frappe.throw(_("Sector must be set on the Tender."))
+
+    from pepl_sales.pepl_sales.doctype.vendor_approval_status.vendor_approval_status import (
+        get_approval_status_for_item,
+    )
+
+    all_required_docs = []
+    approval_warnings = []
+
     for item_row in tender.items:
-        if item_row.vendor_approval_stage:
-            stages_seen.add(item_row.vendor_approval_stage)
+        approval = get_approval_status_for_item(
+            tender.customer,
+            item_row.item,
+            tender.sector,
+        )
 
-    from pepl_sales.pepl_sales.doctype.vendor_approval_status.vendor_approval_status import get_required_documents
+        item_row.vendor_approval_record = approval.get("name")
+        item_row.vendor_approval_stage = (
+            approval.get("stage") or "No Record"
+        )
+        item_row.vendor_approval_health = (
+            approval.get("health") or "Missing"
+        )
+        item_row.vendor_approval_expiry = approval.get("expiry_date")
+        item_row.vendor_approval_warning = (
+            approval.get("warning") or ""
+        )
 
-    all_required_docs = set()
-    for stage in stages_seen:
-        if stage and stage != "No Record":
-            required = get_required_documents(sector, stage)
-            if isinstance(required, list):
-                all_required_docs.update(required)
+        all_required_docs.extend(
+            approval.get("required_documents") or []
+        )
 
-    # Always add baseline if no stages had data
-    if not all_required_docs:
-        baseline = get_required_documents(sector, "Unapproved")
-        if isinstance(baseline, list):
-            all_required_docs.update(baseline)
+        if approval.get("health") in [
+            "Expired",
+            "Expiring Soon",
+            "Missing",
+        ]:
+            approval_warnings.append(
+                "{0}: {1}".format(
+                    item_row.item,
+                    approval.get("warning")
+                    or approval.get("health"),
+                )
+            )
 
-    existing_doc_types = {d.document_type for d in tender.bid_documents}
+    all_required_docs = list(dict.fromkeys(all_required_docs))
+
+    existing_doc_types = {
+        row.document_type
+        for row in tender.bid_documents or []
+        if row.document_type
+    }
+
     added = 0
-    for doc_type in all_required_docs:
-        if doc_type not in existing_doc_types:
-            tender.append("bid_documents", {
-                "document_source": "Auto-Required",
-                "document_type": doc_type,
-                "is_mandatory": 1,
-                "is_attached": 0
-            })
-            added += 1
 
-    tender.save()
-    return {"added": added, "total_required": len(all_required_docs)}
+    for document_type in all_required_docs:
+        if document_type in existing_doc_types:
+            continue
+
+        tender.append(
+            "bid_documents",
+            {
+                "document_source": "Auto-Required",
+                "document_type": document_type,
+                "is_mandatory": 1,
+                "is_attached": 0,
+            },
+        )
+        existing_doc_types.add(document_type)
+        added += 1
+
+    tender.save(ignore_permissions=True)
+
+    return {
+        "added": added,
+        "total_required": len(all_required_docs),
+        "approval_warnings": approval_warnings,
+        "warning_count": len(approval_warnings),
+    }
 
 
 @frappe.whitelist()
