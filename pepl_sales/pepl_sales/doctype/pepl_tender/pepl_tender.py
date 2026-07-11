@@ -268,7 +268,9 @@ class PEPLTender(Document):
                     "Only one PEPL bidder row is allowed per "
                     "Tender Item and Consignee group: {0}."
                 ).format(
-                    row.consignee or "Default"
+                    "Default"
+                    if group_key == "__DEFAULT__"
+                    else group_key
                 )
             )
 
