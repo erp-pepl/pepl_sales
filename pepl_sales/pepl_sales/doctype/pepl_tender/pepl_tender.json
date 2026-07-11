@@ -40,13 +40,34 @@
   "items",
   "documents_section",
   "bid_documents",
+  "financial_result_section",
+  "result_source_type",
+  "financial_result_reference",
+  "financial_result_attachment",
+  "result_column_break",
+  "evaluation_criteria",
+  "result_published_date",
+  "total_evaluated_tender_value",
+  "splitting_applicable",
+  "splitting_ratio",
+  "competitor_analysis_completed",
   "outcome_section",
   "status",
   "bid_decision",
   "no_bid_reason",
   "column_break_5",
   "technical_qualified",
+  "outcome_date",
+  "winning_competitor",
+  "winning_price",
+  "our_overall_rank",
+  "outcome_column_break",
+  "win_reason",
+  "competitive_advantage",
+  "detailed_loss_reason",
+  "corrective_action",
   "loss_reason",
+  "outcome_summary",
   "summary_section",
   "total_estimated_value",
   "total_bid_value",
@@ -194,7 +215,7 @@
    "fieldtype": "Check",
    "label": "Bid Securing Declaration Submitted",
    "default": "1",
-   "description": "Default for MSME — alternative to EMD"
+   "description": "Default for MSME \u2014 alternative to EMD"
   },
   {
    "fieldname": "emd_required",
@@ -286,8 +307,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Active Bid\nSubmitted\nWon\nPartially Won\nOrder Received\nLost\nNo Bid\nCancelled\nRe-tendered",
-   "default": "Active Bid",
+   "options": "Draft\nActive Bid\nCosting\nCosted\nSubmitted\nWon\nPartially Won\nOrder Received\nLost\nNo Bid\nCancelled\nRe-tendered",
+   "default": "Draft",
    "reqd": 1
   },
   {
@@ -315,11 +336,11 @@
    "options": "\nQualified\nDisqualified\nNot Evaluated"
   },
   {
-   "depends_on": "eval:doc.status==\"Lost\"",
+   "depends_on": "eval:doc.status==\"Lost\" || doc.status==\"Partially Won\"",
    "fieldname": "loss_reason",
    "fieldtype": "Select",
-   "label": "Loss Reason",
-   "options": "\nPrice\nTechnical\nDelivery\nRelationship\nVendor Status\nOther"
+   "label": "Loss Category",
+   "options": "\nPrice\nTechnical Non-Compliance\nDelivery Schedule\nVendor Approval / Eligibility\nCommercial Terms\nDocumentation\nCustomer Preference\nCompetitor Relationship\nPurchase Preference / Policy\nTender Cancelled\nNo Bid / Withdrawn\nOther"
   },
   {
    "collapsible": 1,
@@ -445,6 +466,130 @@
    "fieldname": "remarks",
    "fieldtype": "Text Editor",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "financial_result_section",
+   "fieldtype": "Section Break",
+   "label": "Financial Bid Result / Competitor Analysis Source",
+   "description": "Store the official Railway tabulation statement, GeM result, customer evaluation statement or other result."
+  },
+  {
+   "fieldname": "result_source_type",
+   "fieldtype": "Select",
+   "label": "Result Source Type",
+   "options": "\nRailway Tabulation Statement\nGeM Bid Result\nCustomer Evaluation Statement\nManual Result\nOther",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "financial_result_reference",
+   "fieldtype": "Data",
+   "label": "Financial Result Reference",
+   "description": "GeM Bid ID, Railway statement reference, customer result number or similar reference."
+  },
+  {
+   "fieldname": "financial_result_attachment",
+   "fieldtype": "Attach",
+   "label": "Official Financial Result Attachment",
+   "description": "Upload the official result PDF, document or spreadsheet."
+  },
+  {
+   "fieldname": "result_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "evaluation_criteria",
+   "fieldtype": "Select",
+   "label": "Evaluation Criteria",
+   "options": "\nItem Wise\nItem Wise Consignee Wise\nTotal Bid Value\nItem Total Value\nBuyer Selected\nOther"
+  },
+  {
+   "fieldname": "result_published_date",
+   "fieldtype": "Datetime",
+   "label": "Result Published Date / Time"
+  },
+  {
+   "fieldname": "total_evaluated_tender_value",
+   "fieldtype": "Currency",
+   "label": "Total Evaluated Tender Value"
+  },
+  {
+   "fieldname": "splitting_applicable",
+   "fieldtype": "Check",
+   "label": "Split Award Applicable",
+   "default": "0"
+  },
+  {
+   "fieldname": "splitting_ratio",
+   "fieldtype": "Data",
+   "label": "Splitting Ratio",
+   "depends_on": "eval:doc.splitting_applicable==1",
+   "description": "Examples: 60:40, 70:30."
+  },
+  {
+   "fieldname": "competitor_analysis_completed",
+   "fieldtype": "Check",
+   "label": "Competitor Analysis Finalised",
+   "default": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "outcome_date",
+   "fieldtype": "Date",
+   "label": "Outcome Date",
+   "depends_on": "eval:doc.status==\"Won\" || doc.status==\"Partially Won\" || doc.status==\"Lost\" || doc.status==\"Cancelled\" || doc.status==\"No Bid\""
+  },
+  {
+   "fieldname": "winning_competitor",
+   "fieldtype": "Data",
+   "label": "Winning Competitor",
+   "depends_on": "eval:doc.status==\"Lost\" || doc.status==\"Partially Won\""
+  },
+  {
+   "fieldname": "winning_price",
+   "fieldtype": "Currency",
+   "label": "Winning Evaluated Price / Value",
+   "depends_on": "eval:doc.status==\"Won\" || doc.status==\"Partially Won\" || doc.status==\"Lost\""
+  },
+  {
+   "fieldname": "our_overall_rank",
+   "fieldtype": "Data",
+   "label": "PEPL Overall Rank",
+   "read_only": 1
+  },
+  {
+   "fieldname": "outcome_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "win_reason",
+   "fieldtype": "Select",
+   "label": "Win Reason",
+   "options": "\nL1 / Lowest Evaluated Price\nBuyer Selected\nTechnical Strength\nExisting Vendor Approval\nDelivery Capability\nQuality Performance\nPast Performance\nCustomer Relationship\nCommercial Terms\nMSE / MII Purchase Preference\nSingle Qualified Bidder\nOther",
+   "depends_on": "eval:doc.status==\"Won\" || doc.status==\"Partially Won\""
+  },
+  {
+   "fieldname": "competitive_advantage",
+   "fieldtype": "Small Text",
+   "label": "Competitive Advantage / Win Explanation",
+   "depends_on": "eval:doc.status==\"Won\" || doc.status==\"Partially Won\""
+  },
+  {
+   "fieldname": "detailed_loss_reason",
+   "fieldtype": "Small Text",
+   "label": "Detailed Loss Reason",
+   "depends_on": "eval:doc.status==\"Lost\" || doc.status==\"Partially Won\""
+  },
+  {
+   "fieldname": "corrective_action",
+   "fieldtype": "Small Text",
+   "label": "Corrective Action / Future Strategy",
+   "depends_on": "eval:doc.status==\"Lost\" || doc.status==\"Partially Won\""
+  },
+  {
+   "fieldname": "outcome_summary",
+   "fieldtype": "Text",
+   "label": "Outcome Summary",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
