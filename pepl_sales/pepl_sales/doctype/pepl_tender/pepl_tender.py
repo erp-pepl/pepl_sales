@@ -262,11 +262,17 @@ class PEPLTender(Document):
             return None
 
         pepl_rows = [row for row in priced_rows if row.is_pepl]
-        pepl_row = min(
-            pepl_rows,
-            key=lambda row: flt(row.competitor_price),
-            default=None,
-        )
+        if len(pepl_rows) > 1:
+            frappe.throw(
+                _(
+                    "Only one PEPL bidder row is allowed per "
+                    "Tender Item and Consignee group: {0}."
+                ).format(
+                    row.consignee or "Default"
+                )
+            )
+
+        pepl_row = pepl_rows[0] if pepl_rows else None
 
         explicit_l1 = [
             row
@@ -283,9 +289,17 @@ class PEPLTender(Document):
             for row in priced_rows
             if row.is_winner or row.buyer_selected
         ]
+        effective_winners = winner_rows or [l1_row]
         winner_row = min(
-            winner_rows or [l1_row],
+            effective_winners,
             key=lambda row: flt(row.competitor_price),
+        )
+        winner_names = sorted(
+            {
+                row.competitor_name
+                for row in effective_winners
+                if row.competitor_name
+            }
         )
 
         pepl_price = (
@@ -347,7 +361,12 @@ class PEPLTender(Document):
 
         return {
             "group_key": group_key,
-            "winner_name": winner_row.competitor_name,
+            "winner_names": winner_names,
+            "winner_name": (
+                winner_names[0]
+                if len(winner_names) == 1
+                else "; ".join(winner_names)
+            ),
             "winner_price": winning_price,
             "winner_value": winning_value,
             "lowest_price": l1_price,
@@ -365,6 +384,7 @@ class PEPLTender(Document):
         item_row.winning_price = 0
         item_row.our_price_difference = 0
         item_row.our_price_difference_percent = 0
+        item_row.our_rank = ""
         item_row.our_rank_number = 0
         item_row.item_outcome_summary = ""
 
@@ -434,6 +454,8 @@ class PEPLTender(Document):
             item_row.our_rank = pepl_ranks[0]
         elif len(pepl_ranks) > 1:
             item_row.our_rank = "Mixed"
+        else:
+            item_row.our_rank = ""
 
         item_row.our_rank_number = (
             rank_numbers[0]
@@ -585,6 +607,20 @@ class PEPLTender(Document):
                             "or Award Share % for a Partially Won item."
                         ).format(index)
                     )
+                if not item.item_loss_category:
+                    frappe.throw(
+                        _(
+                            "Tender Item row {0}: Item Loss Category "
+                            "is required for a Partially Won item."
+                        ).format(index)
+                    )
+                if not item.item_loss_reason:
+                    frappe.throw(
+                        _(
+                            "Tender Item row {0}: Item Loss Reason "
+                            "is required for a Partially Won item."
+                        ).format(index)
+                    )
 
         if self.status == "Lost":
             if self.linked_sales_order:
@@ -615,6 +651,22 @@ class PEPLTender(Document):
                 )
             if not self.win_reason:
                 frappe.throw(_("Win Reason is required for a Won Tender."))
+            has_pepl_bid = any(
+                flt(item.our_bid_total_value) > 0
+                or any(
+                    row.is_pepl
+                    and flt(row.competitor_price) > 0
+                    for row in item.competitors or []
+                )
+                for item in self.items or []
+            )
+            if not has_pepl_bid:
+                frappe.throw(
+                    _(
+                        "Record the PEPL bid value or mark one priced "
+                        "competitor row as Is PEPL before finalising a win."
+                    )
+                )
 
         if self.status == "Partially Won":
             if not self.outcome_date:
@@ -629,6 +681,45 @@ class PEPLTender(Document):
                     _(
                         "At least one Tender Item must be Won "
                         "or Partially Won."
+                    )
+                )
+
+            has_partial_loss = any(
+                item.outcome in {"Lost", "Cancelled"}
+                or (
+                    item.outcome == "Partially Won"
+                    and (
+                        0 < flt(item.award_share_percent) < 100
+                        or (
+                            flt(item.awarded_quantity) > 0
+                            and flt(item.quantity) > 0
+                            and flt(item.awarded_quantity)
+                            < flt(item.quantity)
+                        )
+                    )
+                )
+                for item in self.items or []
+            )
+            if not has_partial_loss:
+                frappe.throw(
+                    _(
+                        "A Partially Won Tender must include a Lost/Cancelled "
+                        "item or an award share/quantity below 100%."
+                    )
+                )
+            if not self.win_reason:
+                frappe.throw(
+                    _("Win Reason is required for a Partially Won Tender.")
+                )
+            if not self.loss_reason:
+                frappe.throw(
+                    _("Loss Category is required for a Partially Won Tender.")
+                )
+            if not self.detailed_loss_reason:
+                frappe.throw(
+                    _(
+                        "Detailed Loss Reason is required for a "
+                        "Partially Won Tender."
                     )
                 )
 
@@ -714,7 +805,24 @@ class PEPLTender(Document):
             )
 
         self.outcome_summary = " ".join(details)
-        self.competitor_analysis_completed = 1 if analysed_items else 0
+
+        analysis_items = [
+            item
+            for item in self.items or []
+            if item.outcome in {"Won", "Partially Won", "Lost"}
+        ]
+        self.competitor_analysis_completed = 1 if (
+            analysis_items
+            and all(
+                item.competitors
+                and any(
+                    row.is_pepl
+                    and flt(row.competitor_price) > 0
+                    for row in item.competitors
+                )
+                for item in analysis_items
+            )
+        ) else 0
 
     def _process_po_schedule(self):
         """Recalculate PO Schedule, won-list flags and parent total."""
