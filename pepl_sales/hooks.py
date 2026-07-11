@@ -137,7 +137,7 @@ required_apps = ["erpnext"]
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
+doc_events = {
     "Sales Order": {
         "on_submit": "pepl_sales.events.on_sales_order_submit"
     },
