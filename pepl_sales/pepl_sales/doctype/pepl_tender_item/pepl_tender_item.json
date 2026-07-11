@@ -182,10 +182,10 @@
   },
   {
    "fieldname": "our_rank",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Our Rank",
-   "options": "\nL1\nL2\nL3\nL4\nL5\nDisqualified"
+   "description": "Supports L1, L2, L10, L15, Disqualified, Mixed or another source-defined rank."
   },
   {
    "fieldname": "outcome",

@@ -91,7 +91,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Outcome",
-   "options": "Won\nLost\nUnknown"
+   "options": "\nWon\nPartially Won\nLost\nCancelled\nUnknown"
   },
   {
    "fieldname": "remarks",
