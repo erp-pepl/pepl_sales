@@ -61,7 +61,10 @@ class PEPLCSTCostSheet(Document):
                 if option.strip()
             ]
 
-            if "Costed" in allowed_statuses:
+            if (
+                "Costed" in allowed_statuses
+                and tender.status in {"Draft", "Active Bid", "Costing"}
+            ):
                 tender.status = "Costed"
 
         tender.save(ignore_permissions=True)
