@@ -24,8 +24,15 @@ class PEPLPaymentTracker(Document):
         )
 
         # Days Outstanding + Ageing Bucket (MSME 45-day rule)
-        if self.invoice_date:
-            self.days_outstanding = date_diff(today(), self.invoice_date)
+        if (
+            self.invoice_date
+            and flt(self.total_outstanding) > 0
+            and self.payment_status not in {"Reconciled", "Closed"}
+        ):
+            self.days_outstanding = max(
+                date_diff(today(), self.invoice_date),
+                0,
+            )
 
             if self.days_outstanding <= 30:
                 self.ageing_bucket = "0-30 days"
@@ -33,36 +40,49 @@ class PEPLPaymentTracker(Document):
                 self.ageing_bucket = "31-45 days"
             else:
                 self.ageing_bucket = "45+ days (MSME breach)"
+        else:
+            self.days_outstanding = 0
+            self.ageing_bucket = "0-30 days"
 
         self.last_update_date = today()
         self._auto_advance_status()
 
     def calculate_payment_summary(self):
         """
-        Module 8 patch (May 2026):
-        amount_received in each receipt = bank credit value (net what hits bank).
-        gross_payment_realised = bank credit + all deductions (closes against invoice).
+        Calculate payment receipts, deductions, recoverable amounts,
+        written-off amounts and the remaining invoice outstanding.
         """
-        total_bank_credit = 0
-        for receipt in (self.payment_receipts or []):
-            total_bank_credit += (receipt.amount_received or 0)
 
-        tds = self.tds_deducted or 0
-        sd = self.sd_deducted or 0
-        ld = self.ld_deducted or 0
-        other = self.other_deductions or 0
+        total_bank_credit = sum(
+            flt(receipt.amount_received)
+            for receipt in self.payment_receipts or []
+        )
+
+        tds = flt(self.tds_deducted)
+        sd = flt(self.sd_deducted)
+        ld = flt(self.ld_deducted)
+        other = flt(self.other_deductions)
+        invoice_amount = flt(self.invoice_amount)
 
         self.total_amount_received = total_bank_credit
-        self.gross_payment_realised = total_bank_credit + tds + sd + ld + other
+        self.gross_payment_realised = (
+            total_bank_credit
+            + tds
+            + sd
+            + ld
+            + other
+        )
         self.total_recoverable_held = tds + sd
         self.total_written_off = ld + other
-        self.total_outstanding = (self.invoice_amount or 0) - self.gross_payment_realised
 
-        # net_amount_receivable defaults to invoice_amount.
-        # User can manually override for disputed/agreed reductions.
-        # If they set a non-zero value, we respect it.
-        if not self.net_amount_receivable:
-            self.net_amount_receivable = self.invoice_amount or 0
+        self.total_outstanding = max(
+            invoice_amount - flt(self.gross_payment_realised),
+            0,
+        )
+
+        if not flt(self.net_amount_receivable):
+            self.net_amount_receivable = invoice_amount
+
 
     def _fetch_sector_from_invoice(self):
         customer = frappe.db.get_value(
