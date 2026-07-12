@@ -17,6 +17,10 @@
   "source",
   "source_reference",
   "version_drift_flag",
+  "is_required",
+  "received_date",
+  "received_by",
+  "receipt_attachment",
   "section_attachments",
   "additional_attachments",
   "section_remarks",
@@ -35,7 +39,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Customer PO\nModification Advice\nNDA\nDrawing Approval\nQAP\nInspection Plan\nRM Reports\nRM Clearance\nPre-Inspection Documents\nPre-Inspection Report\nIC - Stage Inspection\nIC - Final Inspection\nLot Offer\nDispatch Documents\nCustomer Receipt\nR-Note\nI-Note\nJCC\nBill Submission\nPayment Advice\nPSD Documents\nNDC Documents\nCommunication\nOthers",
+   "options": "Customer PO\nModification Advice\nNDA\nDrawing Approval\nQAP\nInspection Plan\nRM Reports\nRM Clearance\nPre-Inspection Documents\nPre-Inspection Report\nIC - Stage Inspection\nIC - Final Inspection\nLot Offer\nDispatch Documents\nMaterial Receipt\nCustomer Receipt\nR-Note\nI-Note\nCO7\nJCC\nBill Submission\nPayment Advice\nPSD Documents\nNDC Documents\nCommunication\nOthers",
    "reqd": 1
   },
   {
