@@ -1,0 +1,263 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"pepl_sales_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>PEPL Sales \\u2014 Cycle 1</b></span>\",\"col\":12}},{\"id\":\"pepl_sales_tender_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PEPL Tender\",\"col\":3}},{\"id\":\"pepl_sales_cost_sheet_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PEPL CST Cost Sheet\",\"col\":3}},{\"id\":\"pepl_sales_sales_order_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Order\",\"col\":3}},{\"id\":\"pepl_sales_sales_invoice_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice\",\"col\":3}},{\"id\":\"pepl_sales_tracker_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"pepl_sales_tracker_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Trackers</b></span>\",\"col\":12}},{\"id\":\"pepl_sales_psd_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PEPL PSD Tracker\",\"col\":3}},{\"id\":\"pepl_sales_document_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PEPL Document Tracker\",\"col\":3}},{\"id\":\"pepl_sales_payment_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PEPL Payment Tracker\",\"col\":3}},{\"id\":\"pepl_sales_vendor_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vendor Approval Status\",\"col\":3}},{\"id\":\"pepl_sales_reports_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"pepl_sales_reports_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Sales Reports</b></span>\",\"col\":12}},{\"id\":\"pepl_sales_tender_reports_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Tender & Competitor Reports\",\"col\":4}},{\"id\":\"pepl_sales_document_reports_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Document & Receipt Reports\",\"col\":4}},{\"id\":\"pepl_sales_payment_reports_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Payment & Cycle Reports\",\"col\":4}},{\"id\":\"pepl_sales_masters_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"pepl_sales_masters_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters & Configuration</b></span>\",\"col\":12}},{\"id\":\"pepl_sales_product_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Product & Approval Masters\",\"col\":4}},{\"id\":\"pepl_sales_company_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Company Documents\",\"col\":4}},{\"id\":\"pepl_sales_settings_card\",\"type\":\"card\",\"data\":{\"card_name\":\"PEPL Sales Settings\",\"col\":4}}]",
+ "creation": "2026-07-13 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "sales",
+ "idx": 0,
+ "indicator_color": "blue",
+ "is_hidden": 0,
+ "label": "PEPL Sales",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tender & Competitor Reports",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Tender Win Loss Analysis",
+   "link_count": 0,
+   "link_to": "PEPL Tender Win Loss Analysis",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Competitor Bid Comparison",
+   "link_count": 0,
+   "link_to": "PEPL Competitor Bid Comparison",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Document & Receipt Reports",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Pending Customer Documents",
+   "link_count": 0,
+   "link_to": "PEPL Pending Customer Documents",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Material Receipt Pending",
+   "link_count": 0,
+   "link_to": "PEPL Material Receipt Pending",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Payment & Cycle Reports",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Payment Ageing and Overdue",
+   "link_count": 0,
+   "link_to": "PEPL Payment Ageing and Overdue",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Customer Sales-to-Cash Status",
+   "link_count": 0,
+   "link_to": "PEPL Customer Sales-to-Cash Status",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Product & Approval Masters",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "PEPL Product Master",
+   "link_count": 0,
+   "link_to": "PEPL Product Master",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vendor Approval Status",
+   "link_count": 0,
+   "link_to": "Vendor Approval Status",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Company Documents",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "PEPL Company Document",
+   "link_count": 0,
+   "link_to": "PEPL Company Document",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "PEPL Sales Settings",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "PEPL System Parameters",
+   "link_count": 0,
+   "link_to": "PEPL System Parameters",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "PEPL RM Group",
+   "link_count": 0,
+   "link_to": "PEPL RM Group",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-07-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "PEPL Sales",
+ "name": "PEPL Sales",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Engineering Manager"
+  },
+  {
+   "role": "Engineering User"
+  }
+ ],
+ "sequence_id": 30.0,
+ "shortcuts": [
+  {
+   "label": "PEPL Tender",
+   "link_to": "PEPL Tender",
+   "type": "DocType"
+  },
+  {
+   "label": "PEPL CST Cost Sheet",
+   "link_to": "PEPL CST Cost Sheet",
+   "type": "DocType"
+  },
+  {
+   "label": "Sales Order",
+   "link_to": "Sales Order",
+   "type": "DocType"
+  },
+  {
+   "label": "Sales Invoice",
+   "link_to": "Sales Invoice",
+   "type": "DocType"
+  },
+  {
+   "label": "PEPL PSD Tracker",
+   "link_to": "PEPL PSD Tracker",
+   "type": "DocType"
+  },
+  {
+   "label": "PEPL Document Tracker",
+   "link_to": "PEPL Document Tracker",
+   "type": "DocType"
+  },
+  {
+   "label": "PEPL Payment Tracker",
+   "link_to": "PEPL Payment Tracker",
+   "type": "DocType"
+  },
+  {
+   "label": "Vendor Approval Status",
+   "link_to": "Vendor Approval Status",
+   "type": "DocType"
+  }
+ ],
+ "title": "PEPL Sales"
+}
