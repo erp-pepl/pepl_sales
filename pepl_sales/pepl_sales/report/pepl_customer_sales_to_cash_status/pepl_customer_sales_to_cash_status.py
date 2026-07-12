@@ -118,6 +118,12 @@ def get_columns():
             "width": 145,
         },
         {
+            "label": _("Invoice Count"),
+            "fieldname": "invoice_count",
+            "fieldtype": "Int",
+            "width": 90,
+        },
+        {
             "label": _("Invoice Status"),
             "fieldname": "invoice_status",
             "fieldtype": "Data",
@@ -141,6 +147,12 @@ def get_columns():
             "fieldtype": "Link",
             "options": "PEPL Payment Tracker",
             "width": 150,
+        },
+        {
+            "label": _("Payment Tracker Count"),
+            "fieldname": "payment_tracker_count",
+            "fieldtype": "Int",
+            "width": 115,
         },
         {
             "label": _("Payment Status"),
@@ -374,17 +386,24 @@ def get_data(filters):
         for row in invoices
     }
 
-    latest_invoice_by_so = {}
+    invoices_by_so = {}
 
     for item in invoice_items:
         invoice = invoice_map.get(item.parent)
 
-        if (
-            invoice
-            and item.sales_order
-            and item.sales_order not in latest_invoice_by_so
+        if not invoice or not item.sales_order:
+            continue
+
+        sales_order_invoices = invoices_by_so.setdefault(
+            item.sales_order,
+            [],
+        )
+
+        if not any(
+            existing.name == invoice.name
+            for existing in sales_order_invoices
         ):
-            latest_invoice_by_so[item.sales_order] = invoice
+            sales_order_invoices.append(invoice)
 
     payment_trackers = []
 
@@ -405,13 +424,13 @@ def get_data(filters):
             limit_page_length=0,
         )
 
-    payment_by_invoice = {}
+    payments_by_invoice = {}
 
     for payment in payment_trackers:
-        if payment.linked_sales_invoice not in payment_by_invoice:
-            payment_by_invoice[
-                payment.linked_sales_invoice
-            ] = payment
+        payments_by_invoice.setdefault(
+            payment.linked_sales_invoice,
+            [],
+        ).append(payment)
 
     data = []
 
@@ -421,11 +440,61 @@ def get_data(filters):
         document_tracker = document_by_so.get(
             sales_order.name
         )
-        invoice = latest_invoice_by_so.get(sales_order.name)
-        payment = (
-            payment_by_invoice.get(invoice.name)
-            if invoice
+        invoice_rows = invoices_by_so.get(
+            sales_order.name,
+            [],
+        )
+
+        invoice_rows = sorted(
+            invoice_rows,
+            key=lambda row: (
+                row.posting_date or "",
+                row.name,
+            ),
+            reverse=True,
+        )
+
+        latest_invoice = (
+            invoice_rows[0]
+            if invoice_rows
             else None
+        )
+
+        payment_rows = []
+
+        for invoice_row in invoice_rows:
+            payment_rows.extend(
+                payments_by_invoice.get(
+                    invoice_row.name,
+                    [],
+                )
+            )
+
+        payment_rows = sorted(
+            payment_rows,
+            key=lambda row: row.name,
+            reverse=True,
+        )
+
+        latest_payment = (
+            payment_rows[0]
+            if payment_rows
+            else None
+        )
+
+        invoice_value = sum(
+            flt(row.grand_total)
+            for row in invoice_rows
+        )
+
+        invoice_outstanding = sum(
+            flt(row.outstanding_amount)
+            for row in invoice_rows
+        )
+
+        payment_outstanding = sum(
+            flt(row.total_outstanding)
+            for row in payment_rows
         )
 
         doc_summary = (
@@ -456,17 +525,17 @@ def get_data(filters):
         ):
             missing_stages.append("Material Receipt")
 
-        if not invoice:
+        if not invoice_rows:
             missing_stages.append("Sales Invoice")
 
-        if invoice and not payment:
+        if invoice_rows and len(payment_rows) < len(invoice_rows):
             missing_stages.append("Payment Tracker")
 
-        if payment and flt(payment.total_outstanding) <= 0:
+        if invoice_rows and invoice_outstanding <= 0:
             cycle_status = "Payment Complete"
-        elif payment:
+        elif payment_rows:
             cycle_status = "Payment Pending"
-        elif invoice:
+        elif invoice_rows:
             cycle_status = "Invoice Raised"
         elif document_tracker or psd:
             cycle_status = "Order Execution"
@@ -495,20 +564,40 @@ def get_data(filters):
             "pending_documents": doc_summary["pending"],
             "material_receipt_status":
                 doc_summary["material_receipt"],
-            "sales_invoice": invoice.name if invoice else None,
-            "invoice_status": invoice.status if invoice else None,
-            "invoice_value":
-                invoice.grand_total if invoice else 0,
-            "invoice_outstanding":
-                invoice.outstanding_amount if invoice else 0,
+            "sales_invoice":
+                latest_invoice.name
+                if latest_invoice
+                else None,
+            "invoice_count": len(invoice_rows),
+            "invoice_status": (
+                latest_invoice.status
+                if len(invoice_rows) == 1
+                else "Multiple"
+                if invoice_rows
+                else None
+            ),
+            "invoice_value": invoice_value,
+            "invoice_outstanding": invoice_outstanding,
             "payment_tracker":
-                payment.name if payment else None,
-            "payment_status":
-                payment.payment_status if payment else None,
-            "payment_outstanding":
-                payment.total_outstanding if payment else 0,
-            "ageing_bucket":
-                payment.ageing_bucket if payment else None,
+                latest_payment.name
+                if latest_payment
+                else None,
+            "payment_tracker_count": len(payment_rows),
+            "payment_status": (
+                latest_payment.payment_status
+                if len(payment_rows) == 1
+                else "Multiple"
+                if payment_rows
+                else None
+            ),
+            "payment_outstanding": payment_outstanding,
+            "ageing_bucket": (
+                latest_payment.ageing_bucket
+                if len(payment_rows) == 1
+                else "Multiple"
+                if payment_rows
+                else None
+            ),
             "cycle_status": cycle_status,
             "missing_stage": (
                 ", ".join(missing_stages)
