@@ -83,7 +83,7 @@ required_apps = ["erpnext"]
 # ------------
 
 # before_install = "pepl_sales.install.before_install"
-# after_install = "pepl_sales.install.after_install"
+after_install = "pepl_sales.install.after_install"
 
 # Uninstallation
 # ------------
