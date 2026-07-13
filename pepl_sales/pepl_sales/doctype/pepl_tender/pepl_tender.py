@@ -189,7 +189,7 @@ class PEPLTender(Document):
         for item_row in self.items or []:
             groups = {}
 
-            for row in item_row.competitors or []:
+            for row in item_row.get("competitors") or []:
                 self._calculate_competitor_row(row, item_row)
 
                 group_key = (row.consignee or "").strip() or "__DEFAULT__"
@@ -658,7 +658,7 @@ class PEPLTender(Document):
                 or any(
                     row.is_pepl
                     and flt(row.competitor_price) > 0
-                    for row in item.competitors or []
+                    for row in item.get("competitors") or []
                 )
                 for item in self.items or []
             )
@@ -740,7 +740,7 @@ class PEPLTender(Document):
         analysed_items = [
             item
             for item in self.items or []
-            if item.competitors
+            if item.get("competitors")
         ]
 
         winning_names = sorted(
@@ -816,11 +816,11 @@ class PEPLTender(Document):
         self.competitor_analysis_completed = 1 if (
             analysis_items
             and all(
-                item.competitors
+                item.get("competitors")
                 and any(
                     row.is_pepl
                     and flt(row.competitor_price) > 0
-                    for row in item.competitors
+                    for row in item.get("competitors")
                 )
                 for item in analysis_items
             )
