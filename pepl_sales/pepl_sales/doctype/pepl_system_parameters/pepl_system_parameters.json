@@ -20,7 +20,17 @@
   "col_break_sales",
   "margin_floor_percent",
   "payment_ageing_amber_days",
-  "payment_ageing_red_days"
+  "payment_ageing_red_days",
+  "section_notifications",
+  "enable_operational_todos",
+  "sales_notification_owner",
+  "accounts_notification_owner",
+  "column_break_notifications",
+  "engineering_notification_owner",
+  "notification_fallback_owner",
+  "tender_deadline_alert_days",
+  "document_pending_alert_days",
+  "material_receipt_alert_days"
  ],
  "fields": [
   {
@@ -126,6 +136,68 @@
    "fieldtype": "Int",
    "label": "Payment Ageing Red Days",
    "default": "90"
+  },
+  {
+   "fieldname": "section_notifications",
+   "fieldtype": "Section Break",
+   "label": "Operational Notifications"
+  },
+  {
+   "fieldname": "enable_operational_todos",
+   "fieldtype": "Check",
+   "label": "Enable Daily Operational ToDos",
+   "default": "1",
+   "description": "Create deduplicated daily ToDos for operational exceptions."
+  },
+  {
+   "fieldname": "sales_notification_owner",
+   "fieldtype": "Link",
+   "label": "Sales Notification Owner",
+   "options": "User",
+   "description": "Receives Tender, customer document and Material Receipt alerts."
+  },
+  {
+   "fieldname": "accounts_notification_owner",
+   "fieldtype": "Link",
+   "label": "Accounts Notification Owner",
+   "options": "User",
+   "description": "Receives payment ageing and PSD refund alerts."
+  },
+  {
+   "fieldname": "column_break_notifications",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "engineering_notification_owner",
+   "fieldtype": "Link",
+   "label": "Engineering Notification Owner",
+   "options": "User",
+   "description": "Receives Vendor Approval expiry alerts."
+  },
+  {
+   "fieldname": "notification_fallback_owner",
+   "fieldtype": "Link",
+   "label": "Notification Fallback Owner",
+   "options": "User",
+   "description": "Used when the functional notification owner is blank or disabled."
+  },
+  {
+   "fieldname": "tender_deadline_alert_days",
+   "fieldtype": "Int",
+   "label": "Tender Deadline Alert Days",
+   "default": "3"
+  },
+  {
+   "fieldname": "document_pending_alert_days",
+   "fieldtype": "Int",
+   "label": "Document Pending Alert Days",
+   "default": "7"
+  },
+  {
+   "fieldname": "material_receipt_alert_days",
+   "fieldtype": "Int",
+   "label": "Material Receipt Alert Days",
+   "default": "7"
   }
  ],
  "issingle": 1,
