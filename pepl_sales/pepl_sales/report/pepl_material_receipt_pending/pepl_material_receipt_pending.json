@@ -34,6 +34,12 @@
   },
   {
    "role": "Engineering Manager"
+  },
+  {
+   "role": "Engineering User"
+  },
+  {
+   "role": "Stock User"
   }
  ],
  "timeout": 0
