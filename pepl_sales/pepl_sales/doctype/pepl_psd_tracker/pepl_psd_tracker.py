@@ -81,8 +81,24 @@ def create_psd_tracker_for_so(sales_order_name):
             elif "Private" in cg:
                 sector = "Private"
 
-    default_percent = 5 if sector == "Defence" else 0
-    initial_amount = flt(so.grand_total) * default_percent / 100
+    configured_default_percent = flt(
+        frappe.db.get_single_value(
+            "PEPL System Parameters",
+            "psd_default_percent",
+        )
+    )
+
+    default_percent = (
+        configured_default_percent
+        if sector == "Defence"
+        else 0
+    )
+
+    initial_amount = (
+        flt(so.grand_total)
+        * default_percent
+        / 100
+    )
     initial_status = "Pending" if default_percent > 0 else "PSD Not Required"
 
     tracker = frappe.new_doc("PEPL PSD Tracker")

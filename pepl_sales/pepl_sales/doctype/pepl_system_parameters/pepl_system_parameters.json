@@ -13,7 +13,14 @@
   "dn_material_gate_mode",
   "skill_check_mode",
   "col_break_2",
-  "standup_email_group"
+  "standup_email_group",
+  "section_sales",
+  "psd_default_percent",
+  "psd_expiry_alert_days",
+  "col_break_sales",
+  "margin_floor_percent",
+  "payment_ageing_amber_days",
+  "payment_ageing_red_days"
  ],
  "fields": [
   {
