@@ -54,47 +54,74 @@ def create_doc_tracker_for_so(
     sales_order_name,
     source_tender=None,
 ):
-    existing = frappe.db.exists(
-        "PEPL Document Tracker",
-        {"linked_sales_order": sales_order_name},
-    )
+    """
+    Create or enrich the Document Tracker for a Sales Order.
 
-    if existing:
-        return {
-            "created": False,
-            "tracker_name": existing,
-        }
+    This method is intentionally idempotent. If another hook or an
+    earlier app version already created the tracker, missing required
+    checklist rows are appended without disturbing existing records.
+    """
 
     sales_order = frappe.get_doc(
         "Sales Order",
         sales_order_name,
     )
 
-    tracker = frappe.new_doc("PEPL Document Tracker")
-    tracker.linked_sales_order = sales_order.name
-    tracker.customer = sales_order.customer
-
-    po_title = (
-        "Customer PO {0}".format(sales_order.po_no)
-        if sales_order.po_no
-        else "Customer PO"
+    existing = frappe.db.exists(
+        "PEPL Document Tracker",
+        {"linked_sales_order": sales_order_name},
     )
 
-    tracker.append(
-        "document_entries",
-        {
-            "document_date":
-                sales_order.po_date
-                or sales_order.transaction_date,
-            "document_type": "Customer PO",
-            "description": po_title,
-            "reference_number": sales_order.po_no or "",
-            "direction": "Inbound (from Customer)",
-            "document_status": "Received",
-            "source": "Auto-Generated",
-            "is_required": 1,
-        },
-    )
+    if existing:
+        tracker = frappe.get_doc(
+            "PEPL Document Tracker",
+            existing,
+        )
+        created = False
+    else:
+        tracker = frappe.new_doc(
+            "PEPL Document Tracker"
+        )
+        tracker.linked_sales_order = sales_order.name
+        tracker.customer = sales_order.customer
+        created = True
+
+    if not tracker.customer:
+        tracker.customer = sales_order.customer
+
+    existing_types = {
+        row.document_type
+        for row in tracker.document_entries or []
+        if row.document_type
+    }
+
+    added_documents = []
+
+    if "Customer PO" not in existing_types:
+        po_title = (
+            "Customer PO {0}".format(sales_order.po_no)
+            if sales_order.po_no
+            else "Customer PO"
+        )
+
+        tracker.append(
+            "document_entries",
+            {
+                "document_date":
+                    sales_order.po_date
+                    or sales_order.transaction_date,
+                "document_type": "Customer PO",
+                "description": po_title,
+                "reference_number": sales_order.po_no or "",
+                "direction": "Inbound (from Customer)",
+                "document_status": "Received",
+                "source": "Auto-Generated",
+                "is_required": 1,
+            },
+        )
+
+        existing_types.add("Customer PO")
+        added_documents.append("Customer PO")
 
     sector = _get_sector_for_customer(
         sales_order.customer
@@ -126,6 +153,9 @@ def create_doc_tracker_for_so(
         sector,
         required_documents["Others"],
     ):
+        if document_type in existing_types:
+            continue
+
         tracker.append(
             "document_entries",
             {
@@ -141,21 +171,45 @@ def create_doc_tracker_for_so(
             },
         )
 
+        existing_types.add(document_type)
+        added_documents.append(document_type)
+
     if source_tender:
-        _copy_tender_nda(
-            tracker,
-            source_tender,
-            sales_order.transaction_date,
+        nda_exists = any(
+            row.document_type == "NDA"
+            for row in tracker.document_entries or []
         )
 
-    tracker.insert(ignore_permissions=True)
+        if not nda_exists:
+            before_count = len(
+                tracker.document_entries or []
+            )
+
+            _copy_tender_nda(
+                tracker,
+                source_tender,
+                sales_order.transaction_date,
+            )
+
+            if (
+                len(tracker.document_entries or [])
+                > before_count
+            ):
+                added_documents.append("NDA")
+
+    if created:
+        tracker.insert(ignore_permissions=True)
+    elif added_documents:
+        tracker.save(ignore_permissions=True)
 
     return {
-        "created": True,
+        "created": created,
+        "updated": bool(added_documents),
         "tracker_name": tracker.name,
         "entries_count": len(
             tracker.document_entries or []
         ),
+        "added_documents": added_documents,
         "sector": sector,
     }
 
