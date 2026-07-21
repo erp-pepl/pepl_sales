@@ -38,6 +38,8 @@
   "emd_return_date",
   "items_section",
   "items",
+  "competitor_analysis_section",
+  "competitor_entries",
   "documents_section",
   "bid_documents",
   "financial_result_section",
@@ -283,6 +285,18 @@
    "label": "Items",
    "options": "PEPL Tender Item",
    "reqd": 1
+  },
+  {
+   "fieldname": "competitor_analysis_section",
+   "fieldtype": "Section Break",
+   "label": "Item-wise Competitor Analysis",
+   "description": "Add competitor evaluation rows and select the corresponding Tender Item."
+  },
+  {
+   "fieldname": "competitor_entries",
+   "fieldtype": "Table",
+   "label": "Competitor Entries",
+   "options": "PEPL Tender Item Competitor"
   },
   {
    "fieldname": "documents_section",

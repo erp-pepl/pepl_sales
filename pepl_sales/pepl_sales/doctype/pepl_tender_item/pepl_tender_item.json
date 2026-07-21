@@ -50,8 +50,6 @@
   "column_break_3",
   "our_rank",
   "outcome",
-  "competitor_section",
-  "competitors",
   "remarks_section",
   "remarks"
  ],
@@ -194,18 +192,6 @@
    "label": "Outcome",
    "options": "Pending\nWon\nPartially Won\nLost\nCancelled",
    "default": "Pending"
-  },
-  {
-   "fieldname": "competitor_section",
-   "fieldtype": "Section Break",
-   "label": "Competitor Analysis",
-   "description": "Click on this row to expand and add competitors. Each competitor row: enter name, their bid price, and their rank (L1/L2/L3...)"
-  },
-  {
-   "fieldname": "competitors",
-   "fieldtype": "Table",
-   "label": "Competitors",
-   "options": "PEPL Tender Item Competitor"
   },
   {
    "fieldname": "remarks_section",
