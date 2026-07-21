@@ -1,3 +1,4 @@
+
 frappe.ui.form.on("PEPL Tender", {
 	refresh(frm) {
 		const status_colors = {
@@ -36,7 +37,7 @@ frappe.ui.form.on("PEPL Tender", {
 		}
 
 		// Auto-Generate Document Checklist button
-		if (!frm.is_new() && frm.doc.items && frm.doc.items.length > 0) {
+		if (frm.doc.docstatus === 0 && !frm.is_new() && frm.doc.items && frm.doc.items.length > 0) {
 			frm.add_custom_button(__("Auto-Generate Document Checklist"), function() {
 				frappe.call({
 					method: "pepl_sales.pepl_sales.doctype.pepl_tender.pepl_tender.auto_populate_bid_documents",
@@ -73,6 +74,7 @@ frappe.ui.form.on("PEPL Tender", {
 
 		// Create Sales Order button — uses PO Schedule lines
 		const can_create_so = !frm.is_new()
+			&& [0, 1].includes(frm.doc.docstatus)
 			&& (frm.doc.status === "Won" || frm.doc.status === "Partially Won")
 			&& frm.doc.customer_po_received === 1
 			&& frm.doc.po_number
@@ -129,7 +131,7 @@ frappe.ui.form.on("PEPL Tender", {
 			const est = frappe.format(frm.doc.total_estimated_value, { fieldtype: "Currency" });
 			const bid = frappe.format(frm.doc.total_bid_value || 0, { fieldtype: "Currency" });
 			frm.dashboard.add_comment(
-				`Est: \u20b9${est} | Bid: \u20b9${bid}${win_info}`,
+				`Est: ${est} | Bid: ${bid}${win_info}`,
 				"blue",
 				true
 			);
@@ -178,30 +180,22 @@ frappe.ui.form.on("PEPL Tender", {
 frappe.ui.form.on("PEPL Tender Item", {
 	quantity(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		if (row.quantity && row.estimated_unit_price) {
-			frappe.model.set_value(cdt, cdn, "estimated_total_value",
-				row.quantity * row.estimated_unit_price);
-		}
-		if (row.quantity && row.our_bid_unit_price) {
-			frappe.model.set_value(cdt, cdn, "our_bid_total_value",
-				row.quantity * row.our_bid_unit_price);
-		}
+		frappe.model.set_value(cdt, cdn, "estimated_total_value",
+			flt(row.quantity) * flt(row.estimated_unit_price));
+		frappe.model.set_value(cdt, cdn, "our_bid_total_value",
+			flt(row.quantity) * flt(row.our_bid_unit_price));
 	},
 
 	estimated_unit_price(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		if (row.quantity && row.estimated_unit_price) {
-			frappe.model.set_value(cdt, cdn, "estimated_total_value",
-				row.quantity * row.estimated_unit_price);
-		}
+		frappe.model.set_value(cdt, cdn, "estimated_total_value",
+			flt(row.quantity) * flt(row.estimated_unit_price));
 	},
 
 	our_bid_unit_price(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		if (row.quantity && row.our_bid_unit_price) {
-			frappe.model.set_value(cdt, cdn, "our_bid_total_value",
-				row.quantity * row.our_bid_unit_price);
-		}
+		frappe.model.set_value(cdt, cdn, "our_bid_total_value",
+			flt(row.quantity) * flt(row.our_bid_unit_price));
 	}
 });
 
@@ -228,18 +222,14 @@ frappe.ui.form.on("PEPL Tender PO Schedule", {
 
 	po_quantity(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		if (row.po_quantity && row.po_rate) {
-			frappe.model.set_value(cdt, cdn, "po_total",
-				row.po_quantity * row.po_rate);
-		}
+		frappe.model.set_value(cdt, cdn, "po_total",
+			flt(row.po_quantity) * flt(row.po_rate));
 	},
 
 	po_rate(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		if (row.po_quantity && row.po_rate) {
-			frappe.model.set_value(cdt, cdn, "po_total",
-				row.po_quantity * row.po_rate);
-		}
+		frappe.model.set_value(cdt, cdn, "po_total",
+			flt(row.po_quantity) * flt(row.po_rate));
 	}
 });
 
@@ -377,15 +367,18 @@ async function refresh_vendor_approval_for_tender_item(frm, cdt, cdn) {
 
 // PEPL COMPETITOR WORKFLOW HELPERS
 function pepl_get_all_competitor_rows(frm) {
-    const rows = [];
+    const items_by_code = {};
 
-    (frm.doc.items || []).forEach(item => {
-        (item.competitors || []).forEach(row => {
-            rows.push({ item, row });
-        });
+    (frm.doc.items || []).forEach(item_row => {
+        if (item_row.item) {
+            items_by_code[item_row.item] = item_row;
+        }
     });
 
-    return rows;
+    return (frm.doc.competitor_entries || []).map(row => ({
+        item: items_by_code[row.item] || null,
+        row
+    }));
 }
 
 function pepl_add_competitor_actions(frm) {
@@ -427,7 +420,7 @@ function pepl_add_competitor_actions(frm) {
             .includes(frm.doc.status)
     ) {
         frm.add_custom_button(
-            __("Finalize Tender Outcome"),
+            __("Validate Outcome Analysis"),
             function () {
                 const summary = [
                     __("Status: {0}", [frm.doc.status || "-"]),
@@ -572,3 +565,4 @@ frappe.ui.form.on("PEPL Tender Item Competitor", {
         );
     }
 });
+

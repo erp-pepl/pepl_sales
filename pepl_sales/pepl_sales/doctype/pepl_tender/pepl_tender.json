@@ -1,7 +1,6 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "format:TND-{####}-{customer}",
  "creation": "2026-04-28 17:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -217,7 +216,7 @@
    "fieldtype": "Check",
    "label": "Bid Securing Declaration Submitted",
    "default": "1",
-   "description": "Default for MSME \u2014 alternative to EMD"
+   "description": "Default for MSME — alternative to EMD"
   },
   {
    "fieldname": "emd_required",
@@ -296,7 +295,8 @@
    "fieldname": "competitor_entries",
    "fieldtype": "Table",
    "label": "Competitor Entries",
-   "options": "PEPL Tender Item Competitor"
+   "options": "PEPL Tender Item Competitor",
+   "description": "Add competitor evaluation rows here. Each row must identify the corresponding Item when the Tender has multiple items."
   },
   {
    "fieldname": "documents_section",
@@ -323,7 +323,8 @@
    "label": "Status",
    "options": "Draft\nActive Bid\nCosting\nCosted\nSubmitted\nWon\nPartially Won\nOrder Received\nLost\nNo Bid\nCancelled\nRe-tendered",
    "default": "Draft",
-   "reqd": 1
+   "reqd": 1,
+   "allow_on_submit": 1
   },
   {
    "fieldname": "bid_decision",
@@ -407,26 +408,30 @@
    "fieldname": "customer_po_received",
    "fieldtype": "Check",
    "label": "Customer PO/LOA Received",
-   "default": "0"
+   "default": "0",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "po_number",
    "fieldtype": "Data",
    "label": "Customer PO Number",
-   "depends_on": "eval:doc.customer_po_received==1"
+   "depends_on": "eval:doc.customer_po_received==1",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "po_date",
    "fieldtype": "Date",
    "label": "PO Date",
-   "depends_on": "eval:doc.customer_po_received==1"
+   "depends_on": "eval:doc.customer_po_received==1",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "po_payment_terms",
    "fieldtype": "Link",
    "label": "Payment Terms",
    "options": "Payment Terms Template",
-   "depends_on": "eval:doc.customer_po_received==1"
+   "depends_on": "eval:doc.customer_po_received==1",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "po_amount_received",
@@ -434,7 +439,8 @@
    "label": "Total PO Value (INR)",
    "read_only": 1,
    "depends_on": "eval:doc.customer_po_received==1",
-   "description": "Auto-calculated: sum of all PO Schedule line totals"
+   "description": "Auto-calculated: sum of all PO Schedule line totals",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "po_schedule_section",
@@ -448,7 +454,8 @@
    "fieldtype": "Table",
    "label": "PO Schedule",
    "options": "PEPL Tender PO Schedule",
-   "depends_on": "eval:doc.customer_po_received==1"
+   "depends_on": "eval:doc.customer_po_received==1",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "so_section",
@@ -462,14 +469,16 @@
    "label": "Linked Sales Order",
    "options": "Sales Order",
    "read_only": 1,
-   "description": "Auto-created via 'Create Sales Order' button"
+   "description": "Auto-created via 'Create Sales Order' button",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "so_status_display",
    "fieldtype": "Data",
    "label": "SO Status",
    "read_only": 1,
-   "fetch_from": "linked_sales_order.status"
+   "fetch_from": "linked_sales_order.status",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "remarks_section",
@@ -625,7 +634,9 @@
    "export": 1,
    "print": 1,
    "email": 1,
-   "share": 1
+   "share": 1,
+   "submit": 1,
+   "cancel": 1
   },
   {
    "role": "Sales Manager",
@@ -637,7 +648,9 @@
    "export": 1,
    "print": 1,
    "email": 1,
-   "share": 0
+   "share": 0,
+   "submit": 1,
+   "cancel": 1
   },
   {
    "role": "Sales User",
@@ -649,7 +662,9 @@
    "export": 1,
    "print": 1,
    "email": 1,
-   "share": 0
+   "share": 0,
+   "submit": 0,
+   "cancel": 0
   },
   {
    "role": "Accounts Manager",
@@ -661,7 +676,9 @@
    "export": 1,
    "print": 1,
    "email": 1,
-   "share": 0
+   "share": 0,
+   "submit": 0,
+   "cancel": 0
   },
   {
    "role": "Accounts User",
@@ -673,7 +690,9 @@
    "export": 1,
    "print": 1,
    "email": 1,
-   "share": 0
+   "share": 0,
+   "submit": 0,
+   "cancel": 0
   },
   {
    "role": "Engineering Manager",
@@ -685,7 +704,9 @@
    "export": 1,
    "print": 1,
    "email": 1,
-   "share": 0
+   "share": 0,
+   "submit": 0,
+   "cancel": 0
   },
   {
    "role": "Engineering User",
@@ -697,12 +718,15 @@
    "export": 1,
    "print": 1,
    "email": 1,
-   "share": 0
+   "share": 0,
+   "submit": 0,
+   "cancel": 0
   }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
  "track_changes": 1,
- "track_views": 1
+ "track_views": 1,
+ "is_submittable": 1
 }

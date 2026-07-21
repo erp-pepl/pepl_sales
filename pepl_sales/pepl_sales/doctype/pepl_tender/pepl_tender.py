@@ -1,3 +1,4 @@
+
 import re
 
 import frappe
@@ -80,6 +81,21 @@ class PEPLTender(Document):
             else:
                 self.sector = "Others"
 
+        # Enforce mutually exclusive EMD / Bid Securing choices server-side.
+        if self.emd_required and self.bid_securing_declaration:
+            frappe.throw(
+                _(
+                    "EMD Required and Bid Securing Declaration cannot both "
+                    "be selected."
+                )
+            )
+
+        if self.emd_required:
+            if flt(self.emd_amount) <= 0:
+                frappe.throw(_("EMD Amount must be greater than zero."))
+            if not self.emd_mode:
+                frappe.throw(_("EMD Mode is required when EMD is required."))
+
         # Auto-fetch vendor approval stage and drawing/spec for each item
         if self.items:
             for item_row in self.items:
@@ -106,6 +122,121 @@ class PEPLTender(Document):
                     indicator="orange",
                     alert=True,
                 )
+
+
+    def before_submit(self):
+        """Validate that the Tender is ready for final submission."""
+        final_statuses = {
+            "Won",
+            "Partially Won",
+            "Order Received",
+            "Lost",
+            "No Bid",
+        }
+
+        if self.status not in final_statuses:
+            frappe.throw(
+                _(
+                    "PEPL Tender can be submitted only after its final outcome "
+                    "is recorded. Current status: {0}. The business status "
+                    "'Submitted' means the bid was sent to the customer and "
+                    "must remain editable until the final outcome is known."
+                ).format(self.status or _("Not Set"))
+            )
+
+        if not self.items:
+            frappe.throw(
+                _("At least one Tender Item is required before submission.")
+            )
+
+        if self.status == "No Bid":
+            if self.bid_decision != "No Bid":
+                frappe.throw(
+                    _(
+                        "Bid Decision must be set to No Bid before submitting "
+                        "a No Bid Tender."
+                    )
+                )
+            if not self.no_bid_reason:
+                frappe.throw(
+                    _("No Bid Reason is required before submission.")
+                )
+        else:
+            if not self.outcome_date:
+                frappe.throw(
+                    _("Outcome Date is required before submission.")
+                )
+
+            pending_rows = [
+                str(index)
+                for index, row in enumerate(self.items, start=1)
+                if not row.outcome or row.outcome == "Pending"
+            ]
+            if pending_rows:
+                frappe.throw(
+                    _(
+                        "Tender Item outcome is Pending in row(s): {0}."
+                    ).format(", ".join(pending_rows))
+                )
+
+        if self.status == "Order Received":
+            if not self.linked_sales_order:
+                frappe.throw(
+                    _(
+                        "Linked Sales Order is required when Tender status is "
+                        "Order Received."
+                    )
+                )
+            if not frappe.db.exists(
+                "Sales Order",
+                self.linked_sales_order,
+            ):
+                frappe.throw(
+                    _("Linked Sales Order {0} does not exist.").format(
+                        self.linked_sales_order
+                    )
+                )
+
+        # Recalculate and validate all final values immediately before submit.
+        self._calculate_competitor_analysis()
+        self._calculate_summary()
+        self._update_overall_status()
+        self._validate_outcomes()
+        self._build_outcome_summary()
+        self._process_po_schedule()
+
+    def on_submit(self):
+        """Notify the user that the Tender is now a final record."""
+        frappe.msgprint(
+            _("PEPL Tender {0} has been submitted successfully.").format(
+                self.name
+            ),
+            indicator="green",
+            alert=True,
+        )
+
+    def before_cancel(self):
+        """Prevent cancellation while a linked Sales Order is submitted."""
+        if not self.linked_sales_order:
+            return
+
+        sales_order_docstatus = frappe.db.get_value(
+            "Sales Order",
+            self.linked_sales_order,
+            "docstatus",
+        )
+
+        if sales_order_docstatus == 1:
+            frappe.throw(
+                _(
+                    "Cannot cancel this Tender because linked Sales Order "
+                    "{0} is submitted. Cancel the Sales Order first."
+                ).format(self.linked_sales_order)
+            )
+
+    def on_cancel(self):
+        """Keep the business status aligned with Frappe cancellation."""
+        self.db_set("status", "Cancelled", update_modified=False)
 
     def _fetch_item_details(self, item_row):
         """Fetch drawing, spec, vendor approval stage, PL number for an item row."""
@@ -185,11 +316,41 @@ class PEPLTender(Document):
         item_row.vendor_approval_warning = approval.get("warning") or ""
 
     def _calculate_competitor_analysis(self):
-        """Calculate row, consignee-group and Tender Item competitor analysis."""
+        """Calculate competitor analysis from the parent competitor table."""
+        competitor_rows = self.competitor_entries or []
+        item_rows_by_code = {
+            row.item: row
+            for row in self.items or []
+            if row.item
+        }
+
+        if competitor_rows and len(item_rows_by_code) > 1:
+            missing_item_rows = [
+                str(index)
+                for index, row in enumerate(competitor_rows, start=1)
+                if not row.get("item")
+            ]
+            if missing_item_rows:
+                frappe.throw(
+                    _(
+                        "Competitor Entry row(s) {0}: Item is required when "
+                        "the Tender contains multiple items."
+                    ).format(", ".join(missing_item_rows))
+                )
+
         for item_row in self.items or []:
             groups = {}
+            rows_for_item = [
+                row
+                for row in competitor_rows
+                if row.get("item") == item_row.item
+                or (
+                    len(item_rows_by_code) == 1
+                    and not row.get("item")
+                )
+            ]
 
-            for row in item_row.get("competitors") or []:
+            for row in rows_for_item:
                 self._calculate_competitor_row(row, item_row)
 
                 group_key = (row.consignee or "").strip() or "__DEFAULT__"
@@ -658,7 +819,8 @@ class PEPLTender(Document):
                 or any(
                     row.is_pepl
                     and flt(row.competitor_price) > 0
-                    for row in item.get("competitors") or []
+                    and (row.get("item") == item.item or not row.get("item"))
+                    for row in self.competitor_entries or []
                 )
                 for item in self.items or []
             )
@@ -740,7 +902,10 @@ class PEPLTender(Document):
         analysed_items = [
             item
             for item in self.items or []
-            if item.get("competitors")
+            if any(
+                row.get("item") == item.item or (len(self.items or []) == 1 and not row.get("item"))
+                for row in self.competitor_entries or []
+            )
         ]
 
         winning_names = sorted(
@@ -816,11 +981,14 @@ class PEPLTender(Document):
         self.competitor_analysis_completed = 1 if (
             analysis_items
             and all(
-                item.get("competitors")
-                and any(
+                any(
                     row.is_pepl
                     and flt(row.competitor_price) > 0
-                    for row in item.get("competitors")
+                    and (
+                        row.get("item") == item.item
+                        or (len(self.items or []) == 1 and not row.get("item"))
+                    )
+                    for row in self.competitor_entries or []
                 )
                 for item in analysis_items
             )
@@ -887,6 +1055,12 @@ class PEPLTender(Document):
 def auto_populate_bid_documents(tender_name):
     """Auto-populate bid documents from customer-specific approvals."""
     tender = frappe.get_doc("PEPL Tender", tender_name)
+    tender.check_permission("write")
+
+    if tender.docstatus != 0:
+        frappe.throw(
+            _("The document checklist can be generated only before submission.")
+        )
 
     if not tender.items:
         frappe.throw(
@@ -959,7 +1133,7 @@ def auto_populate_bid_documents(tender_name):
         existing_doc_types.add(document_type)
         added += 1
 
-    tender.save(ignore_permissions=True)
+    tender.save()
 
     return {
         "added": added,
@@ -990,27 +1164,24 @@ def get_tender_summary(filters=None):
 
 
 def _custom_field_exists_on_so(field_name):
-    """Check if a custom field column exists on Sales Order."""
-    try:
-        result = frappe.db.sql(
-            """
-            SELECT COLUMN_NAME
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = 'tabSales Order'
-              AND COLUMN_NAME = %s
-            LIMIT 1
-            """,
-            field_name,
-        )
-        return len(result) > 0
-    except Exception:
-        return False
+    """Check whether a field column exists on Sales Order."""
+    return frappe.db.has_column("Sales Order", field_name)
 
 
 @frappe.whitelist()
 def create_sales_order_from_tender(tender_name):
     """Create Sales Order from Tender PO Schedule."""
     tender = frappe.get_doc("PEPL Tender", tender_name)
+    tender.check_permission("write")
+
+    if not frappe.has_permission("Sales Order", "create"):
+        frappe.throw(
+            _("You do not have permission to create Sales Orders."),
+            frappe.PermissionError,
+        )
+
+    if tender.docstatus not in {0, 1}:
+        frappe.throw(_("A cancelled Tender cannot create a Sales Order."))
 
     if tender.status not in {"Won", "Partially Won"}:
         frappe.throw(
@@ -1039,12 +1210,26 @@ def create_sales_order_from_tender(tender_name):
     if not tender.po_schedule:
         frappe.throw(_("PO Schedule is empty."))
 
+    won_items = {
+        row.item: row
+        for row in tender.items or []
+        if row.item and row.outcome in {"Won", "Partially Won"}
+    }
+    scheduled_quantities = {}
+
     for index, schedule_row in enumerate(
         tender.po_schedule,
         start=1,
     ):
         if not schedule_row.item:
             frappe.throw(_("Row {0}: Item is required.").format(index))
+        if schedule_row.item not in won_items:
+            frappe.throw(
+                _(
+                    "Row {0}: Item {1} is not marked Won or Partially Won "
+                    "in the Tender Items table."
+                ).format(index, schedule_row.item)
+            )
         if flt(schedule_row.po_quantity) <= 0:
             frappe.throw(
                 _("Row {0}: PO Quantity must be greater than zero.").format(
@@ -1060,6 +1245,33 @@ def create_sales_order_from_tender(tender_name):
         if not schedule_row.delivery_date:
             frappe.throw(
                 _("Row {0}: Delivery Date is required.").format(index)
+            )
+
+        scheduled_quantities[schedule_row.item] = (
+            flt(scheduled_quantities.get(schedule_row.item))
+            + flt(schedule_row.po_quantity)
+        )
+
+    for item_code, scheduled_qty in scheduled_quantities.items():
+        tender_item = won_items[item_code]
+        allowed_qty = flt(tender_item.quantity)
+
+        if tender_item.outcome == "Partially Won":
+            if flt(tender_item.awarded_quantity) > 0:
+                allowed_qty = flt(tender_item.awarded_quantity)
+            elif flt(tender_item.award_share_percent) > 0:
+                allowed_qty = (
+                    flt(tender_item.quantity)
+                    * flt(tender_item.award_share_percent)
+                    / 100
+                )
+
+        if allowed_qty > 0 and scheduled_qty > allowed_qty:
+            frappe.throw(
+                _(
+                    "PO Schedule quantity for item {0} is {1}, which exceeds "
+                    "the awarded quantity {2}."
+                ).format(item_code, scheduled_qty, allowed_qty)
             )
 
     earliest_delivery = min(
@@ -1101,11 +1313,23 @@ def create_sales_order_from_tender(tender_name):
             },
         )
 
-    sales_order.insert(ignore_permissions=True)
+    sales_order.insert()
 
-    tender.linked_sales_order = sales_order.name
-    tender.status = "Order Received"
-    tender.save(ignore_permissions=True)
+    if tender.docstatus == 0:
+        tender.linked_sales_order = sales_order.name
+        tender.status = "Order Received"
+        tender.save()
+    else:
+        tender.db_set(
+            "linked_sales_order",
+            sales_order.name,
+            update_modified=False,
+        )
+        tender.db_set(
+            "status",
+            "Order Received",
+            update_modified=True,
+        )
 
     return {
         "sales_order": sales_order.name,
