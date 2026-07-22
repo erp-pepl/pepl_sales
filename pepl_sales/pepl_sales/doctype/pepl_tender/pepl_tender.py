@@ -1360,6 +1360,14 @@ def create_sales_order_from_tender(tender_name):
         frappe.throw(_("Customer PO Number is required."))
     if not tender.po_date:
         frappe.throw(_("Customer PO Date is required."))
+
+    if getdate(tender.po_date) > getdate(today()):
+        frappe.throw(
+            _(
+                "Customer PO Date {0} cannot be in the future."
+            ).format(tender.po_date)
+        )
+
     if tender.linked_sales_order:
         frappe.throw(
             _("Sales Order {0} is already linked.").format(

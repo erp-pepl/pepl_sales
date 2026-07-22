@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import today
+from frappe.utils import getdate, today
 
 
 RECEIVED_STATUSES = {"Received", "Filed"}
@@ -55,7 +55,27 @@ class PEPLDocumentTracker(Document):
         ):
             if row.document_status in RECEIVED_STATUSES:
                 if not row.received_date:
-                    row.received_date = today()
+                    row.received_date = (
+                        row.document_date
+                        or today()
+                    )
+
+                if (
+                    row.document_date
+                    and row.received_date
+                    and getdate(row.received_date)
+                    < getdate(row.document_date)
+                ):
+                    frappe.throw(
+                        _(
+                            "Document row {0}: Received Date {1} "
+                            "cannot be earlier than Document Date {2}."
+                        ).format(
+                            index,
+                            row.received_date,
+                            row.document_date,
+                        )
+                    )
 
                 if not row.received_by:
                     row.received_by = frappe.session.user
@@ -147,7 +167,12 @@ def create_doc_tracker_for_so(
                 "reference_number": sales_order.po_no or "",
                 "direction": "Inbound (from Customer)",
                 "document_status": "Received",
+                "received_date":
+                    sales_order.po_date
+                    or sales_order.transaction_date,
+                "received_by": frappe.session.user,
                 "source": "Auto-Generated",
+                "source_reference": sales_order.name,
                 "is_required": 1,
             },
         )
