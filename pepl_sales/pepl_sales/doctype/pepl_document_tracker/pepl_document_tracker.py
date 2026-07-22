@@ -1,9 +1,9 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import today
 
 from pepl_sales.pepl_sales.doctype.pepl_document_entry.pepl_document_entry import (
+    COMPLETED_DOCUMENT_STATUSES,
     validate_document_entry,
 )
 
@@ -56,7 +56,7 @@ class PEPLDocumentTracker(Document):
         ):
             if (
                 row.document_type == "Material Receipt"
-                and row.document_status in RECEIVED_STATUSES
+                and row.document_status in COMPLETED_DOCUMENT_STATUSES
                 and not row.receipt_attachment
             ):
                 frappe.throw(
