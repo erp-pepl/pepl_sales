@@ -5,12 +5,23 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "document_type",
   "file_label",
   "attached_file",
   "uploaded_date",
-  "version_number"
+  "version_number",
+  "source_document_entry"
  ],
  "fields": [
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "label": "Related Document Type",
+   "options": "Customer PO\nModification Advice\nNDA\nDrawing Approval\nQAP\nInspection Plan\nRM Reports\nRM Clearance\nPre-Inspection Documents\nPre-Inspection Report\nIC - Stage Inspection\nIC - Final Inspection\nLot Offer\nDispatch Documents\nMaterial Receipt\nCustomer Receipt\nR-Note\nI-Note\nCO7\nJCC\nBill Submission\nPayment Advice\nPSD Documents\nNDC Documents\nCommunication\nOthers",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Select the Document Entry to which this supplementary file belongs."
+  },
   {
    "fieldname": "file_label",
    "fieldtype": "Data",
@@ -36,6 +47,14 @@
    "fieldname": "version_number",
    "fieldtype": "Data",
    "label": "Version"
+  },
+  {
+   "fieldname": "source_document_entry",
+   "fieldtype": "Data",
+   "label": "Source Document Entry Row",
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Internal child-row reference retained during migration."
   }
  ],
  "index_web_pages_for_search": 0,

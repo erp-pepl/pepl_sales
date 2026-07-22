@@ -13,8 +13,9 @@
   "tracker_id",
   "total_documents",
   "section_entries",
-  "doc_entries_html",
   "document_entries",
+  "section_additional_attachments",
+  "document_attachments",
   "section_remarks",
   "tracker_remarks"
  ],
@@ -61,12 +62,8 @@
   {
    "fieldname": "section_entries",
    "fieldtype": "Section Break",
-   "label": "Document Entries"
-  },
-  {
-   "fieldname": "doc_entries_html",
-   "fieldtype": "HTML",
-   "options": "<p style='color:#666; font-size:12px;'>Add documents below. Each entry has a primary attachment + can hold multiple supplementary files (open the entry to add). Click into any row to expand for full details.</p>"
+   "label": "Document Entries",
+   "description": "Add the primary document in Document Entries. Use Additional Attachments below for cover letters, acknowledgements, supporting files and revised copies."
   },
   {
    "fieldname": "document_entries",
@@ -84,6 +81,20 @@
    "fieldname": "tracker_remarks",
    "fieldtype": "Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "section_additional_attachments",
+   "fieldtype": "Section Break",
+   "label": "Additional Attachments",
+   "collapsible": 1,
+   "description": "Store supplementary files here and select the related Document Type."
+  },
+  {
+   "fieldname": "document_attachments",
+   "fieldtype": "Table",
+   "label": "Additional Attachments",
+   "options": "PEPL Document Attachment",
+   "description": "Supplementary files associated with Document Entries."
   }
  ],
  "index_web_pages_for_search": 0,

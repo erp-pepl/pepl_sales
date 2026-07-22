@@ -21,8 +21,6 @@
   "received_date",
   "received_by",
   "receipt_attachment",
-  "section_attachments",
-  "additional_attachments",
   "section_remarks",
   "remarks"
  ],
@@ -99,19 +97,6 @@
    "fieldtype": "Check",
    "label": "Version Drift",
    "default": "0"
-  },
-  {
-   "fieldname": "section_attachments",
-   "fieldtype": "Section Break",
-   "label": "Additional Attachments",
-   "collapsible": 1,
-   "description": "Use Primary File for the main document. Add supplementary files here (e.g., cover letter + main doc + acknowledgement)."
-  },
-  {
-   "fieldname": "additional_attachments",
-   "fieldtype": "Table",
-   "label": "Additional Attachments",
-   "options": "PEPL Document Attachment"
   },
   {
    "fieldname": "section_remarks",

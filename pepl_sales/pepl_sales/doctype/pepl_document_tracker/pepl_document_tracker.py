@@ -15,6 +15,38 @@ class PEPLDocumentTracker(Document):
             self.tracker_id = self.name
 
         self._validate_document_entries()
+        self._validate_document_attachments()
+
+    def _validate_document_attachments(self):
+        valid_document_types = {
+            row.document_type
+            for row in self.document_entries or []
+            if row.document_type
+        }
+
+        for index, row in enumerate(
+            self.document_attachments or [],
+            start=1,
+        ):
+            if not row.document_type:
+                frappe.throw(
+                    _(
+                        "Additional Attachment row {0}: "
+                        "Related Document Type is required."
+                    ).format(index)
+                )
+
+            if row.document_type not in valid_document_types:
+                frappe.throw(
+                    _(
+                        "Additional Attachment row {0}: "
+                        "Document Type '{1}' does not exist in "
+                        "the Document Entries table."
+                    ).format(
+                        index,
+                        row.document_type,
+                    )
+                )
 
     def _validate_document_entries(self):
         for index, row in enumerate(
@@ -123,8 +155,8 @@ def create_doc_tracker_for_so(
         existing_types.add("Customer PO")
         added_documents.append("Customer PO")
 
-    sector = _get_sector_for_customer(
-        sales_order.customer
+    sector = _get_sector_for_sales_order(
+        sales_order
     )
 
     required_documents = {
@@ -214,26 +246,83 @@ def create_doc_tracker_for_so(
     }
 
 
+def _normalize_sector(value):
+    normalized = (value or "").strip().lower()
+
+    mapping = {
+        "railway": "Railways",
+        "railways": "Railways",
+        "defence": "Defence",
+        "defense": "Defence",
+        "private": "Private",
+        "private sector": "Private",
+        "others": "Others",
+        "other": "Others",
+        "commercial": "Others",
+    }
+
+    return mapping.get(normalized)
+
+
+def _get_sector_for_sales_order(sales_order):
+    source_sector = sales_order.get("custom_sector")
+
+    if source_sector:
+        resolved_sector = _normalize_sector(
+            source_sector
+        )
+
+        if not resolved_sector:
+            frappe.throw(
+                _(
+                    "Unable to map Sales Order sector '{0}' "
+                    "to a PEPL Document Tracker sector."
+                ).format(source_sector)
+            )
+
+        return resolved_sector
+
+    customer_group = ""
+
+    if sales_order.customer:
+        customer_group = (
+            frappe.db.get_value(
+                "Customer",
+                sales_order.customer,
+                "customer_group",
+            )
+            or ""
+        )
+
+    return (
+        _normalize_sector(customer_group)
+        or "Others"
+    )
+
+
 def _get_sector_for_customer(customer):
+    """
+    Backward-compatible helper for any existing external callers.
+
+    New Document Tracker creation must use
+    _get_sector_for_sales_order().
+    """
     if not customer:
         return "Others"
 
-    customer_group = frappe.db.get_value(
-        "Customer",
-        customer,
-        "customer_group",
-    ) or ""
+    customer_group = (
+        frappe.db.get_value(
+            "Customer",
+            customer,
+            "customer_group",
+        )
+        or ""
+    )
 
-    if "Railway" in customer_group:
-        return "Railways"
-
-    if "Defence" in customer_group:
-        return "Defence"
-
-    if "Private" in customer_group:
-        return "Private"
-
-    return "Others"
+    return (
+        _normalize_sector(customer_group)
+        or "Others"
+    )
 
 
 def _copy_tender_nda(
