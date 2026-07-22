@@ -104,6 +104,7 @@ class PEPLTender(Document):
 
         # Calculate competitor analysis before parent summaries/status.
         self._calculate_competitor_analysis()
+        self._apply_award_result_fallbacks()
         self._calculate_summary()
         self._update_overall_status()
         self._validate_outcomes()
@@ -211,6 +212,7 @@ class PEPLTender(Document):
 
         # Recalculate and validate all final values immediately before submit.
         self._calculate_competitor_analysis()
+        self._apply_award_result_fallbacks()
         self._calculate_summary()
         self._update_overall_status()
         self._validate_outcomes()
@@ -662,6 +664,85 @@ class PEPLTender(Document):
             flt(item_row.our_price_difference_percent),
         )
 
+    def _apply_award_result_fallbacks(self):
+        """Populate award value and rank when no priced result rows exist.
+
+        Official competitor-analysis rows remain authoritative. This fallback
+        is used only when the item is awarded but no calculated winning value
+        or PEPL rank is available from those rows.
+        """
+        po_value_by_item = {}
+
+        for schedule_row in self.po_schedule or []:
+            if not schedule_row.item:
+                continue
+
+            line_total = (
+                flt(schedule_row.po_quantity)
+                * flt(schedule_row.po_rate)
+            )
+
+            po_value_by_item[schedule_row.item] = (
+                flt(po_value_by_item.get(schedule_row.item))
+                + line_total
+            )
+
+        is_explicit_l1_win = (
+            self.win_reason == "L1 / Lowest Evaluated Price"
+        )
+
+        for item_row in self.items or []:
+            if item_row.outcome not in {"Won", "Partially Won"}:
+                continue
+
+            awarded_quantity = self._get_awarded_quantity(item_row)
+
+            if awarded_quantity <= 0:
+                continue
+
+            # Competitor analysis remains authoritative whenever it produced
+            # an evaluated winning value.
+            if flt(item_row.winning_price) <= 0:
+                po_value = flt(
+                    po_value_by_item.get(item_row.item)
+                )
+
+                if po_value > 0:
+                    item_row.winning_price = po_value
+                elif flt(item_row.our_bid_unit_price) > 0:
+                    item_row.winning_price = (
+                        awarded_quantity
+                        * flt(item_row.our_bid_unit_price)
+                    )
+
+            # A Won Tender is not automatically L1. Derive L1 only when the
+            # explicitly selected Win Reason confirms that result.
+            if not item_row.our_rank and is_explicit_l1_win:
+                item_row.our_rank = "L1"
+                item_row.our_rank_number = 1
+
+            if (
+                not item_row.winning_competitor
+                and item_row.outcome in {"Won", "Partially Won"}
+            ):
+                item_row.winning_competitor = "PEPL"
+
+            if (
+                not item_row.item_outcome_summary
+                and flt(item_row.winning_price) > 0
+            ):
+                item_row.item_outcome_summary = _(
+                    "Awarded to PEPL. Awarded quantity: {0}. "
+                    "Awarded value: {1}. PEPL rank: {2}."
+                ).format(
+                    awarded_quantity,
+                    frappe.format_value(
+                        item_row.winning_price,
+                        {"fieldtype": "Currency"},
+                    ),
+                    item_row.our_rank or _("Not recorded"),
+                )
+
     def _calculate_summary(self):
         """Server-side recalculation of Tender totals and outcome counts."""
         if not self.items:
@@ -914,9 +995,18 @@ class PEPLTender(Document):
         analysed_items = [
             item
             for item in self.items or []
-            if any(
-                row.get("item") == item.item or (len(self.items or []) == 1 and not row.get("item"))
-                for row in self.competitor_entries or []
+            if (
+                flt(item.winning_price) > 0
+                or item.our_rank
+                or item.winning_competitor
+                or any(
+                    row.get("item") == item.item
+                    or (
+                        len(self.items or []) == 1
+                        and not row.get("item")
+                    )
+                    for row in self.competitor_entries or []
+                )
             )
         ]
 
