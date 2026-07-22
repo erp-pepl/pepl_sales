@@ -1,14 +1,11 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, today
+from frappe.utils import today
 
 from pepl_sales.pepl_sales.doctype.pepl_document_entry.pepl_document_entry import (
     validate_document_entry,
 )
-
-
-RECEIVED_STATUSES = {"Received", "Filed"}
 
 
 class PEPLDocumentTracker(Document):
@@ -57,33 +54,6 @@ class PEPLDocumentTracker(Document):
             self.document_entries or [],
             start=1,
         ):
-            if row.document_status in RECEIVED_STATUSES:
-                if not row.received_date:
-                    row.received_date = (
-                        row.document_date
-                        or today()
-                    )
-
-                if (
-                    row.document_date
-                    and row.received_date
-                    and getdate(row.received_date)
-                    < getdate(row.document_date)
-                ):
-                    frappe.throw(
-                        _(
-                            "Document row {0}: Received Date {1} "
-                            "cannot be earlier than Document Date {2}."
-                        ).format(
-                            index,
-                            row.received_date,
-                            row.document_date,
-                        )
-                    )
-
-                if not row.received_by:
-                    row.received_by = frappe.session.user
-
             if (
                 row.document_type == "Material Receipt"
                 and row.document_status in RECEIVED_STATUSES
@@ -99,10 +69,6 @@ class PEPLDocumentTracker(Document):
                         row.document_status,
                     )
                 )
-
-            if row.document_status == "Pending":
-                row.received_date = None
-                row.received_by = None
 
             validate_document_entry(
                 row,

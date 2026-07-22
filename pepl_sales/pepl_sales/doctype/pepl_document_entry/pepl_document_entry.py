@@ -27,6 +27,13 @@ def validate_document_entry(doc, row_number=None):
         else _("Document Entry")
     )
 
+    if not doc.document_status:
+        frappe.throw(
+            _(
+                "{0}: Document Status is required."
+            ).format(row_label)
+        )
+
     if doc.received_date and not doc.document_date:
         frappe.throw(
             _(
