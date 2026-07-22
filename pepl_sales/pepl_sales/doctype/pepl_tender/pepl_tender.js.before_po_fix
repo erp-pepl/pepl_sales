@@ -199,150 +199,38 @@ frappe.ui.form.on("PEPL Tender Item", {
 	}
 });
 
-// PO Schedule child table — real-time flagging and aggregation.
-// Server-side recalculation remains authoritative.
-function pepl_get_awarded_quantity(tender_item) {
-        if (!tender_item) {
-                return 0;
-        }
-
-        if (flt(tender_item.awarded_quantity) > 0) {
-                return flt(tender_item.awarded_quantity);
-        }
-
-        if (
-                tender_item.outcome === "Partially Won"
-                && flt(tender_item.award_share_percent) > 0
-        ) {
-                return (
-                        flt(tender_item.quantity)
-                        * flt(tender_item.award_share_percent)
-                        / 100
-                );
-        }
-
-        if (tender_item.outcome === "Won") {
-                return flt(tender_item.quantity);
-        }
-
-        return 0;
-}
-
-
-function pepl_recalculate_po_schedule(frm) {
-        let parent_total = 0;
-        const tender_items = {};
-
-        (frm.doc.items || []).forEach(tender_item => {
-                if (tender_item.item) {
-                        tender_items[tender_item.item] = tender_item;
-                }
-        });
-
-        (frm.doc.po_schedule || []).forEach(schedule_row => {
-                const tender_item = tender_items[schedule_row.item];
-
-                const is_awarded = Boolean(
-                        tender_item
-                        && ["Won", "Partially Won"].includes(
-                                tender_item.outcome
-                        )
-                        && pepl_get_awarded_quantity(tender_item) > 0
-                );
-
-                const line_total = (
-                        flt(schedule_row.po_quantity)
-                        * flt(schedule_row.po_rate)
-                );
-
-                if (
-                        Number(schedule_row.is_in_won_list || 0)
-                        !== Number(is_awarded)
-                ) {
-                        frappe.model.set_value(
-                                schedule_row.doctype,
-                                schedule_row.name,
-                                "is_in_won_list",
-                                is_awarded ? 1 : 0
-                        );
-                }
-
-                if (flt(schedule_row.po_total) !== line_total) {
-                        frappe.model.set_value(
-                                schedule_row.doctype,
-                                schedule_row.name,
-                                "po_total",
-                                line_total
-                        );
-                }
-
-                parent_total += line_total;
-        });
-
-        if (flt(frm.doc.po_amount_received) !== parent_total) {
-                frm.set_value(
-                        "po_amount_received",
-                        parent_total
-                );
-        }
-}
-
-
-frappe.ui.form.on("PEPL Tender", {
-        po_schedule_add(frm) {
-                pepl_recalculate_po_schedule(frm);
-        },
-
-        po_schedule_remove(frm) {
-                pepl_recalculate_po_schedule(frm);
-        }
-});
-
-
+// PO Schedule child table — real-time recalc + item-in-won-list warning
 frappe.ui.form.on("PEPL Tender PO Schedule", {
-        item(frm, cdt, cdn) {
-                const row = locals[cdt][cdn];
+	item(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (!row.item) return;
 
-                pepl_recalculate_po_schedule(frm);
-
-                if (!row.item) {
-                        return;
-                }
-
-                const tender_item = (frm.doc.items || []).find(
-                        item_row => item_row.item === row.item
-                );
-
-                const is_awarded = Boolean(
-                        tender_item
-                        && ["Won", "Partially Won"].includes(
-                                tender_item.outcome
+		// Warn if item is not in the Won items list
+		const won_items = (frm.doc.items || [])
+			.filter(i =>
+                                ["Won", "Partially Won"].includes(i.outcome)
                         )
-                        && pepl_get_awarded_quantity(tender_item) > 0
-                );
+			.map(i => i.item);
 
-                if (!is_awarded) {
-                        frappe.show_alert(
-                                {
-                                        message: __(
-                                                "Warning: Item {0} is not "
-                                                + "an awarded Tender item.",
-                                                [row.item]
-                                        ),
-                                        indicator: "red"
-                                },
-                                6
-                        );
-                }
-        },
+		if (won_items.length > 0 && !won_items.includes(row.item)) {
+			frappe.show_alert({
+				message: __("\u26a0 Warning: Item {0} is NOT in the Won items list of this tender. Please verify.", [row.item]),
+				indicator: "red"
+			}, 6);
+		}
+	},
 
-        po_quantity(frm) {
-                pepl_recalculate_po_schedule(frm);
-        },
+	po_quantity(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		frappe.model.set_value(cdt, cdn, "po_total",
+			flt(row.po_quantity) * flt(row.po_rate));
+	},
 
-        po_rate(frm) {
-                pepl_recalculate_po_schedule(frm);
-        }
+	po_rate(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		frappe.model.set_value(cdt, cdn, "po_total",
+			flt(row.po_quantity) * flt(row.po_rate));
+	}
 });
 
 

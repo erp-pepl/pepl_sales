@@ -124,18 +124,6 @@ class PEPLTender(Document):
                 )
 
 
-    def before_update_after_submit(self):
-        """Recalculate PO-derived fields during permitted post-submit edits.
-
-        Frappe uses the update-after-submit lifecycle for fields marked
-        allow_on_submit. Keeping this logic here ensures that PO Schedule
-        flags, line totals and the parent PO total are recalculated on the
-        server even when client-side events do not run.
-        """
-        self._process_po_schedule()
-
-
-
     def before_submit(self):
         """Validate that the Tender is ready for final submission."""
         final_statuses = {
@@ -1007,117 +995,60 @@ class PEPLTender(Document):
         ) else 0
 
     def _process_po_schedule(self):
-        """Recalculate PO Schedule flags, identifiers, totals and parent total."""
+        """Recalculate PO Schedule, won-list flags and parent total."""
         if not self.po_schedule:
             self.po_amount_received = 0
             return
 
-        tender_items = {
-            row.item: row
-            for row in self.items or []
-            if row.item
+        won_item_codes = {
+            tender_item.item
+            for tender_item in self.items or []
+            if tender_item.outcome in {"Won", "Partially Won"}
         }
+
+        has_pl = frappe.db.has_column("Item", "custom_pl_no")
+        has_drawing = frappe.db.has_column("Item", "custom_drawing_no")
 
         total = 0
         for schedule_row in self.po_schedule:
-            tender_item = tender_items.get(schedule_row.item)
+            if schedule_row.item and (has_pl or has_drawing):
+                select_fields = ["name"]
+                if has_pl:
+                    select_fields.append("custom_pl_no")
+                if has_drawing:
+                    select_fields.append("custom_drawing_no")
 
-            is_awarded_item = bool(
-                tender_item
-                and tender_item.outcome in {"Won", "Partially Won"}
-                and self._get_awarded_quantity(tender_item) > 0
-            )
-            schedule_row.is_in_won_list = 1 if is_awarded_item else 0
+                fields_str = ", ".join(select_fields)
+                item_data = frappe.db.sql(
+                    f"""
+                    SELECT {fields_str}
+                    FROM `tabItem`
+                    WHERE name = %s
+                    LIMIT 1
+                    """,
+                    schedule_row.item,
+                    as_dict=True,
+                )
 
-            pl_no, drawing_no = self._get_po_item_identifiers(
-                schedule_row.item,
-                tender_item,
-            )
-            schedule_row.pl_no = pl_no or ""
-            schedule_row.drawing_no = drawing_no or ""
+                if item_data:
+                    if has_pl and "custom_pl_no" in item_data[0]:
+                        schedule_row.pl_no = item_data[0].custom_pl_no
+                    if has_drawing and "custom_drawing_no" in item_data[0]:
+                        schedule_row.drawing_no = item_data[0].custom_drawing_no
+
+            if schedule_row.item:
+                schedule_row.is_in_won_list = (
+                    1
+                    if schedule_row.item in won_item_codes
+                    else 0
+                )
 
             qty = flt(schedule_row.po_quantity)
             rate = flt(schedule_row.po_rate)
             schedule_row.po_total = qty * rate
-            total += flt(schedule_row.po_total)
+            total += schedule_row.po_total
 
         self.po_amount_received = total
-
-    @staticmethod
-    def _get_awarded_quantity(tender_item):
-        """Return the quantity that may be scheduled for an awarded item."""
-        if not tender_item:
-            return 0
-
-        if flt(tender_item.awarded_quantity) > 0:
-            return flt(tender_item.awarded_quantity)
-
-        if (
-            tender_item.outcome == "Partially Won"
-            and flt(tender_item.award_share_percent) > 0
-        ):
-            return (
-                flt(tender_item.quantity)
-                * flt(tender_item.award_share_percent)
-                / 100
-            )
-
-        if tender_item.outcome == "Won":
-            return flt(tender_item.quantity)
-
-        return 0
-
-    @staticmethod
-    def _get_po_item_identifiers(item_code, tender_item=None):
-        """Return PL and Drawing numbers using stable source precedence.
-
-        Source order:
-        1. Item custom fields maintained by PEPL Product Master.
-        2. PEPL Product Master itself.
-        3. Values already captured on the Tender Item row.
-        """
-        if not item_code:
-            return "", ""
-
-        pl_no = ""
-        drawing_no = ""
-
-        item_fields = []
-        if frappe.db.has_column("Item", "custom_pl_no"):
-            item_fields.append("custom_pl_no")
-        if frappe.db.has_column("Item", "custom_drawing_no"):
-            item_fields.append("custom_drawing_no")
-
-        if item_fields:
-            item_values = frappe.db.get_value(
-                "Item",
-                item_code,
-                item_fields,
-                as_dict=True,
-            ) or {}
-            pl_no = item_values.get("custom_pl_no") or ""
-            drawing_no = item_values.get("custom_drawing_no") or ""
-
-        if not pl_no or not drawing_no:
-            product = frappe.db.get_value(
-                "PEPL Product Master",
-                {"linked_item": item_code},
-                ["pl_number", "drawing_number"],
-                as_dict=True,
-            ) or {}
-            pl_no = pl_no or product.get("pl_number") or ""
-            drawing_no = drawing_no or product.get("drawing_number") or ""
-
-        if tender_item:
-            pl_no = pl_no or getattr(tender_item, "pl_no", None) or ""
-            drawing_no = (
-                drawing_no
-                or getattr(tender_item, "drawing_no", None)
-                or ""
-            )
-
-        return pl_no, drawing_no
-
 
 
 @frappe.whitelist()

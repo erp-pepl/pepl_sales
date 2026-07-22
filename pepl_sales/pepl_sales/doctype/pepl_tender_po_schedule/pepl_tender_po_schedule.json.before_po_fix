@@ -23,8 +23,7 @@
    "label": "Item",
    "options": "Item",
    "reqd": 1,
-   "description": "Pick item from PO. Same item can be added multiple times for different delivery batches.",
-   "allow_on_submit": 1
+   "description": "Pick item from PO. Same item can be added multiple times for different delivery batches."
   },
   {
    "fieldname": "is_in_won_list",
@@ -33,22 +32,19 @@
    "read_only": 1,
    "default": "0",
    "in_list_view": 1,
-   "description": "Auto-flagged. RED if item not in tender Won items list.",
-   "allow_on_submit": 1
+   "description": "Auto-flagged. RED if item not in tender Won items list."
   },
   {
    "fieldname": "pl_no",
    "fieldtype": "Data",
    "label": "PL Number",
-   "read_only": 1,
-   "allow_on_submit": 1
+   "read_only": 1
   },
   {
    "fieldname": "drawing_no",
    "fieldtype": "Data",
    "label": "Drawing Number",
-   "read_only": 1,
-   "allow_on_submit": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_1",
@@ -59,32 +55,28 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "PO Quantity",
-   "reqd": 1,
-   "allow_on_submit": 1
+   "reqd": 1
   },
   {
    "fieldname": "po_rate",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "PO Rate (INR)",
-   "reqd": 1,
-   "allow_on_submit": 1
+   "reqd": 1
   },
   {
    "fieldname": "po_total",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "PO Total",
-   "read_only": 1,
-   "allow_on_submit": 1
+   "read_only": 1
   },
   {
    "fieldname": "delivery_date",
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Delivery Date",
-   "reqd": 1,
-   "allow_on_submit": 1
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 0,
