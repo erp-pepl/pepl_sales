@@ -29,8 +29,7 @@
    "fieldname": "document_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Date",
-   "default": "Today"
+   "label": "Date"
   },
   {
    "fieldname": "document_type",

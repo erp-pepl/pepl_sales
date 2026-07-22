@@ -3,6 +3,10 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import getdate, today
 
+from pepl_sales.pepl_sales.doctype.pepl_document_entry.pepl_document_entry import (
+    validate_document_entry,
+)
+
 
 RECEIVED_STATUSES = {"Received", "Filed"}
 
@@ -99,6 +103,11 @@ class PEPLDocumentTracker(Document):
             if row.document_status == "Pending":
                 row.received_date = None
                 row.received_by = None
+
+            validate_document_entry(
+                row,
+                row_number=index,
+            )
 
 
 @frappe.whitelist()
@@ -223,6 +232,9 @@ def create_doc_tracker_for_so(
                 ).format(document_type),
                 "direction": "Inbound (from Customer)",
                 "document_status": "Pending",
+                "document_date": None,
+                "received_date": None,
+                "received_by": None,
                 "source": "Auto-Generated",
                 "is_required": 1,
             },
