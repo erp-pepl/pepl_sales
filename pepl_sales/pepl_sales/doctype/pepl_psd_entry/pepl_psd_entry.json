@@ -21,8 +21,6 @@
   "psd_refund_date",
   "psd_refund_amount",
   "letter_to_bank_date",
-  "section_submissions",
-  "submissions",
   "section_remarks",
   "remarks"
  ],
@@ -122,17 +120,6 @@
    "fieldname": "letter_to_bank_date",
    "fieldtype": "Date",
    "label": "Letter to Bank Date"
-  },
-  {
-   "fieldname": "section_submissions",
-   "fieldtype": "Section Break",
-   "label": "Instrument Submissions (BG/DD/FDR with renewal trail)"
-  },
-  {
-   "fieldname": "submissions",
-   "fieldtype": "Table",
-   "label": "Submissions",
-   "options": "PEPL PSD Submission"
   },
   {
    "fieldname": "section_remarks",

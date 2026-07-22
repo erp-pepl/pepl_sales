@@ -17,6 +17,8 @@
   "section_entries",
   "psd_entries_html",
   "psd_entries",
+  "section_submissions",
+  "psd_submissions",
   "section_remarks",
   "tracker_remarks"
  ],
@@ -98,6 +100,19 @@
    "fieldname": "tracker_remarks",
    "fieldtype": "Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "section_submissions",
+   "fieldtype": "Section Break",
+   "label": "PSD Instrument Submissions",
+   "description": "Record BG, DD or FDR submissions here. Each row identifies the related PSD Entry Label."
+  },
+  {
+   "fieldname": "psd_submissions",
+   "fieldtype": "Table",
+   "label": "Instrument Submissions",
+   "options": "PEPL PSD Submission",
+   "description": "Submission and renewal trail for all PSD entries under this tracker."
   }
  ],
  "index_web_pages_for_search": 0,

@@ -5,6 +5,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "psd_entry_label",
   "instrument_type",
   "reference_number",
   "is_active",
@@ -18,6 +19,13 @@
   "remarks"
  ],
  "fields": [
+  {
+   "fieldname": "psd_entry_label",
+   "fieldtype": "Data",
+   "label": "PSD Entry Label",
+   "in_list_view": 1,
+   "description": "Enter the matching PSD Entry Label, such as Initial PSD or Supplementary PSD - Amendment 1."
+  },
   {
    "fieldname": "instrument_type",
    "fieldtype": "Select",
