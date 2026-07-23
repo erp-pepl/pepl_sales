@@ -139,11 +139,16 @@ after_install = "pepl_sales.install.after_install"
 
 doc_events = {
     "Sales Order": {
-        "on_submit": "pepl_sales.events.on_sales_order_submit"
+        "on_submit": "pepl_sales.events.on_sales_order_submit",
     },
+
     "Sales Invoice": {
-        "on_submit": "pepl_sales.events.on_sales_invoice_submit"
-    }
+        "before_submit": (
+            "pepl_sales.overrides.sales_invoice."
+            "validate_document_readiness_before_submit"
+        ),
+        "on_submit": "pepl_sales.events.on_sales_invoice_submit",
+    },
 }
 
 scheduler_events = {
