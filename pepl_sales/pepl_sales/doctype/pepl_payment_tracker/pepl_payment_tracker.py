@@ -9,11 +9,16 @@ class PEPLPaymentTracker(Document):
         if not self.tracker_id:
             self.tracker_id = self.name
 
-        if self.linked_sales_invoice and not self.sector:
-            self._fetch_sector_from_invoice()
-
         if self.linked_sales_invoice and not self.linked_sales_order:
             self._fetch_so_from_invoice()
+
+        # Sales Order is the authoritative source for PEPL sector.
+        # Fall back to the invoice/customer only when no linked
+        # Sales Order sector is available.
+        if self.linked_sales_order:
+            self._fetch_sector_from_sales_order()
+        elif self.linked_sales_invoice and not self.sector:
+            self._fetch_sector_from_invoice()
 
         self.calculate_payment_summary()
 
@@ -84,6 +89,20 @@ class PEPLPaymentTracker(Document):
             self.net_amount_receivable = invoice_amount
 
 
+    def _fetch_sector_from_sales_order(self):
+        """Fetch the PEPL sector from the linked Sales Order."""
+        if not self.linked_sales_order:
+            return
+
+        sector = frappe.db.get_value(
+            "Sales Order",
+            self.linked_sales_order,
+            "custom_sector",
+        )
+
+        if sector:
+            self.sector = sector
+
     def _fetch_sector_from_invoice(self):
         customer = frappe.db.get_value(
             "Sales Invoice", self.linked_sales_invoice, "customer"
@@ -103,14 +122,32 @@ class PEPLPaymentTracker(Document):
             self.sector = "Others"
 
     def _fetch_so_from_invoice(self):
-        try:
-            invoice = frappe.get_doc("Sales Invoice", self.linked_sales_invoice)
-            if invoice.items:
-                first_so = invoice.items[0].sales_order
-                if first_so:
-                    self.linked_sales_order = first_so
-        except Exception:
-            pass
+        """Resolve one Sales Order linked through Sales Invoice items."""
+        if not self.linked_sales_invoice:
+            return
+
+        invoice = frappe.get_doc(
+            "Sales Invoice",
+            self.linked_sales_invoice,
+        )
+
+        sales_orders = sorted({
+            row.sales_order
+            for row in invoice.items or []
+            if row.sales_order
+        })
+
+        if len(sales_orders) > 1:
+            frappe.throw(
+                _(
+                    "PEPL Payment Tracker supports one Sales Order per "
+                    "Sales Invoice. Invoice {0} references multiple "
+                    "Sales Orders: {1}"
+                ).format(invoice.name, ", ".join(sales_orders))
+            )
+
+        if sales_orders:
+            self.linked_sales_order = sales_orders[0]
 
     def _auto_advance_status(self):
         """Smart status progression based on filled fields."""
@@ -175,20 +212,51 @@ def create_payment_tracker_for_invoice(sales_invoice_name):
 
     invoice = frappe.get_doc("Sales Invoice", sales_invoice_name)
 
-    sector = "Others"
-    if invoice.customer:
-        cg = frappe.db.get_value("Customer", invoice.customer, "customer_group")
-        if cg:
-            if "Railway" in cg:
-                sector = "Railways"
-            elif "Defence" in cg:
-                sector = "Defence"
-            elif "Private" in cg:
-                sector = "Private"
+    sales_orders = sorted({
+        row.sales_order
+        for row in invoice.items or []
+        if row.sales_order
+    })
 
-    linked_so = None
-    if invoice.items:
-        linked_so = invoice.items[0].sales_order
+    if len(sales_orders) > 1:
+        frappe.throw(
+            _(
+                "PEPL Payment Tracker supports one Sales Order per "
+                "Sales Invoice. Invoice {0} references multiple "
+                "Sales Orders: {1}"
+            ).format(invoice.name, ", ".join(sales_orders))
+        )
+
+    linked_so = sales_orders[0] if sales_orders else None
+
+    sector = None
+
+    if linked_so:
+        sector = frappe.db.get_value(
+            "Sales Order",
+            linked_so,
+            "custom_sector",
+        )
+
+    # Backward-compatible fallback for invoices without a usable
+    # Sales Order sector.
+    if not sector and invoice.customer:
+        customer_group = frappe.db.get_value(
+            "Customer",
+            invoice.customer,
+            "customer_group",
+        ) or ""
+
+        if "Railway" in customer_group:
+            sector = "Railways"
+        elif "Defence" in customer_group:
+            sector = "Defence"
+        elif "Private" in customer_group:
+            sector = "Private"
+        else:
+            sector = "Others"
+
+    sector = sector or "Others"
 
     tracker = frappe.new_doc("PEPL Payment Tracker")
     tracker.linked_sales_invoice = invoice.name
@@ -197,7 +265,7 @@ def create_payment_tracker_for_invoice(sales_invoice_name):
     tracker.sector = sector
     tracker.invoice_date = invoice.posting_date
     tracker.invoice_amount = invoice.grand_total
-    tracker.payment_status = "Pending Dispatch"
+    tracker.payment_status = "Bills Submitted"
     tracker.insert(ignore_permissions=True)
 
     return {
