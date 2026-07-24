@@ -189,52 +189,92 @@ class PEPLPaymentTracker(Document):
             self.linked_sales_order = sales_orders[0]
 
     def _auto_advance_status(self):
-        """Smart status progression based on filled fields."""
-        if self.payment_status in ["Closed", "Reconciled"]:
+        """
+        Derive Payment Tracker status from the current financial state.
+
+        This deliberately supports both forward progression and reversal:
+        Bills Submitted -> Payment Received -> Reconciled
+        and back again when ERPNext payments are cancelled.
+        """
+
+        outstanding = flt(self.total_outstanding)
+        received = flt(self.total_amount_received)
+        realised = flt(self.gross_payment_realised)
+        invoice_amount = flt(self.invoice_amount)
+
+        # Closed remains terminal only while there is no reopened balance.
+        # A cancelled ERPNext payment may legitimately reopen the invoice.
+        if (
+            self.payment_status == "Closed"
+            and outstanding <= 0
+        ):
             return
 
-        # Fully realised against invoice (gross = bank + deductions)
-        if (flt(self.gross_payment_realised) >= flt(self.net_amount_receivable)
-                and flt(self.net_amount_receivable) > 0):
+        # Fully settled according to the recalculated accounting state.
+        if (
+            invoice_amount > 0
+            and outstanding <= 0
+        ):
             self.payment_status = "Reconciled"
             return
 
-        # Any payment received
-        if flt(self.total_amount_received) > 0:
-            if self.payment_status not in ["Payment Received", "Reconciled", "Closed"]:
-                self.payment_status = "Payment Received"
+        # Any partial settlement against an invoice means payment activity
+        # exists but the invoice is not yet fully settled.
+        if received > 0 or realised > 0:
+            self.payment_status = "Payment Received"
+            return
+
+        # No financial settlement remains.
+        #
+        # If the tracker had previously reached a payment-state status,
+        # move it back into the pre-payment workflow before evaluating
+        # sector-specific operational milestones.
+        if self.payment_status in {
+            "Payment Received",
+            "Reconciled",
+            "Closed",
+        }:
+            self.payment_status = "Bills Submitted"
+
+        # Preserve the most advanced valid pre-payment operational stage.
+        if self.sector == "Railways":
+            if self.co7_number:
+                self.payment_status = "CO7 Issued"
                 return
 
-        if self.sector == "Railways":
-            if self.co7_number and self.payment_status in [
-                "Pending Dispatch", "Dispatched", "R-Note Received", "Bills Submitted"
-            ]:
-                self.payment_status = "CO7 Issued"
-            elif self.bills_submission_date and self.payment_status in [
-                "Pending Dispatch", "Dispatched", "R-Note Received"
-            ]:
+            if self.bills_submission_date:
                 self.payment_status = "Bills Submitted"
-            elif self.rnote_number and self.payment_status in ["Pending Dispatch", "Dispatched"]:
+                return
+
+            if self.rnote_number:
                 self.payment_status = "R-Note Received"
+                return
 
         elif self.sector == "Defence":
-            if self.jcc_number and self.payment_status in [
-                "Pending Dispatch", "Dispatched", "I-Note Received"
-            ]:
+            if self.jcc_number:
                 self.payment_status = "JCC Issued"
-            elif self.inote_number and self.payment_status in ["Pending Dispatch", "Dispatched"]:
-                self.payment_status = "I-Note Received"
-            elif self.bills_submission_date and self.payment_status in [
-                "Pending Dispatch", "Dispatched", "I-Note Received", "JCC Issued"
-            ]:
+                return
+
+            if self.bills_submission_date:
                 self.payment_status = "Bills Submitted"
+                return
+
+            if self.inote_number:
+                self.payment_status = "I-Note Received"
+                return
 
         elif self.sector == "Private":
-            if self.bills_submission_date and self.payment_status == "Dispatched":
+            if self.bills_submission_date:
                 self.payment_status = "Bills Submitted"
+                return
 
-        if self.dispatch_date and self.payment_status == "Pending Dispatch":
+        if self.dispatch_date:
             self.payment_status = "Dispatched"
+            return
+
+        # Payment Trackers are created only after Sales Invoice submission,
+        # therefore Bills Submitted is the safe financial-workflow baseline.
+        self.payment_status = "Bills Submitted"
 
 
 @frappe.whitelist()
