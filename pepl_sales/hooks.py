@@ -149,6 +149,11 @@ doc_events = {
         ),
         "on_submit": "pepl_sales.events.on_sales_invoice_submit",
     },
+
+    "Payment Entry": {
+        "on_submit": "pepl_sales.events.on_payment_entry_submit",
+        "on_cancel": "pepl_sales.events.on_payment_entry_cancel",
+    },
 }
 
 scheduler_events = {

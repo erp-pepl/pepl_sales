@@ -9,6 +9,10 @@
   "amount_received",
   "payment_mode",
   "payment_reference",
+  "payment_entry",
+  "payment_entry_reference",
+  "allocated_amount",
+  "auto_synced",
   "column_break_1",
   "bank",
   "remarks"
@@ -26,7 +30,7 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Bank Credit Received",
-   "description": "Net amount actually credited to bank account after deductions by customer. This is what appears in the bank statement.",
+   "description": "Actual bank-credit amount attributable to this invoice. For ERPNext Payment Entries this is synchronized automatically.",
    "reqd": 1
   },
   {
@@ -57,6 +61,36 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "ERPNext Payment Entry",
+   "options": "Payment Entry",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "payment_entry_reference",
+   "fieldtype": "Data",
+   "label": "Payment Entry Reference Row",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "allocated_amount",
+   "fieldtype": "Currency",
+   "label": "Invoice Allocated Amount",
+   "read_only": 1,
+   "description": "Amount from the ERPNext Payment Entry allocated against this Sales Invoice."
+  },
+  {
+   "fieldname": "auto_synced",
+   "fieldtype": "Check",
+   "label": "Auto Synced from ERPNext",
+   "read_only": 1,
+   "hidden": 1,
+   "default": "0"
   }
  ],
  "index_web_pages_for_search": 0,
