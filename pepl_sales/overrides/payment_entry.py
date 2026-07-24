@@ -304,21 +304,8 @@ def unsync_payment_entry(payment_entry):
         for row in rows_to_remove:
             tracker.remove(row)
 
-        remaining_receipts = [
-            row
-            for row in tracker.payment_receipts or []
-            if flt(row.amount_received) > 0
-        ]
-
-        # A Payment Entry cancellation must be capable of moving the
-        # operational state backwards.
-        if (
-            not remaining_receipts
-            and tracker.payment_status
-            in {"Payment Received", "Reconciled"}
-        ):
-            tracker.payment_status = "Bills Submitted"
-
+        # Saving the tracker recalculates amounts and derives the correct
+        # financial/operational status centrally in PEPLPaymentTracker.
         tracker.save(ignore_permissions=True)
 
         updated.append(tracker.name)
