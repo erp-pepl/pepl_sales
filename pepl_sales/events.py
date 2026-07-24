@@ -39,3 +39,62 @@ def on_sales_invoice_submit(doc, method=None):
     )
 
     create_payment_tracker_for_invoice(doc.name)
+
+
+def on_payment_entry_submit(doc, method=None):
+    """
+    Synchronize submitted ERPNext customer Payment Entries into PEPL.
+
+    Accounting submission is not blocked if the PEPL operational sync fails.
+    The failure is logged and shown to the user for correction.
+    """
+
+    try:
+        from pepl_sales.overrides.payment_entry import (
+            sync_payment_entry,
+        )
+
+        return sync_payment_entry(doc)
+
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "PEPL Payment Entry Submit Sync Failed",
+        )
+
+        frappe.msgprint(
+            (
+                "The ERPNext Payment Entry was processed, but PEPL "
+                "Payment Tracker synchronization encountered an error. "
+                "Please review the Error Log before UAT sign-off."
+            ),
+            indicator="orange",
+        )
+
+
+def on_payment_entry_cancel(doc, method=None):
+    """
+    Reverse PEPL receipt synchronization when Payment Entry is cancelled.
+    """
+
+    try:
+        from pepl_sales.overrides.payment_entry import (
+            unsync_payment_entry,
+        )
+
+        return unsync_payment_entry(doc)
+
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "PEPL Payment Entry Cancel Sync Failed",
+        )
+
+        frappe.msgprint(
+            (
+                "The ERPNext Payment Entry was cancelled, but PEPL "
+                "Payment Tracker reversal encountered an error. "
+                "Please review the Error Log."
+            ),
+            indicator="orange",
+        )

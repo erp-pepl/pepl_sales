@@ -70,20 +70,59 @@ class PEPLPaymentTracker(Document):
         invoice_amount = flt(self.invoice_amount)
 
         self.total_amount_received = total_bank_credit
-        self.gross_payment_realised = (
+
+        operational_gross_realised = (
             total_bank_credit
             + tds
             + sd
             + ld
             + other
         )
+
+        self.gross_payment_realised = operational_gross_realised
         self.total_recoverable_held = tds + sd
         self.total_written_off = ld + other
 
+        # Legacy/manual fallback.
         self.total_outstanding = max(
-            invoice_amount - flt(self.gross_payment_realised),
+            invoice_amount - operational_gross_realised,
             0,
         )
+
+        # When a submitted Sales Invoice exists, ERPNext accounting is the
+        # authoritative source for invoice settlement/outstanding.
+        if self.linked_sales_invoice:
+            invoice_state = frappe.db.get_value(
+                "Sales Invoice",
+                self.linked_sales_invoice,
+                [
+                    "docstatus",
+                    "grand_total",
+                    "outstanding_amount",
+                ],
+                as_dict=True,
+            )
+
+            if invoice_state and int(invoice_state.docstatus or 0) == 1:
+                accounting_invoice_amount = flt(
+                    invoice_state.grand_total
+                )
+
+                accounting_outstanding = max(
+                    flt(invoice_state.outstanding_amount),
+                    0,
+                )
+
+                if not invoice_amount:
+                    invoice_amount = accounting_invoice_amount
+                    self.invoice_amount = accounting_invoice_amount
+
+                self.total_outstanding = accounting_outstanding
+
+                self.gross_payment_realised = max(
+                    invoice_amount - accounting_outstanding,
+                    0,
+                )
 
         if not flt(self.net_amount_receivable):
             self.net_amount_receivable = invoice_amount
