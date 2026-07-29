@@ -202,6 +202,7 @@ def create_doc_tracker_for_so(
                 "received_date": None,
                 "received_by": None,
                 "source": "Auto-Generated",
+                "source_reference": sales_order.name,
                 "is_required": 1,
             },
         )
