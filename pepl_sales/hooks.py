@@ -139,6 +139,7 @@ after_install = "pepl_sales.install.after_install"
 
 doc_events = {
     "Sales Order": {
+        "validate": "pepl_sales.events.validate_sales_order_sector",
         "on_submit": "pepl_sales.events.on_sales_order_submit",
     },
 
@@ -152,6 +153,10 @@ doc_events = {
 
     "Payment Entry": {
         "on_submit": "pepl_sales.events.on_payment_entry_submit",
+        "on_update_after_submit": (
+            "pepl_sales.events."
+            "on_payment_entry_update_after_submit"
+        ),
         "on_cancel": "pepl_sales.events.on_payment_entry_cancel",
     },
 }

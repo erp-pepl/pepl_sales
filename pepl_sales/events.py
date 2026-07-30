@@ -1,5 +1,34 @@
 import frappe
 
+def validate_sales_order_sector(doc, method=None):
+    """
+    Ensure every Sales Order has a valid PEPL sector.
+
+    This server-side validation protects API, import and background
+    transaction paths in addition to the mandatory form field.
+    """
+
+    valid_sectors = {
+        "Railways",
+        "Defence",
+        "Private",
+        "Others",
+    }
+
+    sector = (doc.get("custom_sector") or "").strip()
+
+    if not sector:
+        frappe.throw(
+            "Sector is mandatory for Sales Order."
+        )
+
+    if sector not in valid_sectors:
+        frappe.throw(
+            (
+                "Invalid Sales Order Sector. "
+                "Select Railways, Defence, Private or Others."
+            )
+        )
 
 def on_sales_order_submit(doc, method=None):
     """
@@ -71,6 +100,33 @@ def on_payment_entry_submit(doc, method=None):
             indicator="orange",
         )
 
+def on_payment_entry_update_after_submit(doc, method=None):
+    """
+    Re-synchronize PEPL Payment Trackers when submitted Payment Entry
+    references are changed by Payment Reconciliation or UnReconcile.
+    """
+
+    try:
+        from pepl_sales.overrides.payment_entry import (
+            sync_payment_entry,
+        )
+
+        return sync_payment_entry(doc)
+
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "PEPL Payment Entry Update After Submit Sync Failed",
+        )
+
+        frappe.msgprint(
+            (
+                "The ERPNext Payment Entry was updated, but PEPL "
+                "Payment Tracker synchronization encountered an error. "
+                "Please review the Error Log."
+            ),
+            indicator="orange",
+        )
 
 def on_payment_entry_cancel(doc, method=None):
     """
