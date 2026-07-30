@@ -151,6 +151,13 @@ doc_events = {
         "on_submit": "pepl_sales.events.on_sales_invoice_submit",
     },
 
+    "PEPL Document Tracker": {
+        "validate": (
+            "pepl_sales.document_tracker_validation."
+            "validate_document_tracker"
+        ),
+    },
+
     "Payment Entry": {
         "on_submit": "pepl_sales.events.on_payment_entry_submit",
         "on_update_after_submit": (
