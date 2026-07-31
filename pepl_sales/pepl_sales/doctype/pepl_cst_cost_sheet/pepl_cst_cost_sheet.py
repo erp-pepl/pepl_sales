@@ -193,6 +193,46 @@ class PEPLCSTCostSheet(Document):
             component.reference_rate_purchase = latest_purchase[0].rate
 
 
+def _get_rm_group_for_item(item_code):
+    """Return the unique active RM Group mapped to an Item Group."""
+    if not item_code:
+        return None
+
+    item_group = frappe.db.get_value(
+        "Item",
+        item_code,
+        "item_group",
+    )
+
+    if not item_group:
+        return None
+
+    rm_groups = frappe.get_all(
+        "PEPL RM Group",
+        filters={
+            "linked_item_group": item_group,
+            "is_active": 1,
+        },
+        pluck="name",
+        order_by="name asc",
+        limit_page_length=0,
+    )
+
+    if len(rm_groups) > 1:
+        frappe.throw(
+            _(
+                "Multiple active PEPL RM Groups are mapped "
+                "to Item Group {0}: {1}. Keep exactly one "
+                "active mapping."
+            ).format(
+                frappe.bold(item_group),
+                ", ".join(rm_groups),
+            )
+        )
+
+    return rm_groups[0] if rm_groups else None
+
+
 @frappe.whitelist()
 def sync_components_from_product(cst_name):
     """Sync components from linked PEPL Product Master."""
@@ -212,11 +252,26 @@ def sync_components_from_product(cst_name):
             and product.linked_item
         ):
             cst.components = []
+            rm_group = _get_rm_group_for_item(
+                product.linked_item
+            )
+
+            if not rm_group:
+                frappe.throw(
+                    _(
+                        "No active PEPL RM Group is mapped to "
+                        "the Item Group of Item {0}."
+                    ).format(
+                        frappe.bold(product.linked_item)
+                    )
+                )
+
             cst.append(
                 "components",
                 {
                     "manufactured_or_bought_out": "Manufactured",
                     "component_item": product.linked_item,
+                    "rm_group": rm_group,
                     "quantity_per_assembly": 1,
                     "uom": "Nos",
                 },
@@ -234,18 +289,47 @@ def sync_components_from_product(cst_name):
     cst.components = []
 
     for comp in product.assembly_components:
+        component_item = comp.component_item
+
+        if not component_item and comp.component_product:
+            component_item = frappe.db.get_value(
+                "PEPL Product Master",
+                comp.component_product,
+                "linked_item",
+            )
+
+        rm_group = _get_rm_group_for_item(
+            component_item
+        )
+
+        if not rm_group:
+            frappe.throw(
+                _(
+                    "No active PEPL RM Group is mapped to "
+                    "the Item Group of component Item {0}."
+                ).format(
+                    frappe.bold(
+                        component_item
+                        or comp.component_product
+                        or _("Unknown")
+                    )
+                )
+            )
+
         new_row = {
             "manufactured_or_bought_out": "Manufactured",
+            "component_item": component_item,
+            "rm_group": rm_group,
             "quantity_per_assembly": comp.quantity,
             "uom": comp.uom or "Nos",
-            "component_drawing_no": comp.component_drawing_no,
+            "component_drawing_no":
+                comp.component_drawing_no,
         }
 
-        if comp.component_item:
-            new_row["component_item"] = comp.component_item
-
         if comp.component_product:
-            new_row["component_product"] = comp.component_product
+            new_row["component_product"] = (
+                comp.component_product
+            )
 
         cst.append("components", new_row)
 
