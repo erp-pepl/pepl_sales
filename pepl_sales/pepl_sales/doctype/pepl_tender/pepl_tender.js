@@ -678,3 +678,228 @@ frappe.ui.form.on("PEPL Tender Item Competitor", {
     }
 });
 
+
+
+// PEPL_TENDER_BID_READINESS_PANEL
+frappe.ui.form.on("PEPL Tender", {
+    refresh(frm) {
+        pepl_render_tender_bid_readiness(frm);
+    }
+});
+
+
+function pepl_render_tender_bid_readiness(frm) {
+    const documents = frm.doc.bid_documents || [];
+    const items = frm.doc.items || [];
+
+    const mandatory = documents.filter(
+        row => cint(row.is_mandatory) === 1
+    );
+
+    const attached = mandatory.filter(
+        row => cint(row.is_attached) === 1
+    );
+
+    const missing = mandatory.filter(
+        row => cint(row.is_attached) !== 1
+    );
+
+    const decision_is_bid =
+        frm.doc.bid_decision === "Bid";
+
+    const deadline = frm.doc.decision_date;
+    let deadline_days = null;
+    let deadline_blocked = false;
+
+    if (deadline) {
+        deadline_days = frappe.datetime.get_day_diff(
+            deadline,
+            frappe.datetime.get_today()
+        );
+
+        deadline_blocked = deadline_days < 0;
+    }
+
+    const has_items = items.length > 0;
+
+    const documents_ready =
+        mandatory.length > 0
+        && missing.length === 0;
+
+    const approval_required =
+        ["Railways", "Defence"].includes(
+            frm.doc.sector
+        );
+
+    const approval_issues = approval_required
+        ? items.filter(row =>
+            !["Active", "No Expiry Set"].includes(
+                row.vendor_approval_health || "Missing"
+            )
+        )
+        : [];
+
+    const approvals_ready =
+        !approval_required
+        || (
+            items.length > 0
+            && approval_issues.length === 0
+        );
+
+    const ready =
+        decision_is_bid
+        && has_items
+        && documents_ready
+        && approvals_ready
+        && !deadline_blocked;
+
+    frm.dashboard.add_indicator(
+        __("Bid Readiness: {0}", [
+            ready
+                ? __("READY")
+                : __("NOT READY")
+        ]),
+        ready ? "green" : "red"
+    );
+
+    frm.dashboard.add_indicator(
+        __("Mandatory Documents: {0}/{1}", [
+            attached.length,
+            mandatory.length
+        ]),
+        documents_ready ? "green" : "orange"
+    );
+
+    frm.dashboard.add_indicator(
+        __("Tender Items: {0}", [
+            items.length
+        ]),
+        has_items ? "green" : "red"
+    );
+
+    if (approval_required) {
+        frm.dashboard.add_indicator(
+            __("Healthy Vendor Approvals: {0}/{1}", [
+                items.length - approval_issues.length,
+                items.length
+            ]),
+            approvals_ready ? "green" : "orange"
+        );
+    } else {
+        frm.dashboard.add_indicator(
+            __("Vendor Approval: Not Applicable"),
+            "blue"
+        );
+    }
+
+    if (deadline_days !== null) {
+        frm.dashboard.add_indicator(
+            deadline_days < 0
+                ? __(
+                    "Decision Date Overdue by {0} Day(s)",
+                    [Math.abs(deadline_days)]
+                )
+                : __(
+                    "Decision Date in {0} Day(s)",
+                    [deadline_days]
+                ),
+            deadline_days < 0
+                ? "red"
+                : deadline_days <= 3
+                    ? "orange"
+                    : "blue"
+        );
+    }
+
+    const blockers = [];
+
+    if (!decision_is_bid) {
+        blockers.push(
+            __("Bid Decision is not set to Bid.")
+        );
+    }
+
+    if (!has_items) {
+        blockers.push(
+            __("No Tender Items are available.")
+        );
+    }
+
+    if (!mandatory.length) {
+        blockers.push(
+            __("No mandatory Bid Documents are defined.")
+        );
+    }
+
+    if (!approvals_ready) {
+        const approval_details = approval_issues.map(
+            row => {
+                const item =
+                    row.item
+                    || __("Unnamed Item");
+
+                const stage =
+                    row.vendor_approval_stage
+                    || __("No Record");
+
+                const health =
+                    row.vendor_approval_health
+                    || __("Missing");
+
+                return (
+                    item
+                    + " — "
+                    + stage
+                    + " — "
+                    + health
+                );
+            }
+        );
+
+        blockers.push(
+            __(
+                "Vendor Approval attention required: {0}",
+                [approval_details.join(", ")]
+            )
+        );
+    }
+
+    if (missing.length) {
+        const missing_names = missing.map(
+            row =>
+                row.document_type
+                || row.document_name
+                || __("Unnamed Document")
+        );
+
+        blockers.push(
+            __(
+                "Missing mandatory documents: {0}",
+                [missing_names.join(", ")]
+            )
+        );
+    }
+
+    if (deadline_blocked) {
+        blockers.push(
+            __("Tender decision date has passed.")
+        );
+    }
+
+    if (blockers.length) {
+        frm.dashboard.add_comment(
+            blockers.join("<br>"),
+            "red",
+            true
+        );
+    } else {
+        frm.dashboard.add_comment(
+            __(
+                "Tender has items, all mandatory Bid Documents "
+                + "are attached, and no readiness blocker remains."
+            ),
+            "green",
+            true
+        );
+    }
+}

@@ -429,3 +429,105 @@ function open_clone_for_new_tender_dialog(frm) {
 
     dialog.show();
 }
+
+
+// PEPL_CST_INTELLIGENCE_PANEL
+frappe.ui.form.on("PEPL CST Cost Sheet", {
+    refresh(frm) {
+        pepl_render_cst_intelligence(frm);
+    }
+});
+
+
+function pepl_render_cst_intelligence(frm) {
+    const component_cost =
+        flt(frm.doc.total_components_cost);
+
+    const suggested_price =
+        flt(frm.doc.suggested_unit_price);
+
+    const final_price =
+        flt(frm.doc.final_bid_price);
+
+    const margin_amount =
+        flt(frm.doc.margin_amount);
+
+    const margin_percent =
+        flt(frm.doc.margin_percent);
+
+    const currency =
+        frm.doc.currency || "INR";
+
+    frm.dashboard.add_indicator(
+        __("Component Cost: {0}", [
+            format_currency(
+                component_cost,
+                currency
+            )
+        ]),
+        component_cost > 0 ? "blue" : "grey"
+    );
+
+    frm.dashboard.add_indicator(
+        __("Suggested Price: {0}", [
+            format_currency(
+                suggested_price,
+                currency
+            )
+        ]),
+        suggested_price > 0 ? "blue" : "grey"
+    );
+
+    frm.dashboard.add_indicator(
+        __("Final Bid Price: {0}", [
+            format_currency(
+                final_price,
+                currency
+            )
+        ]),
+        final_price > 0 ? "blue" : "grey"
+    );
+
+    if (final_price > 0) {
+        frm.dashboard.add_indicator(
+            __("Margin: {0} ({1}%)", [
+                format_currency(
+                    margin_amount,
+                    currency
+                ),
+                margin_percent.toFixed(2)
+            ]),
+            margin_amount < 0
+                ? "red"
+                : margin_percent < 5
+                    ? "orange"
+                    : "green"
+        );
+
+        if (margin_amount < 0) {
+            frm.dashboard.add_comment(
+                __(
+                    "LOSS WARNING: Final Bid Price is below "
+                    + "calculated cost by {0}.",
+                    [
+                        format_currency(
+                            Math.abs(margin_amount),
+                            currency
+                        )
+                    ]
+                ),
+                "red",
+                true
+            );
+        } else if (margin_percent < 5) {
+            frm.dashboard.add_comment(
+                __(
+                    "LOW MARGIN WARNING: Current margin is {0}%.",
+                    [margin_percent.toFixed(2)]
+                ),
+                "orange",
+                true
+            );
+        }
+    }
+}
