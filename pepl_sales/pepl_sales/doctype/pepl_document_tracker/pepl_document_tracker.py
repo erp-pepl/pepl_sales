@@ -141,11 +141,7 @@ def create_doc_tracker_for_so(
                 "description": po_title,
                 "reference_number": sales_order.po_no or "",
                 "direction": "Inbound (from Customer)",
-                "document_status": "Received",
-                "received_date":
-                    sales_order.po_date
-                    or sales_order.transaction_date,
-                "received_by": frappe.session.user,
+                "document_status": "Pending",
                 "source": "Auto-Generated",
                 "source_reference": sales_order.name,
                 "is_required": 1,
