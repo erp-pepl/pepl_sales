@@ -158,6 +158,13 @@ doc_events = {
         ),
     },
 
+    "PEPL Payment Tracker": {
+        "validate": (
+            "pepl_sales.payment_tracker_validation."
+            "validate_payment_tracker"
+        ),
+    },
+
     "Payment Entry": {
         "on_submit": "pepl_sales.events.on_payment_entry_submit",
         "on_update_after_submit": (
