@@ -539,6 +539,162 @@ def process_payment_ageing_exceptions():
 
 
 
+def process_vendor_approval_exceptions():
+    """Create, update, or close Vendor Approval operational ToDos."""
+    result = _empty_result()
+
+    owner = get_notification_owner(
+        "engineering_notification_owner"
+    )
+
+    active_references = []
+
+    approvals = frappe.get_all(
+        "Vendor Approval Status",
+        filters={
+            "approval_health": [
+                "in",
+                [
+                    "Expiring Soon",
+                    "Expired",
+                ],
+            ],
+        },
+        fields=[
+            "name",
+            "customer",
+            "item",
+            "sector",
+            "approval_stage",
+            "approval_health",
+            "effective_expiry_date",
+            "days_to_expiry",
+            "approval_warning",
+        ],
+        order_by=(
+            "effective_expiry_date asc, "
+            "name asc"
+        ),
+        limit_page_length=0,
+    )
+
+    for approval in approvals:
+        health = (
+            approval.approval_health
+            or ""
+        )
+
+        priority = (
+            "High"
+            if health == "Expired"
+            else "Medium"
+        )
+
+        marker = (
+            "PEPL-OPS::"
+            + RULE_VENDOR_APPROVAL
+        )
+
+        expiry_label = (
+            str(approval.effective_expiry_date)
+            if approval.effective_expiry_date
+            else _("Not Set")
+        )
+
+        warning = (
+            approval.approval_warning
+            or "-"
+        )
+
+        description = (
+            marker
+            + "\n\n"
+            + _(
+                "Vendor Approval {0} requires "
+                "engineering attention."
+            ).format(approval.name)
+            + "\n"
+            + _("Customer: {0}").format(
+                approval.customer or "-"
+            )
+            + "\n"
+            + _("Item: {0}").format(
+                approval.item or "-"
+            )
+            + "\n"
+            + _("Sector: {0}").format(
+                approval.sector or "-"
+            )
+            + "\n"
+            + _("Approval Stage: {0}").format(
+                approval.approval_stage or "-"
+            )
+            + "\n"
+            + _("Approval Health: {0}").format(
+                health or "-"
+            )
+            + "\n"
+            + _("Expiry Date: {0}").format(
+                expiry_label
+            )
+            + "\n"
+            + _("Days to Expiry: {0}").format(
+                approval.days_to_expiry
+                if (
+                    approval.days_to_expiry
+                    is not None
+                )
+                else "-"
+            )
+            + "\n"
+            + _("Warning: {0}").format(
+                warning
+            )
+        )
+
+        active_references.append(
+            approval.name
+        )
+
+        todo_result = upsert_operational_todo(
+            rule_code=RULE_VENDOR_APPROVAL,
+            reference_type=(
+                "Vendor Approval Status"
+            ),
+            reference_name=approval.name,
+            allocated_to=owner,
+            priority=priority,
+            description=description,
+            due_date=(
+                approval.effective_expiry_date
+                or today()
+            ),
+        )
+
+        _record_action(
+            result,
+            todo_result["action"],
+        )
+
+    result["closed"] = (
+        close_resolved_rule_todos(
+            rule_code=RULE_VENDOR_APPROVAL,
+            reference_type=(
+                "Vendor Approval Status"
+            ),
+            active_reference_names=(
+                active_references
+            ),
+        )
+    )
+
+    result["active"] = len(
+        active_references
+    )
+
+    return result
+
+
 @frappe.whitelist()
 def run_tender_deadline_notifications():
     """Controlled first-stage entry point for Tender deadline testing."""
@@ -583,6 +739,28 @@ def run_payment_ageing_notifications():
         **process_payment_ageing_exceptions(),
     }
 
+
+
+@frappe.whitelist()
+def run_vendor_approval_notifications():
+    """Controlled entry point for Vendor Approval UAT."""
+    if not cint(
+        get_param(
+            "enable_operational_todos",
+            0,
+        )
+    ):
+        return {
+            "enabled": False,
+            "rule": RULE_VENDOR_APPROVAL,
+            **_empty_result(),
+        }
+
+    return {
+        "enabled": True,
+        "rule": RULE_VENDOR_APPROVAL,
+        **process_vendor_approval_exceptions(),
+    }
 
 
 @frappe.whitelist()
