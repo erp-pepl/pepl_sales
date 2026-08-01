@@ -519,4 +519,3 @@ def refresh_all_vendor_approval_health():
             )
 
     return result
-
