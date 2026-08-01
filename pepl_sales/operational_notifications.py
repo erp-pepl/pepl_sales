@@ -398,6 +398,191 @@ def process_tender_deadline_exceptions():
 
 
 
+
+def process_document_pending_exceptions():
+    """Create, update, or close pending-document operational ToDos."""
+    result = _empty_result()
+
+    alert_days = cint(
+        get_param(
+            "document_pending_alert_days",
+            7,
+        )
+    )
+
+    owner = get_notification_owner(
+        "sales_notification_owner"
+    )
+
+    current_date = getdate(today())
+    active_references = []
+
+    trackers = frappe.get_all(
+        "PEPL Document Tracker",
+        fields=[
+            "name",
+            "linked_sales_order",
+            "customer",
+        ],
+        order_by="name asc",
+        limit_page_length=0,
+    )
+
+    for tracker in trackers:
+        document = frappe.get_doc(
+            "PEPL Document Tracker",
+            tracker.name,
+        )
+
+        overdue_rows = []
+
+        for row in document.document_entries or []:
+            if not cint(row.is_required):
+                continue
+
+            if row.document_status != "Pending":
+                continue
+
+            base_date_value = (
+                row.document_date
+                or row.creation
+            )
+
+            if not base_date_value:
+                continue
+
+            base_date = getdate(
+                base_date_value
+            )
+
+            age_days = date_diff(
+                current_date,
+                base_date,
+            )
+
+            if age_days < alert_days:
+                continue
+
+            overdue_rows.append({
+                "name": row.name,
+                "document_type": (
+                    row.document_type
+                    or _("Unspecified")
+                ),
+                "base_date": base_date,
+                "age_days": age_days,
+            })
+
+        if not overdue_rows:
+            continue
+
+        overdue_rows.sort(
+            key=lambda row: (
+                -row["age_days"],
+                row["document_type"],
+                row["name"],
+            )
+        )
+
+        marker = (
+            "PEPL-OPS::"
+            + RULE_DOCUMENT_PENDING
+        )
+
+        lines = [
+            marker,
+            "",
+            _(
+                "Document Tracker {0} has required "
+                "documents pending beyond the "
+                "configured alert window."
+            ).format(tracker.name),
+            _("Customer: {0}").format(
+                tracker.customer or "-"
+            ),
+            _("Sales Order: {0}").format(
+                tracker.linked_sales_order
+                or _("Not Linked")
+            ),
+            _("Alert Window: {0} day(s)").format(
+                alert_days
+            ),
+            _("Overdue Documents: {0}").format(
+                len(overdue_rows)
+            ),
+            "",
+        ]
+
+        for row in overdue_rows:
+            lines.append(
+                "- {0}: pending for {1} day(s) "
+                "since {2}".format(
+                    row["document_type"],
+                    row["age_days"],
+                    row["base_date"],
+                )
+            )
+
+        oldest_age = max(
+            row["age_days"]
+            for row in overdue_rows
+        )
+
+        priority = (
+            "High"
+            if oldest_age >= (
+                alert_days * 2
+            )
+            else "Medium"
+        )
+
+        oldest_base_date = min(
+            row["base_date"]
+            for row in overdue_rows
+        )
+
+        description = "\n".join(lines)
+
+        active_references.append(
+            tracker.name
+        )
+
+        todo_result = upsert_operational_todo(
+            rule_code=RULE_DOCUMENT_PENDING,
+            reference_type=(
+                "PEPL Document Tracker"
+            ),
+            reference_name=tracker.name,
+            allocated_to=owner,
+            priority=priority,
+            description=description,
+            due_date=oldest_base_date,
+        )
+
+        _record_action(
+            result,
+            todo_result["action"],
+        )
+
+    result["closed"] = (
+        close_resolved_rule_todos(
+            rule_code=RULE_DOCUMENT_PENDING,
+            reference_type=(
+                "PEPL Document Tracker"
+            ),
+            active_reference_names=(
+                active_references
+            ),
+        )
+    )
+
+    result["active"] = len(
+        active_references
+    )
+
+    return result
+
+
 def process_payment_ageing_exceptions():
     """Create, update, or close Payment ageing operational ToDos."""
     result = _empty_result()
@@ -790,6 +975,29 @@ def run_vendor_approval_refresh_and_notifications():
     return {
         "refresh": refresh_result,
         "notifications": notification_result,
+    }
+
+
+
+@frappe.whitelist()
+def run_document_pending_notifications():
+    """Controlled entry point for pending-document UAT."""
+    if not cint(
+        get_param(
+            "enable_operational_todos",
+            0,
+        )
+    ):
+        return {
+            "enabled": False,
+            "rule": RULE_DOCUMENT_PENDING,
+            **_empty_result(),
+        }
+
+    return {
+        "enabled": True,
+        "rule": RULE_DOCUMENT_PENDING,
+        **process_document_pending_exceptions(),
     }
 
 
