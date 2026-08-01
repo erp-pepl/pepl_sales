@@ -1265,6 +1265,235 @@ def run_psd_expiry_notifications():
     }
 
 
+
+
+def process_psd_refund_exceptions():
+    """Create, update, or close overdue PSD Refund operational ToDos."""
+    result = _empty_result()
+
+    owner = get_notification_owner(
+        "accounts_notification_owner"
+    )
+
+    current_date = getdate(today())
+    active_references = []
+    grouped_entries = {}
+
+    entries = frappe.get_all(
+        "PEPL PSD Entry",
+        filters={
+            "parenttype": "PEPL PSD Tracker",
+            "parentfield": "psd_entries",
+            "expected_refund_date": [
+                "<=",
+                current_date,
+            ],
+            "psd_amount": [
+                ">",
+                0,
+            ],
+            "psd_status": [
+                "not in",
+                list(CLOSED_PSD_STATUSES),
+            ],
+            "psd_refund_date": [
+                "is",
+                "not set",
+            ],
+        },
+        fields=[
+            "name",
+            "parent",
+            "entry_label",
+            "psd_status",
+            "psd_amount",
+            "last_supply_date",
+            "expected_refund_date",
+            "ndc_requested_date",
+            "ndc_received_date",
+            "letter_to_bank_date",
+        ],
+        order_by=(
+            "expected_refund_date asc, "
+            "parent asc, "
+            "name asc"
+        ),
+        limit_page_length=0,
+    )
+
+    for entry in entries:
+        if not entry.parent:
+            continue
+
+        grouped_entries.setdefault(
+            entry.parent,
+            [],
+        ).append(entry)
+
+    for tracker_name, tracker_entries in (
+        grouped_entries.items()
+    ):
+        tracker = frappe.db.get_value(
+            "PEPL PSD Tracker",
+            tracker_name,
+            [
+                "name",
+                "customer",
+                "linked_sales_order",
+                "sector",
+            ],
+            as_dict=True,
+        )
+
+        if not tracker:
+            continue
+
+        active_references.append(
+            tracker_name
+        )
+
+        earliest_refund_date = min(
+            getdate(
+                entry.expected_refund_date
+            )
+            for entry in tracker_entries
+            if entry.expected_refund_date
+        )
+
+        maximum_days_overdue = max(
+            date_diff(
+                current_date,
+                getdate(
+                    entry.expected_refund_date
+                ),
+            )
+            for entry in tracker_entries
+            if entry.expected_refund_date
+        )
+
+        priority = (
+            "High"
+            if maximum_days_overdue >= 30
+            else "Medium"
+        )
+
+        lines = []
+
+        for entry in tracker_entries:
+            refund_date = getdate(
+                entry.expected_refund_date
+            )
+
+            days_overdue = date_diff(
+                current_date,
+                refund_date,
+            )
+
+            lines.append(
+                "- {0}: ₹ {1:,.2f} overdue by "
+                "{2} day(s) since {3} | "
+                "Status: {4} | "
+                "NDC Requested: {5} | "
+                "NDC Received: {6} | "
+                "Letter to Bank: {7}".format(
+                    entry.entry_label or entry.name,
+                    flt(entry.psd_amount),
+                    days_overdue,
+                    refund_date,
+                    entry.psd_status or "-",
+                    entry.ndc_requested_date or "-",
+                    entry.ndc_received_date or "-",
+                    entry.letter_to_bank_date or "-",
+                )
+            )
+
+        description = (
+            _(
+                "PSD Tracker {0} has PSD refund "
+                "amount(s) due or overdue."
+            ).format(
+                tracker_name
+            )
+            + "\n"
+            + _("Customer: {0}").format(
+                tracker.customer or "-"
+            )
+            + "\n"
+            + _("Sales Order: {0}").format(
+                tracker.linked_sales_order or "-"
+            )
+            + "\n"
+            + _("Sector: {0}").format(
+                tracker.sector or "-"
+            )
+            + "\n"
+            + _("Affected PSD Entries: {0}").format(
+                len(tracker_entries)
+            )
+            + "\n"
+            + _("Maximum Days Overdue: {0}").format(
+                maximum_days_overdue
+            )
+            + "\n\n"
+            + "\n".join(lines)
+        )
+
+        todo_result = upsert_operational_todo(
+            rule_code=RULE_PSD_REFUND,
+            reference_type="PEPL PSD Tracker",
+            reference_name=tracker_name,
+            allocated_to=owner,
+            description=description,
+            priority=priority,
+            due_date=earliest_refund_date,
+        )
+
+        action = todo_result.get(
+            "action"
+        )
+
+        if action in result:
+            result[action] += 1
+
+    result["closed"] = (
+        close_resolved_rule_todos(
+            rule_code=RULE_PSD_REFUND,
+            reference_type="PEPL PSD Tracker",
+            active_reference_names=(
+                active_references
+            ),
+        )
+    )
+
+    result["active"] = len(
+        active_references
+    )
+
+    return result
+
+
+@frappe.whitelist()
+def run_psd_refund_notifications():
+    """Controlled entry point for PSD Refund notifications."""
+    if not cint(
+        get_param(
+            "enable_operational_todos",
+            0,
+        )
+    ):
+        return {
+            "enabled": False,
+            "rule": RULE_PSD_REFUND,
+            **_empty_result(),
+        }
+
+    return {
+        "enabled": True,
+        "rule": RULE_PSD_REFUND,
+        **process_psd_refund_exceptions(),
+    }
+
+
 @frappe.whitelist()
 def run_daily_operational_notifications():
     """Daily entry point. Additional rules are enabled after UAT."""
