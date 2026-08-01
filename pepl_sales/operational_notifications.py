@@ -565,7 +565,7 @@ def process_vendor_approval_exceptions():
             "customer",
             "item",
             "sector",
-            "approval_stage",
+            "stage",
             "approval_health",
             "effective_expiry_date",
             "days_to_expiry",
@@ -627,7 +627,7 @@ def process_vendor_approval_exceptions():
             )
             + "\n"
             + _("Approval Stage: {0}").format(
-                approval.approval_stage or "-"
+                approval.stage or "-"
             )
             + "\n"
             + _("Approval Health: {0}").format(
