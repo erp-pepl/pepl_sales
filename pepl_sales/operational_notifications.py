@@ -163,19 +163,49 @@ def upsert_operational_todo(
 
         changed = False
 
+        existing_values = {
+            "allocated_to": todo.allocated_to or "",
+            "description": todo.description or "",
+            "priority": todo.priority or "",
+            "date": (
+                getdate(todo.date)
+                if todo.date
+                else None
+            ),
+            "reference_type": todo.reference_type or "",
+            "reference_name": todo.reference_name or "",
+        }
+
         expected_values = {
-            "allocated_to": allocated_to,
-            "description": description,
-            "priority": priority,
-            "date": due_date or today(),
-            "reference_type": reference_type,
-            "reference_name": reference_name,
+            "allocated_to": allocated_to or "",
+            "description": description or "",
+            "priority": priority or "",
+            "date": (
+                getdate(due_date)
+                if due_date
+                else getdate(today())
+            ),
+            "reference_type": reference_type or "",
+            "reference_name": reference_name or "",
         }
 
         for fieldname, expected_value in expected_values.items():
-            if todo.get(fieldname) != expected_value:
-                todo.set(fieldname, expected_value)
-                changed = True
+            if existing_values[fieldname] == expected_value:
+                continue
+
+            value_to_set = expected_value
+
+            if (
+                fieldname != "date"
+                and value_to_set == ""
+            ):
+                value_to_set = None
+
+            todo.set(
+                fieldname,
+                value_to_set,
+            )
+            changed = True
 
         if changed:
             todo.save(ignore_permissions=True)
