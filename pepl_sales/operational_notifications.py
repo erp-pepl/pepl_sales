@@ -565,7 +565,8 @@ def process_vendor_approval_exceptions():
             "customer",
             "item",
             "sector",
-            "stage",
+            "railways_stage",
+            "defence_stage",
             "approval_health",
             "effective_expiry_date",
             "days_to_expiry",
@@ -627,7 +628,14 @@ def process_vendor_approval_exceptions():
             )
             + "\n"
             + _("Approval Stage: {0}").format(
-                approval.stage or "-"
+                (
+                    approval.railways_stage
+                    if approval.sector == "Railways"
+                    else approval.defence_stage
+                    if approval.sector == "Defence"
+                    else "-"
+                )
+                or "-"
             )
             + "\n"
             + _("Approval Health: {0}").format(
