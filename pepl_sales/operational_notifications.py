@@ -11,8 +11,7 @@ from pepl_sales.pepl_sales.doctype.pepl_system_parameters.pepl_system_parameters
 
 RULE_TENDER_DEADLINE = "TENDER-DEADLINE"
 RULE_DOCUMENT_PENDING = "DOCUMENT-PENDING"
-RULE_PAYMENT_AMBER = "PAYMENT-AMBER"
-RULE_PAYMENT_RED = "PAYMENT-RED"
+RULE_PAYMENT_AGEING = "PAYMENT-AGEING"
 RULE_VENDOR_APPROVAL = "VENDOR-APPROVAL"
 RULE_PSD_EXPIRY = "PSD-EXPIRY"
 RULE_PSD_REFUND = "PSD-REFUND"
@@ -368,6 +367,148 @@ def process_tender_deadline_exceptions():
     return result
 
 
+
+def process_payment_ageing_exceptions():
+    """Create, update, or close Payment ageing operational ToDos."""
+    result = _empty_result()
+
+    amber_days = cint(
+        get_param(
+            "payment_ageing_amber_days",
+            60,
+        )
+    )
+    red_days = cint(
+        get_param(
+            "payment_ageing_red_days",
+            90,
+        )
+    )
+
+    owner = get_notification_owner(
+        "accounts_notification_owner"
+    )
+
+    active_references = []
+
+    trackers = frappe.get_all(
+        "PEPL Payment Tracker",
+        filters={
+            "payment_status": [
+                "not in",
+                list(CLOSED_PAYMENT_STATUSES),
+            ],
+            "total_outstanding": [">", 0],
+            "days_outstanding": [
+                ">=",
+                amber_days,
+            ],
+        },
+        fields=[
+            "name",
+            "linked_sales_invoice",
+            "customer",
+            "payment_status",
+            "invoice_amount",
+            "total_amount_received",
+            "total_outstanding",
+            "days_outstanding",
+            "ageing_bucket",
+        ],
+        order_by=(
+            "days_outstanding desc, name asc"
+        ),
+        limit_page_length=0,
+    )
+
+    for tracker in trackers:
+        days = cint(
+            tracker.days_outstanding
+        )
+
+        priority = (
+            "High"
+            if (
+                days >= red_days
+                or tracker.ageing_bucket
+                == "45+ days (MSME breach)"
+            )
+            else "Medium"
+        )
+
+        invoice_label = (
+            tracker.linked_sales_invoice
+            or _("Not Linked")
+        )
+
+        description = (
+            "{marker}\n\n"
+            "Payment Tracker {name} requires ageing attention.\n"
+            "Customer: {customer}\n"
+            "Sales Invoice: {invoice}\n"
+            "Payment Status: {status}\n"
+            "Outstanding Amount: {outstanding}\n"
+            "Days Outstanding: {days}\n"
+            "Ageing Bucket: {bucket}"
+        ).format(
+            marker=_rule_marker(
+                RULE_PAYMENT_AGEING
+            ),
+            name=tracker.name,
+            customer=tracker.customer or "-",
+            invoice=invoice_label,
+            status=tracker.payment_status or "-",
+            outstanding=frappe.format_value(
+                tracker.total_outstanding,
+                {
+                    "fieldtype": "Currency",
+                },
+            ),
+            days=days,
+            bucket=tracker.ageing_bucket or "-",
+        )
+
+        active_references.append(
+            tracker.name
+        )
+
+        todo_result = upsert_operational_todo(
+            rule_code=RULE_PAYMENT_AGEING,
+            reference_type=(
+                "PEPL Payment Tracker"
+            ),
+            reference_name=tracker.name,
+            allocated_to=owner,
+            description=description,
+            priority=priority,
+            due_date=today(),
+        )
+
+        _record_action(
+            result,
+            todo_result["action"],
+        )
+
+    result["closed"] = (
+        close_resolved_rule_todos(
+            rule_code=RULE_PAYMENT_AGEING,
+            reference_type=(
+                "PEPL Payment Tracker"
+            ),
+            active_reference_names=(
+                active_references
+            ),
+        )
+    )
+
+    result["active"] = len(
+        active_references
+    )
+
+    return result
+
+
+
 @frappe.whitelist()
 def run_tender_deadline_notifications():
     """Controlled first-stage entry point for Tender deadline testing."""
@@ -388,6 +529,30 @@ def run_tender_deadline_notifications():
         "rule": RULE_TENDER_DEADLINE,
         **process_tender_deadline_exceptions(),
     }
+
+
+
+@frappe.whitelist()
+def run_payment_ageing_notifications():
+    """Controlled entry point for Payment ageing UAT."""
+    if not cint(
+        get_param(
+            "enable_operational_todos",
+            0,
+        )
+    ):
+        return {
+            "enabled": False,
+            "rule": RULE_PAYMENT_AGEING,
+            **_empty_result(),
+        }
+
+    return {
+        "enabled": True,
+        "rule": RULE_PAYMENT_AGEING,
+        **process_payment_ageing_exceptions(),
+    }
+
 
 
 @frappe.whitelist()
