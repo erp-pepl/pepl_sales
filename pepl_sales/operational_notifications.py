@@ -888,6 +888,246 @@ def process_vendor_approval_exceptions():
     return result
 
 
+
+
+def process_psd_expiry_exceptions():
+    """Create, update, or close PSD expiry operational ToDos."""
+    result = _empty_result()
+
+    alert_days = cint(
+        get_param(
+            "psd_expiry_alert_days",
+            30,
+        )
+    )
+
+    owner = get_notification_owner(
+        "accounts_notification_owner"
+    )
+
+    today_date = getdate(today())
+
+    cutoff_date = frappe.utils.add_days(
+        today_date,
+        alert_days,
+    )
+
+    submissions = frappe.get_all(
+        "PEPL PSD Submission",
+        filters={
+            "parenttype": "PEPL PSD Tracker",
+            "parentfield": "psd_submissions",
+            "is_active": 1,
+            "validity_date": [
+                "<=",
+                cutoff_date,
+            ],
+        },
+        fields=[
+            "name",
+            "parent",
+            "psd_entry_label",
+            "instrument_type",
+            "reference_number",
+            "issuing_bank",
+            "issue_date",
+            "validity_date",
+            "renewal_of",
+        ],
+        order_by=(
+            "parent asc, "
+            "validity_date asc, "
+            "name asc"
+        ),
+        limit_page_length=0,
+    )
+
+    grouped = {}
+
+    for submission in submissions:
+        grouped.setdefault(
+            submission.parent,
+            [],
+        ).append(submission)
+
+    active_references = []
+
+    marker = (
+        "PEPL-OPS::"
+        + RULE_PSD_EXPIRY
+    )
+
+    for tracker_name in sorted(grouped):
+        tracker = frappe.db.get_value(
+            "PEPL PSD Tracker",
+            tracker_name,
+            [
+                "linked_sales_order",
+                "customer",
+                "sector",
+            ],
+            as_dict=True,
+        )
+
+        if not tracker:
+            continue
+
+        tracker_submissions = grouped[
+            tracker_name
+        ]
+
+        earliest_validity = min(
+            getdate(row.validity_date)
+            for row in tracker_submissions
+            if row.validity_date
+        )
+
+        has_expired = any(
+            getdate(row.validity_date)
+            < today_date
+            for row in tracker_submissions
+            if row.validity_date
+        )
+
+        priority = (
+            "High"
+            if has_expired
+            else "Medium"
+        )
+
+        lines = []
+
+        for row in tracker_submissions:
+            validity_date = getdate(
+                row.validity_date
+            )
+
+            days_to_expiry = date_diff(
+                validity_date,
+                today_date,
+            )
+
+            if days_to_expiry < 0:
+                timing = _(
+                    "expired {0} day(s) ago"
+                ).format(
+                    abs(days_to_expiry)
+                )
+            elif days_to_expiry == 0:
+                timing = _("expires today")
+            else:
+                timing = _(
+                    "expires in {0} day(s)"
+                ).format(
+                    days_to_expiry
+                )
+
+            instrument_label = (
+                row.instrument_type
+                or _("Instrument")
+            )
+
+            if row.reference_number:
+                instrument_label += (
+                    " "
+                    + row.reference_number
+                )
+
+            line = (
+                "- "
+                + instrument_label
+                + ": "
+                + timing
+                + " on "
+                + str(validity_date)
+            )
+
+            if row.issuing_bank:
+                line += (
+                    " | Bank: "
+                    + row.issuing_bank
+                )
+
+            if row.psd_entry_label:
+                line += (
+                    " | PSD Entry: "
+                    + row.psd_entry_label
+                )
+
+            lines.append(line)
+
+        description = (
+            marker
+            + "\n\n"
+            + _(
+                "PSD Tracker {0} has active "
+                "instrument(s) expired or expiring "
+                "within the configured alert window."
+            ).format(tracker_name)
+            + "\n"
+            + _("Customer: {0}").format(
+                tracker.customer or "-"
+            )
+            + "\n"
+            + _("Sales Order: {0}").format(
+                tracker.linked_sales_order or "-"
+            )
+            + "\n"
+            + _("Sector: {0}").format(
+                tracker.sector or "-"
+            )
+            + "\n"
+            + _("Alert Window: {0} day(s)").format(
+                alert_days
+            )
+            + "\n"
+            + _("Affected Instruments: {0}").format(
+                len(tracker_submissions)
+            )
+            + "\n\n"
+            + "\n".join(lines)
+        )
+
+        active_references.append(
+            tracker_name
+        )
+
+        todo_result = upsert_operational_todo(
+            rule_code=RULE_PSD_EXPIRY,
+            reference_type=(
+                "PEPL PSD Tracker"
+            ),
+            reference_name=tracker_name,
+            allocated_to=owner,
+            priority=priority,
+            description=description,
+            due_date=earliest_validity,
+        )
+
+        _record_action(
+            result,
+            todo_result["action"],
+        )
+
+    result["closed"] = (
+        close_resolved_rule_todos(
+            rule_code=RULE_PSD_EXPIRY,
+            reference_type=(
+                "PEPL PSD Tracker"
+            ),
+            active_reference_names=(
+                active_references
+            ),
+        )
+    )
+
+    result["active"] = len(
+        active_references
+    )
+
+    return result
+
+
 @frappe.whitelist()
 def run_tender_deadline_notifications():
     """Controlled first-stage entry point for Tender deadline testing."""
@@ -998,6 +1238,30 @@ def run_document_pending_notifications():
         "enabled": True,
         "rule": RULE_DOCUMENT_PENDING,
         **process_document_pending_exceptions(),
+    }
+
+
+
+
+@frappe.whitelist()
+def run_psd_expiry_notifications():
+    """Controlled entry point for PSD expiry UAT."""
+    if not cint(
+        get_param(
+            "enable_operational_todos",
+            0,
+        )
+    ):
+        return {
+            "enabled": False,
+            "rule": RULE_PSD_EXPIRY,
+            **_empty_result(),
+        }
+
+    return {
+        "enabled": True,
+        "rule": RULE_PSD_EXPIRY,
+        **process_psd_expiry_exceptions(),
     }
 
 
