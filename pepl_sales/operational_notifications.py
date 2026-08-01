@@ -1508,7 +1508,7 @@ def run_psd_refund_notifications():
 
 @frappe.whitelist()
 def run_daily_operational_notifications():
-    """Daily entry point. Additional rules are enabled after UAT."""
+    """Run all production-approved operational notification rules."""
     if not cint(
         get_param(
             "enable_operational_todos",
@@ -1520,11 +1520,24 @@ def run_daily_operational_notifications():
             "rules": {},
         }
 
-    # Stage 1: Tender deadline only.
+    vendor_approval = (
+        run_vendor_approval_refresh_and_notifications()
+    )
+
     return {
         "enabled": True,
         "rules": {
             "tender_deadline":
                 process_tender_deadline_exceptions(),
+            "payment_ageing":
+                process_payment_ageing_exceptions(),
+            "vendor_approval":
+                vendor_approval,
+            "document_pending":
+                process_document_pending_exceptions(),
+            "psd_expiry":
+                process_psd_expiry_exceptions(),
+            "psd_refund":
+                process_psd_refund_exceptions(),
         },
     }
