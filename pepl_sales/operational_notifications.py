@@ -1325,6 +1325,9 @@ def process_psd_refund_exceptions():
         if not entry.parent:
             continue
 
+        if not entry.expected_refund_date:
+            continue
+
         grouped_entries.setdefault(
             entry.parent,
             [],
@@ -1352,23 +1355,32 @@ def process_psd_refund_exceptions():
             tracker_name
         )
 
-        earliest_refund_date = min(
+        valid_entries = [
+            entry
+            for entry in tracker_entries
+            if entry.expected_refund_date
+        ]
+
+        if not valid_entries:
+            continue
+
+        refund_dates = [
             getdate(
                 entry.expected_refund_date
             )
-            for entry in tracker_entries
-            if entry.expected_refund_date
+            for entry in valid_entries
+        ]
+
+        earliest_refund_date = min(
+            refund_dates
         )
 
         maximum_days_overdue = max(
             date_diff(
                 current_date,
-                getdate(
-                    entry.expected_refund_date
-                ),
+                refund_date,
             )
-            for entry in tracker_entries
-            if entry.expected_refund_date
+            for refund_date in refund_dates
         )
 
         priority = (
@@ -1379,7 +1391,7 @@ def process_psd_refund_exceptions():
 
         lines = []
 
-        for entry in tracker_entries:
+        for entry in valid_entries:
             refund_date = getdate(
                 entry.expected_refund_date
             )
@@ -1428,7 +1440,7 @@ def process_psd_refund_exceptions():
             )
             + "\n"
             + _("Affected PSD Entries: {0}").format(
-                len(tracker_entries)
+                len(valid_entries)
             )
             + "\n"
             + _("Maximum Days Overdue: {0}").format(
