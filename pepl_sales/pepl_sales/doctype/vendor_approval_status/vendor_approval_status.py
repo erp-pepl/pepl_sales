@@ -2,10 +2,89 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.model.naming import make_autoname
-from frappe.utils import date_diff, getdate, today
+from frappe.utils import cint, date_diff, getdate, today
 
 
 EXPIRY_WARNING_DAYS = 30
+
+
+from pepl_sales.pepl_sales.doctype.pepl_system_parameters.pepl_system_parameters import get_param
+
+
+def calculate_approval_health_values(
+    effective_expiry_date,
+):
+    """Return current expiry-derived Vendor Approval values."""
+    if not effective_expiry_date:
+        return {
+            "days_to_expiry": None,
+            "approval_health": "No Expiry Set",
+            "approval_warning": (
+                "No effective expiry date is configured."
+            ),
+        }
+
+    expiry_date = getdate(
+        effective_expiry_date
+    )
+
+    days_to_expiry = date_diff(
+        expiry_date,
+        getdate(today()),
+    )
+
+    alert_days = cint(
+        get_param(
+            "vendor_approval_expiry_alert_days",
+            30,
+        )
+    )
+
+    if days_to_expiry < 0:
+        health = "Expired"
+        warning = (
+            "Approval expired on {0}."
+        ).format(expiry_date)
+
+    elif days_to_expiry <= alert_days:
+        health = "Expiring Soon"
+        warning = (
+            "Approval expires in {0} day(s) on {1}."
+        ).format(
+            days_to_expiry,
+            expiry_date,
+        )
+
+    else:
+        health = "Active"
+        warning = ""
+
+    return {
+        "days_to_expiry": days_to_expiry,
+        "approval_health": health,
+        "approval_warning": warning,
+    }
+
+
+def apply_approval_health(doc):
+    """Apply current expiry-derived values to one document."""
+    values = calculate_approval_health_values(
+        doc.effective_expiry_date
+    )
+
+    changed = False
+
+    for fieldname, value in values.items():
+        if doc.get(fieldname) == value:
+            continue
+
+        doc.set(
+            fieldname,
+            value,
+        )
+        changed = True
+
+    return changed
 
 
 class VendorApprovalStatus(Document):
@@ -15,6 +94,7 @@ class VendorApprovalStatus(Document):
         self.name = make_autoname("VAS-.YYYY.-.#####")
 
     def validate(self):
+        apply_approval_health(self)
         self._normalise_stage()
         self._calculate_approval_health()
         self._warn_if_duplicate()
@@ -367,3 +447,76 @@ def get_approval_status_for_item(customer, item, sector):
         "warning": warning,
         "required_documents": get_required_documents(sector, stage),
     }
+
+def refresh_all_vendor_approval_health():
+    """Refresh stored Vendor Approval expiry state."""
+    result = {
+        "checked": 0,
+        "updated": 0,
+        "unchanged": 0,
+        "failed": 0,
+        "errors": [],
+    }
+
+    records = frappe.get_all(
+        "Vendor Approval Status",
+        fields=[
+            "name",
+            "effective_expiry_date",
+            "days_to_expiry",
+            "approval_health",
+            "approval_warning",
+        ],
+        order_by="name asc",
+        limit_page_length=0,
+    )
+
+    for row in records:
+        result["checked"] += 1
+
+        try:
+            values = calculate_approval_health_values(
+                row.effective_expiry_date
+            )
+
+            changes = {}
+
+            for fieldname, value in values.items():
+                if row.get(fieldname) != value:
+                    changes[fieldname] = value
+
+            if not changes:
+                result["unchanged"] += 1
+                continue
+
+            frappe.db.set_value(
+                "Vendor Approval Status",
+                row.name,
+                changes,
+                update_modified=True,
+            )
+
+            result["updated"] += 1
+
+        except Exception:
+            result["failed"] += 1
+
+            error_message = frappe.get_traceback()
+
+            result["errors"].append(
+                {
+                    "name": row.name,
+                    "error": error_message,
+                }
+            )
+
+            frappe.log_error(
+                title=(
+                    "Vendor Approval Health Refresh Failed: "
+                    + row.name
+                ),
+                message=error_message,
+            )
+
+    return result
+

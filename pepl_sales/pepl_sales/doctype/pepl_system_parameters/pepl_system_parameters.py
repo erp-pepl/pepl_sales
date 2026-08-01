@@ -66,6 +66,9 @@ class PEPLSystemParameters(Document):
     def _validate_alert_windows(self):
         alert_fields = {
             "psd_expiry_alert_days": _("PSD Expiry Alert Days"),
+            "vendor_approval_expiry_alert_days": _(
+                "Vendor Approval Expiry Alert Days"
+            ),
             "tender_deadline_alert_days": _("Tender Deadline Alert Days"),
             "document_pending_alert_days": _("Document Pending Alert Days"),
             "material_receipt_alert_days": _("Material Receipt Alert Days"),

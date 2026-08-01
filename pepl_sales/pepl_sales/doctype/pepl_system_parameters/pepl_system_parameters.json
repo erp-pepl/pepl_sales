@@ -28,6 +28,7 @@
   "column_break_notifications",
   "engineering_notification_owner",
   "notification_fallback_owner",
+  "vendor_approval_expiry_alert_days",
   "tender_deadline_alert_days",
   "document_pending_alert_days",
   "material_receipt_alert_days"
@@ -54,14 +55,14 @@
    "fieldtype": "Float",
    "label": "Cycle Deviation Threshold High",
    "default": "1.2",
-   "description": "Flag if actual cycle > std \u00d7 this multiplier"
+   "description": "Flag if actual cycle > std × this multiplier"
   },
   {
    "fieldname": "cycle_deviation_threshold_low",
    "fieldtype": "Float",
    "label": "Cycle Deviation Threshold Low",
    "default": "0.8",
-   "description": "Flag if actual cycle < std \u00d7 this multiplier"
+   "description": "Flag if actual cycle < std × this multiplier"
   },
   {
    "fieldname": "csm_reconciliation_tolerance_kg",
@@ -180,6 +181,13 @@
    "label": "Notification Fallback Owner",
    "options": "User",
    "description": "Used when the functional notification owner is blank or disabled."
+  },
+  {
+   "fieldname": "vendor_approval_expiry_alert_days",
+   "fieldtype": "Int",
+   "label": "Vendor Approval Expiry Alert Days",
+   "default": "30",
+   "description": "Mark Vendor Approval records as Expiring Soon when expiry falls within this many days."
   },
   {
    "fieldname": "tender_deadline_alert_days",

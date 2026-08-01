@@ -771,6 +771,28 @@ def run_vendor_approval_notifications():
     }
 
 
+
+@frappe.whitelist()
+def run_vendor_approval_refresh_and_notifications():
+    """Refresh Vendor Approval health, then synchronize ToDos."""
+    from pepl_sales.pepl_sales.doctype.vendor_approval_status.vendor_approval_status import (
+        refresh_all_vendor_approval_health,
+    )
+
+    refresh_result = (
+        refresh_all_vendor_approval_health()
+    )
+
+    notification_result = (
+        run_vendor_approval_notifications()
+    )
+
+    return {
+        "refresh": refresh_result,
+        "notifications": notification_result,
+    }
+
+
 @frappe.whitelist()
 def run_daily_operational_notifications():
     """Daily entry point. Additional rules are enabled after UAT."""
