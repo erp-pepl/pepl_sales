@@ -194,8 +194,4 @@ doc_events = {
     },
 }
 
-scheduler_events = {
-    "daily": [
-        "pepl_sales.pepl_sales.api.payment_tracker_jobs.update_all_payment_trackers_daily"
-    ]
-}
+scheduler_events = {'daily': ['pepl_sales.pepl_sales.api.payment_tracker_jobs.update_all_payment_trackers_daily', 'pepl_sales.operational_notifications.run_daily_operational_notifications']}
