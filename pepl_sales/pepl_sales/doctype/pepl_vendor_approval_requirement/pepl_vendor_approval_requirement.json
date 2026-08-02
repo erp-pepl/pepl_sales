@@ -1,0 +1,182 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "requirement_code",
+  "requirement_name",
+  "sector",
+  "approval_stage",
+  "document_section",
+  "document_category",
+  "document_name",
+  "mandatory",
+  "auto_fetch_source",
+  "company_document",
+  "scope_column",
+  "item_specific",
+  "sales_order_specific",
+  "validity_required",
+  "sequence",
+  "active",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "requirement_code",
+   "label": "Requirement Code",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "requirement_name",
+   "label": "Requirement Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sector",
+   "label": "Sector",
+   "fieldtype": "Select",
+   "options": "\nRailways\nDefence\nCommon",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "approval_stage",
+   "label": "Approval Stage",
+   "fieldtype": "Select",
+   "options": "\nApplied\nDevelopmental\nApproved\nEstablished",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "document_section",
+   "label": "Document Configuration",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "document_category",
+   "label": "Document Category",
+   "fieldtype": "Select",
+   "options": "\nCompany Document\nProduct Document\nCustomer Document\nManual Upload",
+   "reqd": 1
+  },
+  {
+   "fieldname": "document_name",
+   "label": "Document Name",
+   "fieldtype": "Data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mandatory",
+   "label": "Mandatory",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "auto_fetch_source",
+   "label": "Auto Fetch Source",
+   "fieldtype": "Select",
+   "options": "\nNone\nPEPL Company Document\nPEPL Product Drawing Revision\nPEPL Product Specification",
+   "default": "None"
+  },
+  {
+   "fieldname": "company_document",
+   "label": "Pinned Company Document",
+   "fieldtype": "Link",
+   "options": "PEPL Company Document"
+  },
+  {
+   "fieldname": "scope_column",
+   "label": "Scope",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_specific",
+   "label": "Item Specific",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "sales_order_specific",
+   "label": "Sales Order Specific",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "validity_required",
+   "label": "Validity Required",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "sequence",
+   "label": "Sequence",
+   "fieldtype": "Int",
+   "default": "10"
+  },
+  {
+   "fieldname": "active",
+   "label": "Active",
+   "fieldtype": "Check",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "label": "Notes",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "label": "Notes",
+   "fieldtype": "Small Text"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 0,
+ "links": [],
+ "module": "PEPL Sales",
+ "name": "PEPL Vendor Approval Requirement",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "PEPL Tender Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:requirement_code",
+ "title_field": "requirement_name",
+ "search_fields": "requirement_code,requirement_name,document_name"
+}

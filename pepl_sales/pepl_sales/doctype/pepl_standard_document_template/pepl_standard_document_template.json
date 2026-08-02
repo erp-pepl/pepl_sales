@@ -1,0 +1,238 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_code",
+  "template_name",
+  "document_requirement",
+  "sector",
+  "customer",
+  "template_section",
+  "output_format",
+  "template_engine",
+  "source_template_file",
+  "letterhead_version",
+  "template_version",
+  "validity_column",
+  "effective_from",
+  "effective_until",
+  "status",
+  "active",
+  "generation_section",
+  "output_filename_pattern",
+  "required_source_fields",
+  "requires_manual_review",
+  "requires_signature",
+  "requires_stamp",
+  "approval_section",
+  "approved_by",
+  "approved_date",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "template_code",
+   "label": "Template Code",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "template_name",
+   "label": "Template Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "document_requirement",
+   "label": "Document Requirement",
+   "fieldtype": "Link",
+   "options": "PEPL Document Requirement",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sector",
+   "label": "Sector",
+   "fieldtype": "Select",
+   "options": "\nCommon\nRailways\nDefence\nPrivate\nOthers",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "label": "Customer / Authority",
+   "fieldtype": "Link",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "template_section",
+   "label": "Template",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "output_format",
+   "label": "Output Format",
+   "fieldtype": "Select",
+   "options": "\nDOCX\nPDF\nLabel",
+   "reqd": 1
+  },
+  {
+   "fieldname": "template_engine",
+   "label": "Template Engine",
+   "fieldtype": "Select",
+   "options": "\nDOCX Template\nHTML Print",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_template_file",
+   "label": "Source Template File",
+   "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "letterhead_version",
+   "label": "Letterhead Version",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "template_version",
+   "label": "Template Version",
+   "fieldtype": "Data",
+   "default": "1.0",
+   "reqd": 1
+  },
+  {
+   "fieldname": "validity_column",
+   "label": "Validity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "effective_from",
+   "label": "Effective From",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "effective_until",
+   "label": "Effective Until",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "\nDraft\nApproved\nRetired",
+   "default": "Draft",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "active",
+   "label": "Active",
+   "fieldtype": "Check",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "generation_section",
+   "label": "Generation Controls",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "output_filename_pattern",
+   "label": "Output Filename Pattern",
+   "fieldtype": "Data",
+   "description": "Example: BG_Request_{{ sales_order }}_R{{ revision }}.docx"
+  },
+  {
+   "fieldname": "required_source_fields",
+   "label": "Required Source Fields (JSON)",
+   "fieldtype": "Code",
+   "options": "JSON",
+   "default": "[]"
+  },
+  {
+   "fieldname": "requires_manual_review",
+   "label": "Requires Manual Review",
+   "fieldtype": "Check",
+   "default": "1"
+  },
+  {
+   "fieldname": "requires_signature",
+   "label": "Requires Signature",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "requires_stamp",
+   "label": "Requires Stamp",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "approval_section",
+   "label": "Approval",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approved_by",
+   "label": "Approved By",
+   "fieldtype": "Link",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_date",
+   "label": "Approved Date",
+   "fieldtype": "Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "label": "Notes",
+   "fieldtype": "Small Text"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 0,
+ "links": [],
+ "module": "PEPL Sales",
+ "name": "PEPL Standard Document Template",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "PEPL Tender Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:template_code",
+ "title_field": "template_name",
+ "search_fields": "template_code,template_name,template_version"
+}

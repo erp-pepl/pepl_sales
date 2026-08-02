@@ -88,6 +88,8 @@ doctype_js = {
 
 # before_install = "pepl_sales.install.before_install"
 after_install = "pepl_sales.install.after_install"
+before_migrate = "pepl_sales.setup.mom_phase1.before_migrate"
+after_migrate = "pepl_sales.setup.mom_phase1.after_migrate"
 
 # Uninstallation
 # ------------

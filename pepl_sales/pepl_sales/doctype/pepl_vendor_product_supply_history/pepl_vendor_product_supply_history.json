@@ -1,0 +1,222 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "vendor_approval_status",
+  "sector",
+  "product_section",
+  "item",
+  "product_master",
+  "sales_order",
+  "customer_po_number",
+  "customer",
+  "consignee",
+  "invoice_column",
+  "sales_invoice",
+  "invoice_date",
+  "dispatch_date",
+  "traceability_section",
+  "job_serial_number",
+  "casting_heat_number",
+  "casting_serial_number",
+  "casting_company",
+  "inspection_column",
+  "inspection_agency",
+  "inspection_date",
+  "supporting_attachment",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "label": "Series",
+   "fieldtype": "Select",
+   "options": "PEPL-VPSH-.YYYY.-.#####",
+   "default": "PEPL-VPSH-.YYYY.-.#####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vendor_approval_status",
+   "label": "Vendor Approval Status",
+   "fieldtype": "Link",
+   "options": "Vendor Approval Status",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sector",
+   "label": "Sector",
+   "fieldtype": "Select",
+   "options": "\nRailways\nDefence\nPrivate\nOthers",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "product_section",
+   "label": "Product and Supply",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item",
+   "label": "Item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "product_master",
+   "label": "Product Master",
+   "fieldtype": "Link",
+   "options": "PEPL Product Master"
+  },
+  {
+   "fieldname": "sales_order",
+   "label": "Sales Order / Supply Order",
+   "fieldtype": "Link",
+   "options": "Sales Order",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer_po_number",
+   "label": "Customer PO / Supply Order Number",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "customer",
+   "label": "Customer",
+   "fieldtype": "Link",
+   "options": "Customer",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "consignee",
+   "label": "Consignee",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "invoice_column",
+   "label": "Invoice and Dispatch",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "label": "Sales Invoice",
+   "fieldtype": "Link",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "invoice_date",
+   "label": "Invoice Date",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "dispatch_date",
+   "label": "Dispatch Date",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "traceability_section",
+   "label": "Traceability",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "job_serial_number",
+   "label": "Job Serial Number",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "casting_heat_number",
+   "label": "Casting Heat Number",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "casting_serial_number",
+   "label": "Casting Serial Number",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "casting_company",
+   "label": "Casting Company",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "inspection_column",
+   "label": "Inspection",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "inspection_agency",
+   "label": "Inspection Agency",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "inspection_date",
+   "label": "Inspection Date",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "supporting_attachment",
+   "label": "Supporting Attachment",
+   "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "remarks",
+   "label": "Remarks",
+   "fieldtype": "Small Text"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 0,
+ "links": [],
+ "module": "PEPL Sales",
+ "name": "PEPL Vendor Product Supply History",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "PEPL Tender Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "PEPL Tender Executive",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "naming_series:",
+ "title_field": "item",
+ "search_fields": "item,sales_order,customer_po_number,sales_invoice,casting_heat_number"
+}

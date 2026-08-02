@@ -721,6 +721,35 @@
    "share": 0,
    "submit": 0,
    "cancel": 0
+  },
+  {
+   "role": "PEPL Tender Viewer",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "PEPL Tender Executive",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "PEPL Tender Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "import": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
   }
  ],
  "sort_field": "modified",

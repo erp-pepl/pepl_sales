@@ -8,3 +8,4 @@ pepl_sales.patches.v1_0.remove_orphan_draft_payment_trackers
 pepl_sales.patches.v1_0.add_cycle1_custom_fields
 # Patches added in this section will be executed after doctypes are migrated
 pepl_sales.patches.v1_0.enforce_sales_order_sector
+pepl_sales.patches.v1_0.add_mom_phase1_foundation
