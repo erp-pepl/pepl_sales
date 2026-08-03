@@ -3,7 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 
 from pepl_sales.pepl_sales.doctype.pepl_document_tracker.document_requirement_sync import (
-    synchronize_engineering_requirements,
+    synchronize_sales_order_requirements,
 )
 
 from pepl_sales.pepl_sales.doctype.pepl_document_entry.pepl_document_entry import (
@@ -211,7 +211,7 @@ def create_doc_tracker_for_so(
         added_documents.append(document_type)
 
     requirement_sync = (
-        synchronize_engineering_requirements(
+        synchronize_sales_order_requirements(
             tracker,
             sales_order,
             sector,

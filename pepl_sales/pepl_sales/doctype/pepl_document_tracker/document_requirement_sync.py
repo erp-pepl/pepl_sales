@@ -4,9 +4,19 @@ import frappe
 from frappe.utils import now_datetime
 
 
-PILOT_SOURCE_TRANSACTION = "Sales Order"
-PILOT_BUSINESS_STAGES = [
+SALES_ORDER_SOURCE_TRANSACTION = "Sales Order"
+
+ENGINEERING_BUSINESS_STAGES = [
     "Engineering Documents",
+]
+
+ACTIVE_SALES_ORDER_STAGES = [
+    "Engineering Documents",
+    "Raw Material Inspection",
+    "NABL Testing",
+    "Lot Formation",
+    "Bulk Inspection",
+    "Pre-Dispatch",
 ]
 
 
@@ -56,28 +66,31 @@ def get_document_requirements(
     )
 
 
-def synchronize_engineering_requirements(
+def _synchronize_requirements(
+    *,
     tracker,
-    sales_order,
+    source_document,
     sector,
+    source_transaction,
+    business_stages,
 ):
-    """Synchronize the non-blocking Engineering pilot.
+    """Synchronize managed requirements without changing legacy rows.
 
-    Manual and legacy rows are never converted, deleted or
-    overwritten. Only rows carrying a requirement link/code
-    are managed by this function.
+    Rows without requirement metadata are treated as legacy or manual
+    rows and remain untouched.
+
+    Existing managed rows preserve their evidence, status, dates,
+    references and attachments.
     """
     requirements = get_document_requirements(
         sector=sector,
-        source_transaction=(
-            PILOT_SOURCE_TRANSACTION
-        ),
-        business_stages=PILOT_BUSINESS_STAGES,
+        source_transaction=source_transaction,
+        business_stages=business_stages,
     )
 
     requirement_by_name = {
-        row.name: row
-        for row in requirements
+        requirement.name: requirement
+        for requirement in requirements
     }
 
     managed_rows = {}
@@ -95,8 +108,8 @@ def synchronize_engineering_requirements(
             managed_rows[key] = row
             continue
 
-        # Preserve accidental duplicate evidence but remove
-        # duplicate rows from the active managed checklist.
+        # Preserve accidental duplicate evidence, but remove the
+        # duplicate from the active managed checklist.
         row.is_active_requirement = 0
         row.is_historical = 1
 
@@ -112,6 +125,7 @@ def synchronize_engineering_requirements(
     created = 0
     updated = 0
     historical = 0
+    created_codes = []
 
     for requirement in requirements:
         row = managed_rows.get(
@@ -121,14 +135,18 @@ def synchronize_engineering_requirements(
         if not row:
             row = tracker.append(
                 "document_entries",
-                {}
+                {},
             )
 
             managed_rows[requirement.name] = row
             created += 1
+            created_codes.append(
+                requirement.document_code
+            )
         else:
             updated += 1
 
+        # Synchronization metadata.
         row.requirement = requirement.name
         row.requirement_code = (
             requirement.document_code
@@ -167,6 +185,8 @@ def synchronize_engineering_requirements(
         row.last_synced_on = now
         row.last_synced_by = current_user
 
+        # Update configured identity while preserving operational
+        # evidence and completion state.
         row.document_type = (
             requirement.document_name
         )
@@ -195,12 +215,10 @@ def synchronize_engineering_requirements(
             "Auto-Generated from Requirement"
         )
         row.source_reference = (
-            sales_order.name
+            source_document.name
         )
 
-        # All current seed records are non-mandatory.
-        # Copying the master value preserves future UAT changes
-        # without activating blocking behavior.
+        # Master values currently remain optional and non-blocking.
         row.is_required = int(
             requirement.mandatory or 0
         )
@@ -209,14 +227,14 @@ def synchronize_engineering_requirements(
         if key in requirement_by_name:
             continue
 
-        # Only retire rows managed by this same pilot.
+        # Only retire rows controlled by this synchronization scope.
         if (
             row.get(
                 "requirement_source_transaction"
             )
-            != PILOT_SOURCE_TRANSACTION
+            != source_transaction
             or row.get("business_stage")
-            not in PILOT_BUSINESS_STAGES
+            not in business_stages
         ):
             continue
 
@@ -236,8 +254,56 @@ def synchronize_engineering_requirements(
         "updated": updated,
         "historical": historical,
         "requirements": len(requirements),
+        "created_codes": created_codes,
         "requirement_codes": [
-            row.document_code
-            for row in requirements
+            requirement.document_code
+            for requirement in requirements
         ],
     }
+
+
+def synchronize_sales_order_requirements(
+    tracker,
+    sales_order,
+    sector,
+):
+    """Synchronize approved non-blocking Sales Order stages.
+
+    Dispatch is intentionally excluded because MATERIAL_RECEIPT
+    must adopt an existing legacy row through a separate migration.
+    """
+    return _synchronize_requirements(
+        tracker=tracker,
+        source_document=sales_order,
+        sector=sector,
+        source_transaction=(
+            SALES_ORDER_SOURCE_TRANSACTION
+        ),
+        business_stages=(
+            ACTIVE_SALES_ORDER_STAGES
+        ),
+    )
+
+
+def synchronize_engineering_requirements(
+    tracker,
+    sales_order,
+    sector,
+):
+    """Backward-compatible Engineering-only synchronization.
+
+    This function must remain available because the previously
+    deployed Engineering migration patch imports it. New application
+    logic should use synchronize_sales_order_requirements().
+    """
+    return _synchronize_requirements(
+        tracker=tracker,
+        source_document=sales_order,
+        sector=sector,
+        source_transaction=(
+            SALES_ORDER_SOURCE_TRANSACTION
+        ),
+        business_stages=(
+            ENGINEERING_BUSINESS_STAGES
+        ),
+    )

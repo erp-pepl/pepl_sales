@@ -54,7 +54,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Customer PO\nModification Advice\nNDA\nDrawing Approval\nQAP\nInspection Plan\nRM Reports\nRM Clearance\nPre-Inspection Documents\nPre-Inspection Report\nIC - Stage Inspection\nIC - Final Inspection\nLot Offer\nDispatch Documents\nMaterial Receipt\nCustomer Receipt\nR-Note\nI-Note\nCO7\nJCC\nBill Submission\nPayment Advice\nPSD Documents\nNDC Documents\nCommunication\nOthers\nDrawing and Specification Request\nApproved Drawing\nApproved Specification\nProof Schedule Request",
+   "options": "Customer PO\nModification Advice\nNDA\nDrawing Approval\nQAP\nInspection Plan\nRM Reports\nRM Clearance\nPre-Inspection Documents\nPre-Inspection Report\nIC - Stage Inspection\nIC - Final Inspection\nLot Offer\nDispatch Documents\nMaterial Receipt\nCustomer Receipt\nR-Note\nI-Note\nCO7\nJCC\nBill Submission\nPayment Advice\nPSD Documents\nNDC Documents\nCommunication\nOthers\nDrawing and Specification Request\nApproved Drawing\nApproved Specification\nProof Schedule Request\nRaw Material Offer\nQuality Self-Certificate\nMaterial Offer to NABL Test Laboratory\nNABL Test Report\nLot Number and Lot Size Request\nBulk Lot Offer to Consignee\nInspection Certificate / Inspection Note\nWork Test Certificate",
    "reqd": 1
   },
   {
