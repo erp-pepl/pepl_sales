@@ -10,3 +10,4 @@ pepl_sales.patches.v1_0.add_cycle1_custom_fields
 pepl_sales.patches.v1_0.enforce_sales_order_sector
 pepl_sales.patches.v1_0.add_mom_phase1_foundation
 pepl_sales.patches.v1_0.sync_vendor_approval_requirements
+pepl_sales.patches.v1_0.sync_vendor_approval_company_documents

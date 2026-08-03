@@ -124,6 +124,168 @@ def _row_has_evidence(row):
     )
 
 
+
+COMPANY_DOCUMENT_TYPE_MAP = {
+    "PAN": "PAN Card",
+    "Udyam Registration": "Udyam Aadhaar",
+}
+
+
+def _is_expired(expiry_date):
+    return bool(
+        expiry_date
+        and getdate(expiry_date) < getdate(today())
+    )
+
+
+def _get_company_document_candidate(document_type):
+    """Return the best active Company Document source.
+
+    Selection priority:
+    1. Active records only
+    2. Current file and issue date required
+    3. Non-expired record preferred
+    4. Latest issue date
+    5. Latest modified timestamp
+    6. Stable name tie-breaker
+    """
+    if not document_type:
+        return None
+
+    candidates = frappe.get_all(
+        "PEPL Company Document",
+        filters={
+            "document_type": document_type,
+            "is_active": 1,
+        },
+        fields=[
+            "name",
+            "document_type",
+            "current_version_number",
+            "current_version_file",
+            "current_issue_date",
+            "current_expiry_date",
+            "current_reference_no",
+            "modified",
+        ],
+        order_by=(
+            "current_issue_date desc, "
+            "modified desc, name asc"
+        ),
+        limit_page_length=100,
+    )
+
+    usable = []
+
+    for candidate in candidates:
+        if not candidate.current_version_file:
+            continue
+
+        if not candidate.current_issue_date:
+            continue
+
+        usable.append(candidate)
+
+    if not usable:
+        return None
+
+    non_expired = [
+        candidate
+        for candidate in usable
+        if not _is_expired(
+            candidate.current_expiry_date
+        )
+    ]
+
+    if non_expired:
+        return non_expired[0]
+
+    return usable[0]
+
+
+def _has_manual_upload(row):
+    """Protect manual evidence from automatic replacement."""
+    return bool(
+        row.document_source == "Upload File"
+        and row.file_attach
+        and not row.linked_company_document
+    )
+
+
+def _clear_company_source_metadata(row):
+    row.linked_company_document = None
+    row.source_record_doctype = None
+    row.source_record_name = None
+    row.source_version = None
+
+
+def _apply_company_document_source(row, requirement):
+    """Populate one synchronized row from Company Document.
+
+    Returns:
+        "manual-preserved"
+        "available"
+        "expired"
+        "pending"
+        "not-applicable"
+    """
+    source_type = COMPANY_DOCUMENT_TYPE_MAP.get(
+        requirement.document_name
+    )
+
+    is_company_requirement = bool(
+        source_type
+        and (
+            requirement.auto_fetch_source
+            == "PEPL Company Document"
+            or requirement.document_category
+            == "Company Document"
+        )
+    )
+
+    if not is_company_requirement:
+        return "not-applicable"
+
+    if _has_manual_upload(row):
+        return "manual-preserved"
+
+    candidate = _get_company_document_candidate(
+        source_type
+    )
+
+    if not candidate:
+        if row.document_source == "Company Library":
+            _clear_company_source_metadata(row)
+
+        if not row.file_attach:
+            row.document_source = "Upload File"
+
+        row.requirement_status = "Pending"
+        return "pending"
+
+    row.document_source = "Company Library"
+    row.document_type = source_type
+    row.linked_company_document = candidate.name
+    row.file_attach = candidate.current_version_file
+    row.issue_date = candidate.current_issue_date
+    row.expiry_date = candidate.current_expiry_date
+    row.reference_no = candidate.current_reference_no
+
+    row.source_record_doctype = (
+        "PEPL Company Document"
+    )
+    row.source_record_name = candidate.name
+    row.source_version = (
+        candidate.current_version_number
+    )
+
+    if _is_expired(candidate.current_expiry_date):
+        row.requirement_status = "Expired"
+        return "expired"
+
+    row.requirement_status = "Available"
+    return "available"
+
 def _set_requirement_status(row):
     if row.is_historical:
         row.requirement_status = "Superseded"
@@ -250,7 +412,18 @@ def synchronize_requirement_rows(doc):
                 _document_type_for_requirement(requirement)
             )
 
-        _set_requirement_status(row)
+        company_source_result = (
+            _apply_company_document_source(
+                row,
+                requirement,
+            )
+        )
+
+        if company_source_result in [
+            "not-applicable",
+            "manual-preserved",
+        ]:
+            _set_requirement_status(row)
 
     for requirement_code, row in managed_rows.items():
         if requirement_code in requirement_by_code:
