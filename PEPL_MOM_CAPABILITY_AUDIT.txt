@@ -1,0 +1,268 @@
+PEPL MOM CAPABILITY AUDIT
+========================================================================================
+Repository: /Users/taalchc/Desktop/pepl_sales
+Doctype count: 32
+Report count: 6
+Print Format count: 0
+Workspace count: 1
+Patch count: 14
+
+========================================================================================
+DOCTYPES
+========================================================================================
+{'name': 'PEPL Company Document', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 17, 'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document/pepl_company_document.json'}
+{'name': 'PEPL Company Document Version', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 8, 'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document_version/pepl_company_document_version.json'}
+{'name': 'PEPL CST Competitor History', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 39, 'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_competitor_history/pepl_cst_competitor_history.json'}
+{'name': 'PEPL CST Component', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 22, 'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_component/pepl_cst_component.json'}
+{'name': 'PEPL CST Cost Sheet', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 39, 'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.json'}
+{'name': 'PEPL Document Attachment', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 6, 'file': 'pepl_sales/pepl_sales/doctype/pepl_document_attachment/pepl_document_attachment.json'}
+{'name': 'PEPL Document Entry', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 36, 'file': 'pepl_sales/pepl_sales/doctype/pepl_document_entry/pepl_document_entry.json'}
+{'name': 'PEPL Document Requirement', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 18, 'file': 'pepl_sales/pepl_sales/doctype/pepl_document_requirement/pepl_document_requirement.json'}
+{'name': 'PEPL Document Tracker', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 12, 'file': 'pepl_sales/pepl_sales/doctype/pepl_document_tracker/pepl_document_tracker.json'}
+{'name': 'PEPL Generated Document', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 31, 'file': 'pepl_sales/pepl_sales/doctype/pepl_generated_document/pepl_generated_document.json'}
+{'name': 'PEPL Generated Document Item', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 4, 'file': 'pepl_sales/pepl_sales/doctype/pepl_generated_document_item/pepl_generated_document_item.json'}
+{'name': 'PEPL Payment Receipt', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 11, 'file': 'pepl_sales/pepl_sales/doctype/pepl_payment_receipt/pepl_payment_receipt.json'}
+{'name': 'PEPL Payment Tracker', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 65, 'file': 'pepl_sales/pepl_sales/doctype/pepl_payment_tracker/pepl_payment_tracker.json'}
+{'name': 'PEPL Product Assembly Component', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 8, 'file': 'pepl_sales/pepl_sales/doctype/pepl_product_assembly_component/pepl_product_assembly_component.json'}
+{'name': 'PEPL Product Drawing Revision', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 10, 'file': 'pepl_sales/pepl_sales/doctype/pepl_product_drawing_revision/pepl_product_drawing_revision.json'}
+{'name': 'PEPL Product Master', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 28, 'file': 'pepl_sales/pepl_sales/doctype/pepl_product_master/pepl_product_master.json'}
+{'name': 'PEPL Product Specification', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 9, 'file': 'pepl_sales/pepl_sales/doctype/pepl_product_specification/pepl_product_specification.json'}
+{'name': 'PEPL PSD Entry', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 18, 'file': 'pepl_sales/pepl_sales/doctype/pepl_psd_entry/pepl_psd_entry.json'}
+{'name': 'PEPL PSD Submission', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 12, 'file': 'pepl_sales/pepl_sales/doctype/pepl_psd_submission/pepl_psd_submission.json'}
+{'name': 'PEPL PSD Tracker', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 15, 'file': 'pepl_sales/pepl_sales/doctype/pepl_psd_tracker/pepl_psd_tracker.json'}
+{'name': 'PEPL RM Group', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 12, 'file': 'pepl_sales/pepl_sales/doctype/pepl_rm_group/pepl_rm_group.json'}
+{'name': 'PEPL Standard Document Template', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 26, 'file': 'pepl_sales/pepl_sales/doctype/pepl_standard_document_template/pepl_standard_document_template.json'}
+{'name': 'PEPL System Parameters', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 29, 'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.json'}
+{'name': 'PEPL Tender', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 1, 'field_count': 84, 'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.json'}
+{'name': 'PEPL Tender Bid Document', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 10, 'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_bid_document/pepl_tender_bid_document.json'}
+{'name': 'PEPL Tender Item', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 47, 'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item/pepl_tender_item.json'}
+{'name': 'PEPL Tender Item Competitor', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 51, 'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item_competitor/pepl_tender_item_competitor.json'}
+{'name': 'PEPL Tender PO Schedule', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 9, 'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_po_schedule/pepl_tender_po_schedule.json'}
+{'name': 'PEPL Vendor Approval Requirement', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 18, 'file': 'pepl_sales/pepl_sales/doctype/pepl_vendor_approval_requirement/pepl_vendor_approval_requirement.json'}
+{'name': 'PEPL Vendor Product Supply History', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 24, 'file': 'pepl_sales/pepl_sales/doctype/pepl_vendor_product_supply_history/pepl_vendor_product_supply_history.json'}
+{'name': 'Vendor Approval Document', 'module': 'PEPL Sales', 'istable': 1, 'is_submittable': 0, 'field_count': 29, 'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_document/vendor_approval_document.json'}
+{'name': 'Vendor Approval Status', 'module': 'PEPL Sales', 'istable': 0, 'is_submittable': 0, 'field_count': 33, 'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.json'}
+
+========================================================================================
+REPORTS
+========================================================================================
+{'name': 'PEPL Competitor Bid Comparison', 'report_type': 'Script Report', 'file': 'pepl_sales/pepl_sales/report/pepl_competitor_bid_comparison/pepl_competitor_bid_comparison.json'}
+{'name': 'PEPL Customer Sales-to-Cash Status', 'report_type': 'Script Report', 'file': 'pepl_sales/pepl_sales/report/pepl_customer_sales_to_cash_status/pepl_customer_sales_to_cash_status.json'}
+{'name': 'PEPL Material Receipt Pending', 'report_type': 'Script Report', 'file': 'pepl_sales/pepl_sales/report/pepl_material_receipt_pending/pepl_material_receipt_pending.json'}
+{'name': 'PEPL Payment Ageing and Overdue', 'report_type': 'Script Report', 'file': 'pepl_sales/pepl_sales/report/pepl_payment_ageing_and_overdue/pepl_payment_ageing_and_overdue.json'}
+{'name': 'PEPL Pending Customer Documents', 'report_type': 'Script Report', 'file': 'pepl_sales/pepl_sales/report/pepl_pending_customer_documents/pepl_pending_customer_documents.json'}
+{'name': 'PEPL Tender Win Loss Analysis', 'report_type': 'Script Report', 'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.json'}
+
+========================================================================================
+PRINT FORMATS
+========================================================================================
+NONE FOUND
+
+========================================================================================
+WORKSPACES
+========================================================================================
+{'name': 'PEPL Sales', 'module': 'PEPL Sales', 'file': 'pepl_sales/pepl_sales/workspace/pepl_sales/pepl_sales.json'}
+
+========================================================================================
+HOOKS
+========================================================================================
+{'exists': False, 'doc_events': None, 'scheduler_events': None}
+
+========================================================================================
+PATCHES
+========================================================================================
+[pre_model_sync]
+[post_model_sync]
+pepl_sales.patches.v1_0.normalize_document_evidence_status
+pepl_sales.patches.v1_0.remove_orphan_draft_payment_trackers
+pepl_sales.patches.v1_0.add_cycle1_custom_fields
+pepl_sales.patches.v1_0.enforce_sales_order_sector
+pepl_sales.patches.v1_0.add_mom_phase1_foundation
+pepl_sales.patches.v1_0.sync_vendor_approval_requirements
+pepl_sales.patches.v1_0.sync_vendor_approval_company_documents
+pepl_sales.patches.v1_0.sync_vendor_approval_product_documents
+pepl_sales.patches.v1_0.sync_engineering_document_requirements
+pepl_sales.patches.v1_0.sync_additional_sales_order_document_requirements
+pepl_sales.patches.v1_0.sync_dispatch_document_requirements
+pepl_sales.patches.v1_0.resync_dispatch_document_requirements
+
+========================================================================================
+CAPABILITY SEARCH — Vendor Approval
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_document/vendor_approval_document.py', 'terms': ['vendor approval', 'approval status']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document/pepl_company_document.py', 'terms': ['vendor approval', 'approval status']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.py', 'terms': ['vendor approval', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/test_vendor_approval_company_documents.py', 'terms': ['vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_sync.py', 'terms': ['vendor approval', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.py', 'terms': ['vendor approval', 'approval status', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/test_vendor_approval_sync.py', 'terms': ['vendor approval', 'approval status', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/test_vendor_approval_product_documents.py', 'terms': ['vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.py', 'terms': ['vendor approval', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/workspace/pepl_sales/pepl_sales.json', 'terms': ['vendor approval', 'approval status']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_document/vendor_approval_document.json', 'terms': ['vendor approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_vendor_product_supply_history/pepl_vendor_product_supply_history.json', 'terms': ['vendor approval', 'approval status', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_requirement/pepl_document_requirement.json', 'terms': ['vendor approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.json', 'terms': ['vendor approval', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_vendor_approval_requirement/pepl_vendor_approval_requirement.json', 'terms': ['vendor approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item/pepl_tender_item.json', 'terms': ['vendor approval', 'approval status', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.json', 'terms': ['vendor approval', 'approval status', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.json', 'terms': ['vendor approval', 'approval status']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_entry/pepl_document_entry.json', 'terms': ['vendor approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_bid_document/pepl_tender_bid_document.json', 'terms': ['vendor approval', 'approval status']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.js', 'terms': ['vendor approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.js', 'terms': ['vendor approval', 'approval status', 'vendor_approval']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.js', 'terms': ['vendor approval', 'vendor_approval']}
+
+========================================================================================
+CAPABILITY SEARCH — Tender
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/report/pepl_customer_sales_to_cash_status/pepl_customer_sales_to_cash_status.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_competitor_bid_comparison/pepl_competitor_bid_comparison.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document/pepl_company_document.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item/pepl_tender_item.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item_competitor/pepl_tender_item_competitor.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_tracker/pepl_document_tracker.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_po_schedule/pepl_tender_po_schedule.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_bid_document/pepl_tender_bid_document.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_product_master/pepl_product_master.py', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/workspace/pepl_sales/pepl_sales.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_competitor_bid_comparison/pepl_competitor_bid_comparison.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_standard_document_template/pepl_standard_document_template.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_document/vendor_approval_document.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_vendor_product_supply_history/pepl_vendor_product_supply_history.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_requirement/pepl_document_requirement.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_competitor_history/pepl_cst_competitor_history.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_vendor_approval_requirement/pepl_vendor_approval_requirement.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item/pepl_tender_item.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.json', 'terms': ['tender', 'pre-bid', 'pre_bid']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_entry/pepl_document_entry.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item_competitor/pepl_tender_item_competitor.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_po_schedule/pepl_tender_po_schedule.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_bid_document/pepl_tender_bid_document.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_product_master/pepl_product_master.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_generated_document/pepl_generated_document.json', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.js', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_competitor_bid_comparison/pepl_competitor_bid_comparison.js', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.js', 'terms': ['tender']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.js', 'terms': ['tender']}
+
+========================================================================================
+CAPABILITY SEARCH — Document Extraction
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item_competitor/pepl_tender_item_competitor.json', 'terms': ['extract']}
+
+========================================================================================
+CAPABILITY SEARCH — Document Generation
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_standard_document_template/pepl_standard_document_template.json', 'terms': ['docx', 'letterhead']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.json', 'terms': ['generate document']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.js', 'terms': ['generate document']}
+
+========================================================================================
+CAPABILITY SEARCH — CST and Costing
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/report/pepl_customer_sales_to_cash_status/pepl_customer_sales_to_cash_status.py', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_payment_ageing_and_overdue/pepl_payment_ageing_and_overdue.py', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.py', 'terms': ['cst', 'cost sheet', 'costing', 'margin', 'overhead']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_psd_tracker/pepl_psd_tracker.py', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_competitor_history/pepl_cst_competitor_history.py', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.py', 'terms': ['margin']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.py', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_component/pepl_cst_component.py', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_payment_tracker/pepl_payment_tracker.py', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/workspace/pepl_sales/pepl_sales.json', 'terms': ['cst', 'cost sheet']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_customer_sales_to_cash_status/pepl_customer_sales_to_cash_status.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_payment_ageing_and_overdue/pepl_payment_ageing_and_overdue.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_pending_customer_documents/pepl_pending_customer_documents.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_material_receipt_pending/pepl_material_receipt_pending.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_competitor_bid_comparison/pepl_competitor_bid_comparison.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.json', 'terms': ['cst', 'cost sheet', 'costing', 'margin', 'overhead']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_competitor_history/pepl_cst_competitor_history.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.json', 'terms': ['margin']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item/pepl_tender_item.json', 'terms': ['cst', 'cost sheet']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.json', 'terms': ['costing']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_component/pepl_cst_component.json', 'terms': ['cst']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.js', 'terms': ['costing']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.js', 'terms': ['cst', 'cost sheet', 'margin', 'overhead']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.js', 'terms': ['cst', 'costing']}
+
+========================================================================================
+CAPABILITY SEARCH — BOM and Procurement
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_product_master/pepl_product_master.py', 'terms': ['bom']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_product_specification/pepl_product_specification.json', 'terms': ['bom']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_product_master/pepl_product_master.json', 'terms': ['bom']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_product_master/pepl_product_master.js', 'terms': ['bom']}
+
+========================================================================================
+CAPABILITY SEARCH — Document Tracker
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/report/pepl_customer_sales_to_cash_status/pepl_customer_sales_to_cash_status.py', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_pending_customer_documents/pepl_pending_customer_documents.py', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_material_receipt_pending/pepl_material_receipt_pending.py', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_sync.py', 'terms': ['requirement_code']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/test_vendor_approval_sync.py', 'terms': ['requirement_code']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_entry/pepl_document_entry.py', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_tracker/document_requirement_sync.py', 'terms': ['document tracker', 'requirement_code', 'is_managed_requirement', 'business_stage']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_tracker/pepl_document_tracker.py', 'terms': ['document tracker', 'requirement_code']}
+{'file': 'pepl_sales/pepl_sales/workspace/pepl_sales/pepl_sales.json', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_pending_customer_documents/pepl_pending_customer_documents.json', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_material_receipt_pending/pepl_material_receipt_pending.json', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_document/vendor_approval_document.json', 'terms': ['requirement_code']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_requirement/pepl_document_requirement.json', 'terms': ['business_stage']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_vendor_approval_requirement/pepl_vendor_approval_requirement.json', 'terms': ['requirement_code']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_entry/pepl_document_entry.json', 'terms': ['requirement_code', 'is_managed_requirement', 'business_stage']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_tracker/pepl_document_tracker.json', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_generated_document/pepl_generated_document.json', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_pending_customer_documents/pepl_pending_customer_documents.js', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_material_receipt_pending/pepl_material_receipt_pending.js', 'terms': ['document tracker']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_tracker/pepl_document_tracker.js', 'terms': ['document tracker']}
+
+========================================================================================
+CAPABILITY SEARCH — Dashboard and Reports
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/workspace/pepl_sales/pepl_sales.json', 'terms': ['workspace']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_customer_sales_to_cash_status/pepl_customer_sales_to_cash_status.json', 'terms': ['script report']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_payment_ageing_and_overdue/pepl_payment_ageing_and_overdue.json', 'terms': ['script report']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_pending_customer_documents/pepl_pending_customer_documents.json', 'terms': ['script report']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_tender_win_loss_analysis/pepl_tender_win_loss_analysis.json', 'terms': ['script report']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_material_receipt_pending/pepl_material_receipt_pending.json', 'terms': ['script report']}
+{'file': 'pepl_sales/pepl_sales/report/pepl_competitor_bid_comparison/pepl_competitor_bid_comparison.json', 'terms': ['script report']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_cst_cost_sheet/pepl_cst_cost_sheet.js', 'terms': ['dashboard']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_psd_tracker/pepl_psd_tracker.js', 'terms': ['dashboard']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.js', 'terms': ['dashboard']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.js', 'terms': ['dashboard']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.js', 'terms': ['dashboard']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_document_tracker/pepl_document_tracker.js', 'terms': ['dashboard']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_payment_tracker/pepl_payment_tracker.js', 'terms': ['dashboard']}
+
+========================================================================================
+CAPABILITY SEARCH — Reminder and Notification
+========================================================================================
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_document/vendor_approval_document.py', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document/pepl_company_document.py', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.py', 'terms': ['notification', 'expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/test_vendor_approval_company_documents.py', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_sync.py', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.py', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/test_vendor_approval_product_documents.py', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.py', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_document/vendor_approval_document.json', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document/pepl_company_document.json', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_system_parameters/pepl_system_parameters.json', 'terms': ['notification', 'expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document_version/pepl_company_document_version.json', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender_item/pepl_tender_item.json', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.json', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.json', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_psd_tracker/pepl_psd_tracker.js', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_company_document/pepl_company_document.js', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/vendor_approval_status/vendor_approval_status.js', 'terms': ['expiry']}
+{'file': 'pepl_sales/pepl_sales/doctype/pepl_tender/pepl_tender.js', 'terms': ['expiry']}
