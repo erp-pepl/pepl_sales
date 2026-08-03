@@ -286,6 +286,284 @@ def _apply_company_document_source(row, requirement):
     row.requirement_status = "Available"
     return "available"
 
+
+PRODUCT_DOCUMENT_REQUIREMENTS = {
+    "Approved Drawing":
+        "PEPL Product Drawing Revision",
+    "Approved Specification":
+        "PEPL Product Specification",
+}
+
+
+def _get_active_product_master(item):
+    """Return one unambiguous active Product Master.
+
+    Returns:
+        product document when exactly one active match exists
+        None when no active match exists
+
+    Raises:
+        frappe.ValidationError when multiple active matches exist
+    """
+    if not item:
+        return None
+
+    names = frappe.get_all(
+        "PEPL Product Master",
+        filters={
+            "linked_item": item,
+            "status": "Active",
+        },
+        pluck="name",
+        order_by="modified desc, name asc",
+        limit_page_length=100,
+    )
+
+    if not names:
+        return None
+
+    if len(names) > 1:
+        frappe.throw(
+            "Multiple active PEPL Product Master records "
+            "exist for Item {0}: {1}".format(
+                item,
+                ", ".join(names),
+            )
+        )
+
+    return frappe.get_doc(
+        "PEPL Product Master",
+        names[0],
+    )
+
+
+def _get_product_drawing_candidate(product):
+    if not product:
+        return None
+
+    candidates = []
+
+    for row in product.drawing_revisions or []:
+        if not row.is_current:
+            continue
+
+        if not row.customer_approved:
+            continue
+
+        if not row.drawing_file:
+            continue
+
+        if not row.issue_date:
+            continue
+
+        candidates.append(row)
+
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda row: (
+            getdate(row.issue_date),
+            row.idx or 0,
+            row.name or "",
+        ),
+        reverse=True,
+    )
+
+    return candidates[0]
+
+
+def _specification_priority(sector, spec_type):
+    if spec_type == "Customer Specification":
+        return 100
+
+    if (
+        sector == "Railways"
+        and spec_type == "RDSO Specification"
+    ):
+        return 90
+
+    if (
+        sector == "Defence"
+        and spec_type == "DQA Specification"
+    ):
+        return 90
+
+    return 10
+
+
+def _get_product_specification_candidate(
+    product,
+    sector,
+):
+    if not product:
+        return None
+
+    candidates = []
+
+    for row in product.specifications or []:
+        if row.status != "Active":
+            continue
+
+        if not row.spec_file:
+            continue
+
+        if not row.issue_date:
+            continue
+
+        candidates.append(row)
+
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda row: (
+            _specification_priority(
+                sector,
+                row.spec_type,
+            ),
+            getdate(row.issue_date),
+            row.idx or 0,
+            row.name or "",
+        ),
+        reverse=True,
+    )
+
+    return candidates[0]
+
+
+def _clear_product_source_metadata(row):
+    row.linked_drawing_revision = None
+    row.linked_specification = None
+    row.source_record_doctype = None
+    row.source_record_name = None
+    row.source_version = None
+
+
+def _apply_product_document_source(
+    doc,
+    row,
+    requirement,
+):
+    """Populate one managed row from PEPL Product Master.
+
+    Returns:
+        manual-preserved
+        available
+        pending
+        not-applicable
+    """
+    source_doctype = PRODUCT_DOCUMENT_REQUIREMENTS.get(
+        requirement.document_name
+    )
+
+    is_product_requirement = bool(
+        source_doctype
+        and (
+            requirement.document_category
+            == "Product Document"
+            or requirement.auto_fetch_source
+            == source_doctype
+        )
+    )
+
+    if not is_product_requirement:
+        return "not-applicable"
+
+    if _has_manual_upload(row):
+        return "manual-preserved"
+
+    product = _get_active_product_master(
+        doc.item
+    )
+
+    if not product:
+        if row.document_source in [
+            "Item Drawing",
+            "Item Specification",
+        ]:
+            _clear_product_source_metadata(row)
+
+        if not row.file_attach:
+            row.document_source = "Upload File"
+
+        row.requirement_status = "Pending"
+        return "pending"
+
+    if requirement.document_name == "Approved Drawing":
+        candidate = _get_product_drawing_candidate(
+            product
+        )
+
+        if not candidate:
+            if row.document_source == "Item Drawing":
+                _clear_product_source_metadata(row)
+
+            if not row.file_attach:
+                row.document_source = "Upload File"
+
+            row.requirement_status = "Pending"
+            return "pending"
+
+        row.document_source = "Item Drawing"
+        row.document_type = "Item Drawing"
+        row.linked_drawing_revision = (
+            candidate.revision
+        )
+        row.linked_specification = None
+        row.file_attach = candidate.drawing_file
+        row.issue_date = candidate.issue_date
+        row.expiry_date = None
+        row.reference_no = (
+            product.drawing_number
+            or candidate.revision
+        )
+
+        row.source_record_doctype = (
+            "PEPL Product Drawing Revision"
+        )
+        row.source_record_name = candidate.name
+        row.source_version = candidate.revision
+        row.requirement_status = "Available"
+
+        return "available"
+
+    candidate = _get_product_specification_candidate(
+        product,
+        doc.sector,
+    )
+
+    if not candidate:
+        if row.document_source == "Item Specification":
+            _clear_product_source_metadata(row)
+
+        if not row.file_attach:
+            row.document_source = "Upload File"
+
+        row.requirement_status = "Pending"
+        return "pending"
+
+    row.document_source = "Item Specification"
+    row.document_type = "Item Specification"
+    row.linked_drawing_revision = None
+    row.linked_specification = candidate.spec_title
+    row.file_attach = candidate.spec_file
+    row.issue_date = candidate.issue_date
+    row.expiry_date = None
+    row.reference_no = candidate.reference_no
+
+    row.source_record_doctype = (
+        "PEPL Product Specification"
+    )
+    row.source_record_name = candidate.name
+    row.source_version = (
+        candidate.reference_no
+        or candidate.spec_title
+    )
+    row.requirement_status = "Available"
+
+    return "available"
+
 def _set_requirement_status(row):
     if row.is_historical:
         row.requirement_status = "Superseded"
@@ -419,10 +697,26 @@ def synchronize_requirement_rows(doc):
             )
         )
 
-        if company_source_result in [
-            "not-applicable",
-            "manual-preserved",
-        ]:
+        product_source_result = (
+            _apply_product_document_source(
+                doc,
+                row,
+                requirement,
+            )
+        )
+
+        if (
+            company_source_result
+            in [
+                "not-applicable",
+                "manual-preserved",
+            ]
+            and product_source_result
+            in [
+                "not-applicable",
+                "manual-preserved",
+            ]
+        ):
             _set_requirement_status(row)
 
     for requirement_code, row in managed_rows.items():

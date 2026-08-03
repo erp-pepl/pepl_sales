@@ -76,61 +76,114 @@ class VendorApprovalDocument(Document):
                 )
 
     def _fetch_drawing_from_parent(self):
-        """Look up the drawing revision from parent Vendor Approval Status's Item."""
-        if not self.parent or self.parenttype != "Vendor Approval Status":
+        """Fetch a drawing from the linked PEPL Product Master."""
+        if (
+            not self.parent
+            or self.parenttype != "Vendor Approval Status"
+        ):
             return
 
-        parent_doc = frappe.get_doc("Vendor Approval Status", self.parent)
+        parent_doc = frappe.get_doc(
+            "Vendor Approval Status",
+            self.parent,
+        )
+
         if not parent_doc.item:
             return
 
-        item_doc = frappe.get_doc("Item", parent_doc.item)
-        drawings = getattr(item_doc, "custom_drawings", []) or []
-
-        for d in drawings:
-            if d.revision == self.linked_drawing_revision:
-                if d.file_attach:
-                    self.file_attach = d.file_attach
-                if d.issue_date:
-                    self.issue_date = d.issue_date
-                self.document_name = f"Drawing Rev {d.revision}"
-                return
-
-        frappe.msgprint(
-            _("Drawing revision '{0}' not found in Item {1}'s drawings table. Please add it there first.").format(
-                self.linked_drawing_revision, parent_doc.item
-            ),
-            indicator="orange",
-            alert=True
+        product_name = frappe.db.get_value(
+            "PEPL Product Master",
+            {
+                "linked_item": parent_doc.item,
+                "status": "Active",
+            },
+            "name",
         )
+
+        if not product_name:
+            return
+
+        product = frappe.get_doc(
+            "PEPL Product Master",
+            product_name,
+        )
+
+        for drawing in product.drawing_revisions or []:
+            if (
+                drawing.revision
+                != self.linked_drawing_revision
+            ):
+                continue
+
+            if drawing.drawing_file:
+                self.file_attach = (
+                    drawing.drawing_file
+                )
+
+            if drawing.issue_date:
+                self.issue_date = drawing.issue_date
+
+            if not self.reference_no:
+                self.reference_no = (
+                    product.drawing_number
+                    or drawing.revision
+                )
+
+            return
 
     def _fetch_specification_from_parent(self):
-        """Look up the specification from parent Vendor Approval Status's Item."""
-        if not self.parent or self.parenttype != "Vendor Approval Status":
+        """Fetch a specification from PEPL Product Master."""
+        if (
+            not self.parent
+            or self.parenttype != "Vendor Approval Status"
+        ):
             return
 
-        parent_doc = frappe.get_doc("Vendor Approval Status", self.parent)
+        parent_doc = frappe.get_doc(
+            "Vendor Approval Status",
+            self.parent,
+        )
+
         if not parent_doc.item:
             return
 
-        item_doc = frappe.get_doc("Item", parent_doc.item)
-        specifications = getattr(item_doc, "custom_specifications", []) or []
-
-        for s in specifications:
-            if s.spec_title == self.linked_specification:
-                if s.file_attach:
-                    self.file_attach = s.file_attach
-                if s.issue_date:
-                    self.issue_date = s.issue_date
-                if s.reference_no:
-                    self.reference_no = s.reference_no
-                self.document_name = s.spec_title
-                return
-
-        frappe.msgprint(
-            _("Specification '{0}' not found in Item {1}'s specifications table.").format(
-                self.linked_specification, parent_doc.item
-            ),
-            indicator="orange",
-            alert=True
+        product_name = frappe.db.get_value(
+            "PEPL Product Master",
+            {
+                "linked_item": parent_doc.item,
+                "status": "Active",
+            },
+            "name",
         )
+
+        if not product_name:
+            return
+
+        product = frappe.get_doc(
+            "PEPL Product Master",
+            product_name,
+        )
+
+        for specification in product.specifications or []:
+            if (
+                specification.spec_title
+                != self.linked_specification
+            ):
+                continue
+
+            if specification.spec_file:
+                self.file_attach = (
+                    specification.spec_file
+                )
+
+            if specification.issue_date:
+                self.issue_date = (
+                    specification.issue_date
+                )
+
+            if specification.reference_no:
+                self.reference_no = (
+                    specification.reference_no
+                )
+
+            return
