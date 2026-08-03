@@ -2,6 +2,10 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from pepl_sales.pepl_sales.doctype.pepl_document_tracker.document_requirement_sync import (
+    synchronize_engineering_requirements,
+)
+
 from pepl_sales.pepl_sales.doctype.pepl_document_entry.pepl_document_entry import (
     COMPLETED_DOCUMENT_STATUSES,
     validate_document_entry,
@@ -205,6 +209,23 @@ def create_doc_tracker_for_so(
 
         existing_types.add(document_type)
         added_documents.append(document_type)
+
+    requirement_sync = (
+        synchronize_engineering_requirements(
+            tracker,
+            sales_order,
+            sector,
+        )
+    )
+
+    for document_name in (
+        requirement_sync.get(
+            "requirement_codes",
+            []
+        )
+    ):
+        if document_name not in added_documents:
+            added_documents.append(document_name)
 
     if source_tender:
         nda_exists = any(
