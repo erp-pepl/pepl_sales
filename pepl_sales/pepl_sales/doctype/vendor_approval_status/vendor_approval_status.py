@@ -10,6 +10,11 @@ EXPIRY_WARNING_DAYS = 30
 
 from pepl_sales.pepl_sales.doctype.pepl_system_parameters.pepl_system_parameters import get_param
 
+from pepl_sales.pepl_sales.doctype.vendor_approval_status.vendor_approval_sync import (
+    get_required_document_names,
+    synchronize_requirement_rows,
+)
+
 
 def calculate_approval_health_values(
     effective_expiry_date,
@@ -94,8 +99,8 @@ class VendorApprovalStatus(Document):
         self.name = make_autoname("VAS-.YYYY.-.#####")
 
     def validate(self):
-        apply_approval_health(self)
         self._normalise_stage()
+        synchronize_requirement_rows(self)
         self._calculate_approval_health()
         self._warn_if_duplicate()
         self._warn_if_reference_missing()
@@ -285,60 +290,36 @@ def _normalise_stage(stage):
 
 @frappe.whitelist()
 def get_required_documents(sector, stage):
-    """
-    Return baseline plus sector/stage-specific bid documents.
-    """
+    """Return active, cumulative master requirements."""
+    return get_required_document_names(
+        sector,
+        stage,
+    )
 
-    stage = _normalise_stage(stage)
 
-    baseline_docs = [
-        "GST Certificate",
-        "Udyam Registration",
-        "PAN Card",
-        "MSME Certificate",
-        "Bank Details (Cancelled Cheque or Letter)",
-        "Authorisation Letter for Bid Submission",
-        "Bid Securing Declaration (BSD)",
-    ]
+@frappe.whitelist()
+def synchronize_requirements(name):
+    """Synchronize one saved Vendor Approval record."""
+    if not frappe.db.exists(
+        "Vendor Approval Status",
+        name,
+    ):
+        frappe.throw(
+            _("Vendor Approval Status {0} does not exist.").format(
+                name
+            )
+        )
 
-    stage_docs_map = {
-        "Unapproved": [
-            "Capability Statement",
-            "Plant and Machinery List",
-            "Quality Control Process Document",
-            "Past Experience / Similar Work Done",
-        ],
-        "Developmental": [
-            "Centralised Vendor Registration Certificate",
-            "Quality Assurance Plan (QAP)",
-            "Inspection Plan",
-            "Material Test Certificates (Sample)",
-            "Technical Capability Document",
-        ],
-        "Approved": [
-            "Quality Assurance Plan (QAP) for this Item",
-            "Manufacturing Process Document",
-            "Lot Inspection History",
-            "Recent CCA / Final IC Records",
-        ],
-        "Source Development": [
-            "Company Profile",
-            "Plant and Machinery List",
-            "Past Defence Experience (if any)",
-            "Quality System Documentation",
-            "ISO 9001 / AS9100 (if available)",
-        ],
-        "Approved / Established": [
-            "DGQA / DQA Approval Certificate",
-            "AS9100 Certificate",
-            "Latest Audit Reports",
-            "Source Inspection Plan",
-        ],
-    }
+    doc = frappe.get_doc(
+        "Vendor Approval Status",
+        name,
+    )
+    doc.check_permission("write")
 
-    stage_specific = stage_docs_map.get(stage, [])
+    result = synchronize_requirement_rows(doc)
+    doc.save()
 
-    return list(dict.fromkeys(baseline_docs + stage_specific))
+    return result
 
 
 @frappe.whitelist()

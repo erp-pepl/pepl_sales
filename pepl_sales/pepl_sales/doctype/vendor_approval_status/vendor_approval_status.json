@@ -18,6 +18,12 @@
   "column_break_2",
   "railways_stage",
   "defence_stage",
+  "normalized_approval_stage",
+  "requirement_sync_status",
+  "requirements_last_synced_on",
+  "requirements_last_synced_by",
+  "pending_mandatory_documents",
+  "approval_documents_complete",
   "approval_section",
   "approval_date",
   "approval_reference",
@@ -120,6 +126,50 @@
    "in_list_view": 1,
    "label": "Defence Approval Stage",
    "options": "\nSource Development\nApproved / Established"
+  },
+  {
+   "fieldname": "normalized_approval_stage",
+   "fieldtype": "Select",
+   "label": "Normalized Approval Stage",
+   "options": "\nApplied\nDevelopmental\nApproved\nEstablished",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "Unified stage derived from the sector-specific approval stage."
+  },
+  {
+   "fieldname": "requirement_sync_status",
+   "fieldtype": "Select",
+   "label": "Requirement Sync Status",
+   "options": "Not Synced\nSynced\nNeeds Review",
+   "read_only": 1,
+   "default": "Not Synced"
+  },
+  {
+   "fieldname": "requirements_last_synced_on",
+   "fieldtype": "Datetime",
+   "label": "Requirements Last Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "requirements_last_synced_by",
+   "fieldtype": "Link",
+   "label": "Requirements Last Synced By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pending_mandatory_documents",
+   "fieldtype": "Int",
+   "label": "Pending Mandatory Documents",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "approval_documents_complete",
+   "fieldtype": "Check",
+   "label": "Approval Documents Complete",
+   "read_only": 1,
+   "default": "0"
   },
   {
    "fieldname": "approval_section",

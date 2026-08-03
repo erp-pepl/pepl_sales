@@ -11,6 +11,20 @@
   "linked_drawing_revision",
   "linked_specification",
   "document_name",
+  "requirement_code",
+  "requirement_stage",
+  "requirement_category",
+  "is_mandatory",
+  "is_auto_generated",
+  "is_active_requirement",
+  "is_historical",
+  "sync_key",
+  "source_record_doctype",
+  "source_record_name",
+  "source_version",
+  "requirement_status",
+  "last_synced_on",
+  "last_synced_by",
   "file_attach",
   "issue_date",
   "expiry_date",
@@ -66,6 +80,105 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Document Name / Description"
+  },
+  {
+   "fieldname": "requirement_code",
+   "fieldtype": "Link",
+   "label": "Requirement",
+   "options": "PEPL Vendor Approval Requirement",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "requirement_stage",
+   "fieldtype": "Select",
+   "label": "Requirement Stage",
+   "options": "\nApplied\nDevelopmental\nApproved\nEstablished",
+   "read_only": 1
+  },
+  {
+   "fieldname": "requirement_category",
+   "fieldtype": "Select",
+   "label": "Requirement Category",
+   "options": "\nCompany Document\nProduct Document\nCustomer Document\nManual Upload",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "label": "Mandatory",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "is_auto_generated",
+   "fieldtype": "Check",
+   "label": "Auto Generated",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "is_active_requirement",
+   "fieldtype": "Check",
+   "label": "Active Requirement",
+   "read_only": 1,
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "is_historical",
+   "fieldtype": "Check",
+   "label": "Historical",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "sync_key",
+   "fieldtype": "Data",
+   "label": "Synchronization Key",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "source_record_doctype",
+   "fieldtype": "Link",
+   "label": "Source Record Type",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_record_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Source Record",
+   "options": "source_record_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_version",
+   "fieldtype": "Data",
+   "label": "Source Version",
+   "read_only": 1
+  },
+  {
+   "fieldname": "requirement_status",
+   "fieldtype": "Select",
+   "label": "Requirement Status",
+   "options": "Pending\nAvailable\nExpired\nNot Applicable\nSuperseded",
+   "default": "Pending",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "last_synced_on",
+   "fieldtype": "Datetime",
+   "label": "Last Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_synced_by",
+   "fieldtype": "Link",
+   "label": "Last Synced By",
+   "options": "User",
+   "read_only": 1
   },
   {
    "fieldname": "file_attach",
