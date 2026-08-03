@@ -17,6 +17,7 @@ ACTIVE_SALES_ORDER_STAGES = [
     "Lot Formation",
     "Bulk Inspection",
     "Pre-Dispatch",
+    "Dispatch",
 ]
 
 
@@ -64,6 +65,52 @@ def get_document_requirements(
         ),
         limit_page_length=1000,
     )
+
+
+
+def _find_adoptable_legacy_row(
+    tracker,
+    requirement,
+):
+    """Return a safe legacy row for managed adoption.
+
+    MATERIAL_RECEIPT must reuse the existing operational
+    Material Receipt row so previously uploaded evidence and
+    the attachment validation workflow remain intact.
+    """
+
+    if (
+        requirement.document_code
+        != "MATERIAL_RECEIPT"
+    ):
+        return None
+
+    candidates = []
+
+    for row in tracker.document_entries or []:
+        if (
+            row.document_type
+            == "Material Receipt"
+            and not row.get("requirement")
+            and not row.get("requirement_code")
+            and not row.get(
+                "is_managed_requirement"
+            )
+        ):
+            candidates.append(row)
+
+    if len(candidates) > 1:
+        frappe.throw(
+            "Document Tracker {0} contains multiple "
+            "legacy Material Receipt rows. Resolve the "
+            "duplicate rows before synchronization."
+            .format(tracker.name)
+        )
+
+    if len(candidates) == 1:
+        return candidates[0]
+
+    return None
 
 
 def _synchronize_requirements(
@@ -123,6 +170,7 @@ def _synchronize_requirements(
     )
 
     created = 0
+    adopted = 0
     updated = 0
     historical = 0
     created_codes = []
@@ -132,17 +180,29 @@ def _synchronize_requirements(
             requirement.name
         )
 
+        was_adopted = False
+
         if not row:
-            row = tracker.append(
-                "document_entries",
-                {},
+            row = _find_adoptable_legacy_row(
+                tracker,
+                requirement,
             )
 
+            if row:
+                was_adopted = True
+                adopted += 1
+            else:
+                row = tracker.append(
+                    "document_entries",
+                    {},
+                )
+
+                created += 1
+                created_codes.append(
+                    requirement.document_code
+                )
+
             managed_rows[requirement.name] = row
-            created += 1
-            created_codes.append(
-                requirement.document_code
-            )
         else:
             updated += 1
 
@@ -187,9 +247,18 @@ def _synchronize_requirements(
 
         # Update configured identity while preserving operational
         # evidence and completion state.
-        row.document_type = (
-            requirement.document_name
-        )
+        if (
+            requirement.document_code
+            == "MATERIAL_RECEIPT"
+        ):
+            # Preserve the operational document type permanently.
+            # PEPLDocumentTracker validates receipt evidence using
+            # the exact legacy value "Material Receipt".
+            row.document_type = "Material Receipt"
+        else:
+            row.document_type = (
+                requirement.document_name
+            )
 
         if not row.description:
             row.description = (
@@ -251,6 +320,7 @@ def _synchronize_requirements(
 
     return {
         "created": created,
+        "adopted": adopted,
         "updated": updated,
         "historical": historical,
         "requirements": len(requirements),
@@ -269,8 +339,8 @@ def synchronize_sales_order_requirements(
 ):
     """Synchronize approved non-blocking Sales Order stages.
 
-    Dispatch is intentionally excluded because MATERIAL_RECEIPT
-    must adopt an existing legacy row through a separate migration.
+    Dispatch is included. MATERIAL_RECEIPT safely adopts the
+    existing legacy Material Receipt row whenever one exists.
     """
     return _synchronize_requirements(
         tracker=tracker,
