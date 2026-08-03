@@ -15,3 +15,4 @@ pepl_sales.patches.v1_0.sync_vendor_approval_product_documents
 pepl_sales.patches.v1_0.sync_engineering_document_requirements
 pepl_sales.patches.v1_0.sync_additional_sales_order_document_requirements
 pepl_sales.patches.v1_0.sync_dispatch_document_requirements
+pepl_sales.patches.v1_0.resync_dispatch_document_requirements
