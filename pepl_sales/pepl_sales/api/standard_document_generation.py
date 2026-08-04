@@ -659,3 +659,13 @@ def create_revision(
             source_doc.source_document
         ),
     )
+
+
+@frappe.whitelist()
+def get_renderer_deployment_info():
+    return {
+        "component": "standard_document_generation",
+        "revision_query": "ordered_get_all",
+        "unique_revision_validation": True,
+        "release_marker": "e049511-revision-sequencing",
+    }
