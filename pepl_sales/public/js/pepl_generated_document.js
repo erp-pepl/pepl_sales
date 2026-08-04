@@ -7,26 +7,30 @@ frappe.ui.form.on(
             }
 
             if (
-                frm.doc.status !== "Issued"
-                && frm.doc.template
+                frm.doc.template
+                && frm.doc.status !== "Issued"
             ) {
                 frm.add_custom_button(
                     __("Generate PDF"),
-                    () => generate_pdf(frm),
+                    function () {
+                        pepl_generate_pdf(frm);
+                    },
                     __("Actions")
                 );
             }
 
             frm.add_custom_button(
                 __("Create Revision"),
-                () => create_revision(frm),
+                function () {
+                    pepl_create_revision(frm);
+                },
                 __("Actions")
             );
 
             if (frm.doc.generated_file) {
                 frm.add_custom_button(
                     __("Open Generated File"),
-                    () => {
+                    function () {
                         window.open(
                             frm.doc.generated_file,
                             "_blank"
@@ -40,17 +44,26 @@ frappe.ui.form.on(
 );
 
 
-function generate_pdf(frm) {
-    frappe.call({
-        method: (
-            "pepl_sales.pepl_sales.api."
-            + "standard_document_generation."
-            + "generate_pdf"
-        ),
-        args: {
-            generated_document_name:
-                frm.doc.name
-        },
+function pepl_generate_pdf(frm) {
+    if (!frm.doc.template) {
+        frappe.msgprint(
+            __("Select a Template first.")
+        );
+        return;
+    }
+
+    if (frm.doc.status === "Issued") {
+        frappe.msgprint(
+            __(
+                "Issued documents cannot be regenerated. "
+                + "Create a new revision instead."
+            )
+        );
+        return;
+    }
+
+    frm.call({
+        method: "generate_pdf",
         freeze: true,
         freeze_message: __(
             "Generating controlled PDF..."
@@ -81,23 +94,15 @@ function generate_pdf(frm) {
 }
 
 
-function create_revision(frm) {
+function pepl_create_revision(frm) {
     frappe.confirm(
         __(
-            "Create a new revision from "
-            + "this document?"
+            "Create a new controlled revision "
+            + "from this document?"
         ),
-        () => {
-            frappe.call({
-                method: (
-                    "pepl_sales.pepl_sales.api."
-                    + "standard_document_generation."
-                    + "create_revision"
-                ),
-                args: {
-                    generated_document_name:
-                        frm.doc.name
-                },
+        function () {
+            frm.call({
+                method: "create_revision",
                 freeze: true,
                 freeze_message: __(
                     "Creating revision..."
@@ -109,6 +114,12 @@ function create_revision(frm) {
                     if (
                         !result.generated_document
                     ) {
+                        frappe.msgprint(
+                            __(
+                                "The revision could "
+                                + "not be created."
+                            )
+                        );
                         return;
                     }
 

@@ -197,3 +197,15 @@ doc_events = {
 }
 
 scheduler_events = {'daily': ['pepl_sales.pepl_sales.api.payment_tracker_jobs.update_all_payment_trackers_daily', 'pepl_sales.operational_notifications.run_daily_operational_notifications']}
+
+# PEPL Generated Document explicit client script
+try:
+    doctype_js
+except NameError:
+    doctype_js = {}
+
+doctype_js.update({
+    "PEPL Generated Document":
+        "public/js/pepl_generated_document.js",
+})
+
