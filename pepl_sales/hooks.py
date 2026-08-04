@@ -208,4 +208,3 @@ doctype_js.update({
     "PEPL Generated Document":
         "public/js/pepl_generated_document.js",
 })
-

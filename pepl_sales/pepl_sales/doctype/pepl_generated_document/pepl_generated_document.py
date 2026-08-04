@@ -183,3 +183,45 @@ class PEPLGeneratedDocument(Document):
         return create_revision(
             self.name
         )
+
+
+@frappe.whitelist()
+def generate_pdf(docname):
+    """
+    Whitelisted module-level wrapper used by the form button.
+
+    Frappe resolves dotted RPC paths against module-level functions,
+    therefore this wrapper loads the document and delegates to the
+    permanent controller method.
+    """
+    if not docname:
+        frappe.throw(_("Generated Document is required."))
+
+    doc = frappe.get_doc(
+        "PEPL Generated Document",
+        docname,
+    )
+    doc.check_permission("write")
+
+    return doc.run_method(
+        "generate_pdf"
+    )
+
+
+@frappe.whitelist()
+def create_revision(docname):
+    """
+    Whitelisted module-level wrapper used by the form button.
+    """
+    if not docname:
+        frappe.throw(_("Generated Document is required."))
+
+    doc = frappe.get_doc(
+        "PEPL Generated Document",
+        docname,
+    )
+    doc.check_permission("read")
+
+    return doc.run_method(
+        "create_revision"
+    )

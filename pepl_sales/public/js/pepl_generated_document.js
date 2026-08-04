@@ -62,12 +62,25 @@ function pepl_generate_pdf(frm) {
         return;
     }
 
-    frm.call({
-        method: "generate_pdf",
+    frappe.call({
+        method: [
+            "pepl_sales",
+            "pepl_sales",
+            "doctype",
+            "pepl_generated_document",
+            "pepl_generated_document",
+            "generate_pdf"
+        ].join("."),
+
+        args: {
+            docname: frm.doc.name
+        },
+
         freeze: true,
         freeze_message: __(
             "Generating controlled PDF..."
         ),
+
         callback(response) {
             const result =
                 response.message || {};
@@ -75,7 +88,8 @@ function pepl_generate_pdf(frm) {
             if (!result.generated_file) {
                 frappe.msgprint(
                     __(
-                        "The PDF could not be generated."
+                        "The PDF could not be generated. "
+                        + "Review the Error Log field."
                     )
                 );
                 return;
@@ -101,12 +115,25 @@ function pepl_create_revision(frm) {
             + "from this document?"
         ),
         function () {
-            frm.call({
-                method: "create_revision",
+            frappe.call({
+                method: [
+                    "pepl_sales",
+                    "pepl_sales",
+                    "doctype",
+                    "pepl_generated_document",
+                    "pepl_generated_document",
+                    "create_revision"
+                ].join("."),
+
+                args: {
+                    docname: frm.doc.name
+                },
+
                 freeze: true,
                 freeze_message: __(
                     "Creating revision..."
                 ),
+
                 callback(response) {
                     const result =
                         response.message || {};
