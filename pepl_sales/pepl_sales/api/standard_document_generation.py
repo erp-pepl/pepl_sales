@@ -394,14 +394,28 @@ def create_generated_document(
         context,
     )
 
-    previous_revision = frappe.db.get_value(
+    previous_documents = frappe.get_all(
         "PEPL Generated Document",
-        {
+        filters={
             "template": template.name,
             "source_doctype": source_doctype,
             "source_document": source_document,
         },
-        "max(revision_number)",
+        fields=[
+            "name",
+            "revision_number",
+        ],
+        order_by=(
+            "revision_number desc, "
+            "creation desc"
+        ),
+        limit_page_length=1,
+    )
+
+    previous_revision = (
+        previous_documents[0].revision_number
+        if previous_documents
+        else 0
     )
 
     revision_number = (

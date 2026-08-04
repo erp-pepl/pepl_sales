@@ -21,6 +21,7 @@ class PEPLGeneratedDocument(Document):
     def validate(self):
         self._validate_generation_context()
         self._apply_template_version()
+        self._validate_unique_revision()
         self._calculate_source_data_hash()
         self._validate_issued_immutability()
         self._validate_lifecycle_status()
@@ -58,6 +59,39 @@ class PEPLGeneratedDocument(Document):
                 "template_version",
             )
         )
+
+    def _validate_unique_revision(self):
+        if (
+            not self.template
+            or not self.source_doctype
+            or not self.source_document
+            or not self.revision_number
+        ):
+            return
+
+        filters = {
+            "template": self.template,
+            "source_doctype": self.source_doctype,
+            "source_document": self.source_document,
+            "revision_number": self.revision_number,
+        }
+
+        existing = frappe.db.exists(
+            "PEPL Generated Document",
+            filters,
+        )
+
+        if existing and existing != self.name:
+            frappe.throw(
+                _(
+                    "Revision {0} already exists for "
+                    "template {1} and source document {2}."
+                ).format(
+                    self.revision_number,
+                    self.template,
+                    self.source_document,
+                )
+            )
 
     def _calculate_source_data_hash(self):
         payload = {
