@@ -13,6 +13,7 @@
   "output_format",
   "template_engine",
   "source_template_file",
+  "html_template",
   "letterhead_version",
   "template_version",
   "validity_column",
@@ -91,6 +92,14 @@
    "fieldname": "source_template_file",
    "label": "Source Template File",
    "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "html_template",
+   "label": "HTML Template",
+   "fieldtype": "Code",
+   "options": "HTML",
+   "depends_on": "eval:doc.template_engine == 'HTML Print'",
+   "description": "Jinja-enabled HTML used to generate the controlled PDF output."
   },
   {
    "fieldname": "letterhead_version",
