@@ -5,6 +5,12 @@ from frappe.utils import now_datetime
 
 
 SALES_ORDER_SOURCE_TRANSACTION = "Sales Order"
+SALES_INVOICE_SOURCE_TRANSACTION = "Sales Invoice"
+
+SALES_INVOICE_BUSINESS_STAGES = [
+    "Sales Invoice",
+    "Bill Submission/JCC",
+]
 
 ENGINEERING_BUSINESS_STAGES = [
     "Engineering Documents",
@@ -142,14 +148,37 @@ def _synchronize_requirements(
 
     managed_rows = {}
 
+    invoice_scoped = (
+        source_transaction
+        == SALES_INVOICE_SOURCE_TRANSACTION
+    )
+
     for row in tracker.document_entries or []:
-        key = (
+        requirement_key = (
             row.get("requirement")
             or row.get("requirement_code")
         )
 
-        if not key:
+        if not requirement_key:
             continue
+
+        if (
+            row.get("requirement_source_transaction")
+            and row.get("requirement_source_transaction")
+            != source_transaction
+        ):
+            continue
+
+        source_key = (
+            row.get("source_reference")
+            if invoice_scoped
+            else None
+        )
+
+        key = (
+            requirement_key,
+            source_key,
+        )
 
         if key not in managed_rows:
             managed_rows[key] = row
@@ -176,8 +205,17 @@ def _synchronize_requirements(
     created_codes = []
 
     for requirement in requirements:
+        managed_key = (
+            requirement.name,
+            (
+                source_document.name
+                if invoice_scoped
+                else None
+            ),
+        )
+
         row = managed_rows.get(
-            requirement.name
+            managed_key
         )
 
         was_adopted = False
@@ -202,7 +240,7 @@ def _synchronize_requirements(
                     requirement.document_code
                 )
 
-            managed_rows[requirement.name] = row
+            managed_rows[managed_key] = row
         else:
             updated += 1
 
@@ -293,7 +331,9 @@ def _synchronize_requirements(
         )
 
     for key, row in managed_rows.items():
-        if key in requirement_by_name:
+        requirement_key = key[0]
+
+        if requirement_key in requirement_by_name:
             continue
 
         # Only retire rows controlled by this synchronization scope.
@@ -304,6 +344,13 @@ def _synchronize_requirements(
             != source_transaction
             or row.get("business_stage")
             not in business_stages
+        ):
+            continue
+
+        if (
+            invoice_scoped
+            and row.get("source_reference")
+            != source_document.name
         ):
             continue
 
@@ -377,3 +424,113 @@ def synchronize_engineering_requirements(
             ENGINEERING_BUSINESS_STAGES
         ),
     )
+
+def synchronize_sales_invoice_requirements(
+    invoice,
+):
+    """Synchronize invoice-stage requirements into SO trackers.
+
+    One PEPL Document Tracker remains attached to each Sales Order.
+    Managed invoice rows are uniquely scoped by requirement and
+    Sales Invoice source reference.
+
+    This function is safe to run repeatedly.
+    """
+    sales_order_names = sorted({
+        row.get("sales_order")
+        for row in invoice.get("items") or []
+        if row.get("sales_order")
+    })
+
+    results = []
+
+    if not sales_order_names:
+        return {
+            "sales_invoice": invoice.name,
+            "sales_orders": [],
+            "results": [],
+        }
+
+    from pepl_sales.pepl_sales.doctype.pepl_document_tracker.pepl_document_tracker import (
+        create_doc_tracker_for_so,
+    )
+
+    for sales_order_name in sales_order_names:
+        tracker_name = frappe.db.get_value(
+            "PEPL Document Tracker",
+            {
+                "linked_sales_order":
+                    sales_order_name,
+            },
+            "name",
+        )
+
+        if not tracker_name:
+            create_doc_tracker_for_so(
+                sales_order_name=(
+                    sales_order_name
+                ),
+            )
+
+            tracker_name = frappe.db.get_value(
+                "PEPL Document Tracker",
+                {
+                    "linked_sales_order":
+                        sales_order_name,
+                },
+                "name",
+            )
+
+        if not tracker_name:
+            frappe.throw(
+                "Document Tracker could not be created "
+                "for Sales Order {0}."
+                .format(sales_order_name)
+            )
+
+        tracker = frappe.get_doc(
+            "PEPL Document Tracker",
+            tracker_name,
+        )
+
+        sales_order = frappe.get_doc(
+            "Sales Order",
+            sales_order_name,
+        )
+
+        sector = (
+            tracker.get("sector")
+            or sales_order.get("custom_sector")
+            or "Others"
+        )
+
+        sync_result = _synchronize_requirements(
+            tracker=tracker,
+            source_document=invoice,
+            sector=sector,
+            source_transaction=(
+                SALES_INVOICE_SOURCE_TRANSACTION
+            ),
+            business_stages=(
+                SALES_INVOICE_BUSINESS_STAGES
+            ),
+        )
+
+        tracker.save(
+            ignore_permissions=True
+        )
+
+        results.append({
+            "sales_order":
+                sales_order_name,
+            "tracker":
+                tracker.name,
+            "synchronization":
+                sync_result,
+        })
+
+    return {
+        "sales_invoice": invoice.name,
+        "sales_orders": sales_order_names,
+        "results": results,
+    }

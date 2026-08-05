@@ -60,12 +60,18 @@ def on_sales_order_submit(doc, method=None):
 
 def on_sales_invoice_submit(doc, method=None):
     """
-    Activate Payment Tracker when a Sales Invoice is submitted.
+    Synchronize invoice document requirements and activate
+    the Payment Tracker when a Sales Invoice is submitted.
     """
 
+    from pepl_sales.pepl_sales.doctype.pepl_document_tracker.document_requirement_sync import (
+        synchronize_sales_invoice_requirements,
+    )
     from pepl_sales.pepl_sales.doctype.pepl_payment_tracker.pepl_payment_tracker import (
         create_payment_tracker_for_invoice,
     )
+
+    synchronize_sales_invoice_requirements(doc)
 
     create_payment_tracker_for_invoice(doc.name)
 
