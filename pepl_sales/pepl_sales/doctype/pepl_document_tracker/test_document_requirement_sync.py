@@ -335,3 +335,51 @@ class TestDocumentRequirementSync(
             validate_document_tracker(
                 tracker
             )
+
+
+class TestInvoiceRequirementDocumentTypes(
+    FrappeTestCase
+):
+    def test_invoice_requirement_names_are_valid_document_types(
+        self,
+    ):
+        meta = frappe.get_meta(
+            "PEPL Document Entry"
+        )
+
+        field = meta.get_field(
+            "document_type"
+        )
+
+        options = {
+            option.strip()
+            for option in (
+                field.options
+                or ""
+            ).split("\n")
+            if option.strip()
+        }
+
+        required = {
+            "GST Certificate",
+            "GST Summary",
+            "After-Invoice Guarantee Certificate",
+            "R-Note",
+            "Joint Completion Certificate (JCC)",
+            "Contractor's Bill",
+            "Bank Mandate",
+        }
+
+        missing = (
+            required
+            - options
+        )
+
+        self.assertFalse(
+            missing,
+            "Missing PEPL Document Entry "
+            "document_type options: "
+            + ", ".join(
+                sorted(missing)
+            ),
+        )
