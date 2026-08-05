@@ -208,3 +208,35 @@ doctype_js.update({
     "PEPL Generated Document":
         "public/js/pepl_generated_document.js",
 })
+
+# PEPL PSD Tracker business validation
+try:
+    doc_events
+except NameError:
+    doc_events = {}
+
+_existing_psd_tracker_events = (
+    doc_events.get("PEPL PSD Tracker")
+    or {}
+)
+
+_existing_psd_tracker_events["validate"] = (
+    "pepl_sales.pepl_sales.validations."
+    "psd_tracker.validate_psd_tracker"
+)
+
+doc_events["PEPL PSD Tracker"] = (
+    _existing_psd_tracker_events
+)
+
+# PEPL PSD Tracker explicit client script
+try:
+    doctype_js
+except NameError:
+    doctype_js = {}
+
+doctype_js.update({
+    "PEPL PSD Tracker":
+        "public/js/pepl_psd_tracker.js",
+})
+

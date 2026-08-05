@@ -940,3 +940,74 @@ def get_renderer_deployment_info():
         "unique_revision_validation": True,
         "release_marker": "e049511-revision-sequencing",
     }
+
+
+@frappe.whitelist()
+def create_from_psd_tracker(
+    tracker_name,
+    template_name,
+    psd_entry_row,
+):
+    if not tracker_name:
+        frappe.throw(
+            _("PSD Tracker is required.")
+        )
+
+    if not template_name:
+        frappe.throw(
+            _("Document Template is required.")
+        )
+
+    if not psd_entry_row:
+        frappe.throw(
+            _("PSD Entry Row is required.")
+        )
+
+    tracker = frappe.get_doc(
+        "PEPL PSD Tracker",
+        tracker_name,
+    )
+
+    tracker.check_permission("read")
+
+    selected_entry = None
+
+    for row in tracker.get(
+        "psd_entries"
+    ) or []:
+        if row.name == psd_entry_row:
+            selected_entry = row
+            break
+
+    if not selected_entry:
+        frappe.throw(
+            _(
+                "PSD Entry Row {0} does not belong "
+                "to PSD Tracker {1}."
+            ).format(
+                psd_entry_row,
+                tracker.name,
+            )
+        )
+
+    template = frappe.get_doc(
+        "PEPL Standard Document Template",
+        template_name,
+    )
+
+    if not template.active:
+        frappe.throw(
+            _("The selected template is inactive.")
+        )
+
+    if template.status != "Approved":
+        frappe.throw(
+            _("The selected template is not approved.")
+        )
+
+    return create_generated_document(
+        template_name=template.name,
+        source_doctype="PEPL PSD Tracker",
+        source_document=tracker.name,
+        psd_entry_row=selected_entry.name,
+    )
