@@ -556,6 +556,43 @@ def generate_pdf(
             context,
         )
 
+        audit_footer = frappe.render_template(
+            """
+            <div style="
+                margin-top: 24px;
+                padding-top: 8px;
+                border-top: 1px solid #999;
+                font-family: Arial, sans-serif;
+                font-size: 8px;
+                color: #666;
+                text-align: center;
+            ">
+                Controlled Document:
+                {{ generated_document.name }}
+                |
+                Template:
+                {{ template.template_code }}
+                v{{ template.template_version }}
+                |
+                Revision:
+                {{ revision }}
+                |
+                Source:
+                {{ source_doctype }}
+                {{ source_document }}
+                |
+                Generated:
+                {{ generated_document.generated_on }}
+            </div>
+            """,
+            context,
+        )
+
+        rendered_html = (
+            rendered_html
+            + audit_footer
+        )
+
         pdf_content = get_pdf(
             rendered_html
         )
@@ -585,6 +622,10 @@ def generate_pdf(
             rendered_filename[:-4]
         ) + ".pdf"
 
+        previous_file_url = (
+            generated_doc.generated_file
+        )
+
         file_doc = save_file(
             filename,
             pdf_content,
@@ -605,6 +646,33 @@ def generate_pdf(
         )
         generated_doc.error_log = None
         generated_doc.save()
+
+        if (
+            previous_file_url
+            and previous_file_url
+            != generated_doc.generated_file
+        ):
+            previous_file_name = (
+                frappe.db.get_value(
+                    "File",
+                    {
+                        "file_url":
+                            previous_file_url,
+                        "attached_to_doctype":
+                            generated_doc.doctype,
+                        "attached_to_name":
+                            generated_doc.name,
+                    },
+                    "name",
+                )
+            )
+
+            if previous_file_name:
+                frappe.delete_doc(
+                    "File",
+                    previous_file_name,
+                    ignore_permissions=True,
+                )
 
         return {
             "generated_document":
