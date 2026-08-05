@@ -185,6 +185,23 @@ def _add_customer_and_company_context(
 
 
 
+def _get_sales_invoice_sales_orders(
+    sales_invoice,
+):
+    sales_orders = []
+
+    for item in sales_invoice.get("items") or []:
+        sales_order = item.get("sales_order")
+
+        if (
+            sales_order
+            and sales_order not in sales_orders
+        ):
+            sales_orders.append(sales_order)
+
+    return sales_orders
+
+
 def _get_source_context(source_doc, psd_entry_row=None):
     context = {
         "doc": source_doc.as_dict(),
@@ -217,6 +234,12 @@ def _get_source_context(source_doc, psd_entry_row=None):
     elif source_doc.doctype == "Sales Invoice":
         context["sales_invoice"] = (
             source_doc.as_dict()
+        )
+
+        context["linked_sales_orders"] = (
+            _get_sales_invoice_sales_orders(
+                source_doc
+            )
         )
 
         _add_customer_and_company_context(
