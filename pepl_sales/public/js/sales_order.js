@@ -1,6 +1,7 @@
 frappe.ui.form.on("Sales Order", {
     refresh(frm) {
         pepl_render_sales_order_readiness(frm);
+        pepl_add_standard_document_button(frm);
     },
 
     customer(frm) {
@@ -187,3 +188,124 @@ async function pepl_render_sales_order_readiness(frm) {
         );
     }
 }
+
+function pepl_add_standard_document_button(frm) {
+    if (frm.is_new()) {
+        return;
+    }
+
+    frm.add_custom_button(
+        __("Generate Standard Document"),
+        () => {
+            pepl_open_standard_document_dialog(
+                frm
+            );
+        },
+        __("PEPL")
+    );
+}
+
+
+function pepl_open_standard_document_dialog(frm) {
+    const allowed_requirements = [
+        "DRAWING_SPEC_REQUEST",
+        "PROOF_SCHEDULE_REQUEST",
+        "RAW_MATERIAL_OFFER",
+        "QUALITY_SELF_CERTIFICATE",
+        "NABL_TEST_OFFER",
+        "LOT_NUMBER_REQUEST",
+        "BULK_LOT_OFFER",
+        "WORK_TEST_CERTIFICATE",
+        "DISPATCH_LABEL"
+    ];
+
+    const dialog = new frappe.ui.Dialog({
+        title: __(
+            "Generate Standard Document"
+        ),
+        fields: [
+            {
+                fieldname: "template_name",
+                fieldtype: "Link",
+                options:
+                    "PEPL Standard Document Template",
+                label:
+                    __("Document Template"),
+                reqd: 1,
+                get_query() {
+                    return {
+                        filters: {
+                            active: 1,
+                            status: "Approved",
+                            document_requirement: [
+                                "in",
+                                allowed_requirements
+                            ],
+                            sector: [
+                                "in",
+                                [
+                                    "Common",
+                                    frm.doc.custom_sector
+                                        || "Common"
+                                ]
+                            ]
+                        }
+                    };
+                }
+            }
+        ],
+        primary_action_label:
+            __("Create Document"),
+        primary_action(values) {
+            dialog.hide();
+
+            frappe.call({
+                method:
+                    "pepl_sales.pepl_sales.api."
+                    + "standard_document_generation."
+                    + "create_from_business_source",
+                args: {
+                    source_doctype:
+                        "Sales Order",
+                    source_document:
+                        frm.doc.name,
+                    template_name:
+                        values.template_name
+                },
+                freeze: true,
+                freeze_message:
+                    __(
+                        "Creating controlled "
+                        + "document..."
+                    ),
+                callback(response) {
+                    const result = (
+                        response.message
+                        || {}
+                    );
+
+                    if (
+                        !result.generated_document
+                    ) {
+                        frappe.msgprint(
+                            __(
+                                "Generated Document "
+                                + "was not created."
+                            )
+                        );
+                        return;
+                    }
+
+                    frappe.set_route(
+                        "Form",
+                        "PEPL Generated Document",
+                        result.generated_document
+                    );
+                }
+            });
+        }
+    });
+
+    dialog.show();
+}
+

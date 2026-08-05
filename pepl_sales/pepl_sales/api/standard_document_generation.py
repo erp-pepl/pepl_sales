@@ -140,6 +140,51 @@ def _get_selected_psd_entry(
     return None
 
 
+def _add_customer_and_company_context(
+    context,
+    source_doc,
+):
+    customer_name = _get_source_customer(
+        source_doc
+    )
+
+    if customer_name:
+        customer_doc = frappe.get_doc(
+            "Customer",
+            customer_name,
+        )
+
+        context["customer_doc"] = (
+            customer_doc.as_dict()
+        )
+
+        context["customer_address"] = (
+            _get_customer_primary_address(
+                customer_name
+            )
+        )
+
+    company_name = None
+
+    if source_doc.meta.has_field(
+        "company"
+    ):
+        company_name = source_doc.get(
+            "company"
+        )
+
+    if company_name:
+        company_doc = frappe.get_doc(
+            "Company",
+            company_name,
+        )
+
+        context["company_doc"] = (
+            company_doc.as_dict()
+        )
+
+
+
 def _get_source_context(source_doc, psd_entry_row=None):
     context = {
         "doc": source_doc.as_dict(),
@@ -164,9 +209,19 @@ def _get_source_context(source_doc, psd_entry_row=None):
             source_doc.as_dict()
         )
 
+        _add_customer_and_company_context(
+            context,
+            source_doc,
+        )
+
     elif source_doc.doctype == "Sales Invoice":
         context["sales_invoice"] = (
             source_doc.as_dict()
+        )
+
+        _add_customer_and_company_context(
+            context,
+            source_doc,
         )
 
     elif source_doc.doctype == "PEPL Tender":
@@ -939,6 +994,133 @@ def get_renderer_deployment_info():
         "revision_query": "ordered_get_all",
         "unique_revision_validation": True,
         "release_marker": "e049511-revision-sequencing",
+    }
+
+
+
+BUSINESS_SOURCE_TRANSACTION_MAP = {
+    "Sales Order": "Sales Order",
+    "Sales Invoice": "Sales Invoice",
+}
+
+
+@frappe.whitelist()
+def create_from_business_source(
+    source_doctype,
+    source_document,
+    template_name,
+):
+    if not source_doctype:
+        frappe.throw(
+            _("Source DocType is required.")
+        )
+
+    if not source_document:
+        frappe.throw(
+            _("Source Document is required.")
+        )
+
+    if not template_name:
+        frappe.throw(
+            _("Document Template is required.")
+        )
+
+    expected_source_transaction = (
+        BUSINESS_SOURCE_TRANSACTION_MAP.get(
+            source_doctype
+        )
+    )
+
+    if not expected_source_transaction:
+        frappe.throw(
+            _(
+                "Standard document generation is "
+                "not enabled for {0}."
+            ).format(
+                source_doctype
+            )
+        )
+
+    source_doc = frappe.get_doc(
+        source_doctype,
+        source_document,
+    )
+    source_doc.check_permission("read")
+
+    template = frappe.get_doc(
+        "PEPL Standard Document Template",
+        template_name,
+    )
+    template.check_permission("read")
+
+    if not template.active:
+        frappe.throw(
+            _("The selected template is inactive.")
+        )
+
+    if template.status != "Approved":
+        frappe.throw(
+            _("The selected template is not approved.")
+        )
+
+    requirement = frappe.get_doc(
+        "PEPL Document Requirement",
+        template.document_requirement,
+    )
+
+    if (
+        requirement.source_transaction
+        != expected_source_transaction
+    ):
+        frappe.throw(
+            _(
+                "Template {0} is not valid for "
+                "source DocType {1}."
+            ).format(
+                template.name,
+                source_doctype,
+            )
+        )
+
+    source_sector = _get_source_sector(
+        source_doc
+    )
+
+    if template.sector not in (
+        "Common",
+        source_sector,
+    ):
+        frappe.throw(
+            _(
+                "Template {0} is not valid for "
+                "sector {1}."
+            ).format(
+                template.name,
+                source_sector,
+            )
+        )
+
+    return create_generated_document(
+        template_name=template.name,
+        source_doctype=source_doctype,
+        source_document=source_doc.name,
+    )
+
+
+
+@frappe.whitelist()
+def get_business_source_generation_info():
+    return {
+        "component":
+            "business_source_document_generation",
+        "sales_order_supported":
+            True,
+        "sales_invoice_supported":
+            True,
+        "payment_tracker_supported":
+            False,
+        "release_marker":
+            "sales-order-generation-v1",
     }
 
 
