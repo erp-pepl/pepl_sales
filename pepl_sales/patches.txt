@@ -17,3 +17,4 @@ pepl_sales.patches.v1_0.sync_additional_sales_order_document_requirements
 pepl_sales.patches.v1_0.sync_dispatch_document_requirements
 pepl_sales.patches.v1_0.resync_dispatch_document_requirements
 pepl_sales.patches.v1_0.seed_standard_document_templates
+pepl_sales.patches.v1_0.initialize_psd_bg_business_fields

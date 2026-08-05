@@ -21,6 +21,7 @@ class PEPLGeneratedDocument(Document):
     def validate(self):
         self._validate_generation_context()
         self._apply_template_version()
+        self._validate_psd_entry_row()
         self._validate_unique_revision()
         self._calculate_source_data_hash()
         self._validate_issued_immutability()
@@ -59,6 +60,52 @@ class PEPLGeneratedDocument(Document):
                 "template_version",
             )
         )
+
+    def _validate_psd_entry_row(self):
+        if not self.psd_entry_row:
+            return
+
+        if not self.psd_tracker:
+            frappe.throw(
+                _(
+                    "PSD Tracker is required when "
+                    "PSD Entry Row is selected."
+                )
+            )
+
+        row = frappe.db.get_value(
+            "PEPL PSD Entry",
+            self.psd_entry_row,
+            [
+                "name",
+                "parent",
+                "parenttype",
+            ],
+            as_dict=True,
+        )
+
+        if not row:
+            frappe.throw(
+                _(
+                    "PSD Entry Row {0} does not exist."
+                ).format(
+                    self.psd_entry_row
+                )
+            )
+
+        if (
+            row.parenttype != "PEPL PSD Tracker"
+            or row.parent != self.psd_tracker
+        ):
+            frappe.throw(
+                _(
+                    "PSD Entry Row {0} does not "
+                    "belong to PSD Tracker {1}."
+                ).format(
+                    self.psd_entry_row,
+                    self.psd_tracker,
+                )
+            )
 
     def _validate_unique_revision(self):
         if (

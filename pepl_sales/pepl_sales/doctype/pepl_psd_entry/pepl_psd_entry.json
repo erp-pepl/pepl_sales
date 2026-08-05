@@ -22,7 +22,23 @@
   "psd_refund_amount",
   "letter_to_bank_date",
   "section_remarks",
-  "remarks"
+  "remarks",
+  "security_instrument_section",
+  "security_mode",
+  "bg_number",
+  "bg_date",
+  "bg_amount",
+  "bg_expiry_date",
+  "claim_expiry_date",
+  "issuing_bank",
+  "issuing_bank_branch",
+  "beneficiary_name",
+  "beneficiary_address",
+  "bg_application_reference",
+  "bg_submission_reference",
+  "bg_submission_date",
+  "final_bg_file",
+  "bank_advice_file"
  ],
  "fields": [
   {
@@ -131,6 +147,95 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "security_instrument_section",
+   "fieldtype": "Section Break",
+   "label": "Security Instrument / Bank Guarantee"
+  },
+  {
+   "fieldname": "security_mode",
+   "fieldtype": "Select",
+   "label": "Security Mode",
+   "options": "\nBank Guarantee\nSecurity Deposit\nDemand Draft\nFDR\nOnline Deposit\nOther"
+  },
+  {
+   "fieldname": "bg_number",
+   "fieldtype": "Data",
+   "label": "BG Number",
+   "depends_on": "eval:doc.security_mode == 'Bank Guarantee'"
+  },
+  {
+   "fieldname": "bg_date",
+   "fieldtype": "Date",
+   "label": "BG Date",
+   "depends_on": "eval:doc.security_mode == 'Bank Guarantee'"
+  },
+  {
+   "fieldname": "bg_amount",
+   "fieldtype": "Currency",
+   "label": "BG Amount",
+   "options": "currency",
+   "depends_on": "eval:doc.security_mode == 'Bank Guarantee'"
+  },
+  {
+   "fieldname": "bg_expiry_date",
+   "fieldtype": "Date",
+   "label": "BG Expiry Date",
+   "depends_on": "eval:doc.security_mode == 'Bank Guarantee'"
+  },
+  {
+   "fieldname": "claim_expiry_date",
+   "fieldtype": "Date",
+   "label": "Claim Expiry Date",
+   "depends_on": "eval:doc.security_mode == 'Bank Guarantee'"
+  },
+  {
+   "fieldname": "issuing_bank",
+   "fieldtype": "Data",
+   "label": "Issuing Bank",
+   "depends_on": "eval:doc.security_mode == 'Bank Guarantee'"
+  },
+  {
+   "fieldname": "issuing_bank_branch",
+   "fieldtype": "Data",
+   "label": "Issuing Bank Branch",
+   "depends_on": "eval:doc.security_mode == 'Bank Guarantee'"
+  },
+  {
+   "fieldname": "beneficiary_name",
+   "fieldtype": "Data",
+   "label": "Beneficiary Name"
+  },
+  {
+   "fieldname": "beneficiary_address",
+   "fieldtype": "Small Text",
+   "label": "Beneficiary / Submission Address"
+  },
+  {
+   "fieldname": "bg_application_reference",
+   "fieldtype": "Data",
+   "label": "BG Application Reference"
+  },
+  {
+   "fieldname": "bg_submission_reference",
+   "fieldtype": "Data",
+   "label": "BG Submission Reference"
+  },
+  {
+   "fieldname": "bg_submission_date",
+   "fieldtype": "Date",
+   "label": "BG Submission Date"
+  },
+  {
+   "fieldname": "final_bg_file",
+   "fieldtype": "Attach",
+   "label": "Final Bank Guarantee"
+  },
+  {
+   "fieldname": "bank_advice_file",
+   "fieldtype": "Attach",
+   "label": "Bank Advice / Issuance Document"
   }
  ],
  "index_web_pages_for_search": 0,

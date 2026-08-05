@@ -48,7 +48,99 @@ def _get_nested_value(data, field_path):
     return current
 
 
-def _get_source_context(source_doc):
+def _get_customer_primary_address(customer):
+    if not customer:
+        return None
+
+    links = frappe.get_all(
+        "Dynamic Link",
+        filters={
+            "link_doctype": "Customer",
+            "link_name": customer,
+            "parenttype": "Address",
+        },
+        fields=["parent"],
+        limit_page_length=100,
+    )
+
+    address_names = []
+
+    for link in links:
+        if link.parent not in address_names:
+            address_names.append(link.parent)
+
+    if not address_names:
+        return None
+
+    addresses = frappe.get_all(
+        "Address",
+        filters={
+            "name": ["in", address_names],
+            "disabled": 0,
+        },
+        fields=[
+            "name",
+            "is_primary_address",
+            "is_shipping_address",
+            "modified",
+        ],
+        order_by=(
+            "is_primary_address desc, "
+            "is_shipping_address desc, "
+            "modified desc"
+        ),
+        limit_page_length=100,
+    )
+
+    if not addresses:
+        return None
+
+    return frappe.get_doc(
+        "Address",
+        addresses[0].name,
+    ).as_dict()
+
+
+def _get_selected_psd_entry(
+    source_doc,
+    psd_entry_row=None,
+):
+    entries = (
+        source_doc.get("psd_entries")
+        or []
+    )
+
+    if psd_entry_row:
+        for entry in entries:
+            if entry.name == psd_entry_row:
+                return entry.as_dict()
+
+        frappe.throw(
+            _(
+                "PSD Entry Row {0} was not found "
+                "in PSD Tracker {1}."
+            ).format(
+                psd_entry_row,
+                source_doc.name,
+            )
+        )
+
+    if len(entries) == 1:
+        return entries[0].as_dict()
+
+    if len(entries) > 1:
+        frappe.throw(
+            _(
+                "PSD Tracker {0} has multiple "
+                "PSD entries. Select the required "
+                "PSD Entry Row."
+            ).format(source_doc.name)
+        )
+
+    return None
+
+
+def _get_source_context(source_doc, psd_entry_row=None):
     context = {
         "doc": source_doc.as_dict(),
         "source_doctype": source_doc.doctype,
@@ -86,6 +178,67 @@ def _get_source_context(source_doc):
         context["psd_tracker"] = (
             source_doc.as_dict()
         )
+
+        selected_psd_entry = (
+            _get_selected_psd_entry(
+                source_doc,
+                psd_entry_row=psd_entry_row,
+            )
+        )
+
+        context["selected_psd_entry"] = (
+            selected_psd_entry
+        )
+
+        sales_order_name = (
+            source_doc.get(
+                "linked_sales_order"
+            )
+            or source_doc.get(
+                "sales_order"
+            )
+        )
+
+        if sales_order_name:
+            sales_order = frappe.get_doc(
+                "Sales Order",
+                sales_order_name,
+            )
+
+            context["sales_order"] = (
+                sales_order.as_dict()
+            )
+
+            customer_name = (
+                sales_order.customer
+                or source_doc.get("customer")
+            )
+
+            if customer_name:
+                customer_doc = frappe.get_doc(
+                    "Customer",
+                    customer_name,
+                )
+
+                context["customer_doc"] = (
+                    customer_doc.as_dict()
+                )
+
+                context["customer_address"] = (
+                    _get_customer_primary_address(
+                        customer_name
+                    )
+                )
+
+            if sales_order.company:
+                company_doc = frappe.get_doc(
+                    "Company",
+                    sales_order.company,
+                )
+
+                context["company_doc"] = (
+                    company_doc.as_dict()
+                )
 
     elif (
         source_doc.doctype
@@ -341,6 +494,7 @@ def create_generated_document(
     template_name,
     source_doctype,
     source_document,
+    psd_entry_row=None,
 ):
     if (
         source_doctype
@@ -386,7 +540,8 @@ def create_generated_document(
     source_doc.check_permission("read")
 
     context = _get_source_context(
-        source_doc
+        source_doc,
+        psd_entry_row=psd_entry_row,
     )
 
     _validate_required_fields(
@@ -463,6 +618,20 @@ def create_generated_document(
         source_doc,
     )
 
+    if (
+        source_doctype
+        == "PEPL PSD Tracker"
+    ):
+        generated_doc.psd_entry_row = (
+            psd_entry_row
+            or (
+                context.get(
+                    "selected_psd_entry"
+                )
+                or {}
+            ).get("name")
+        )
+
     generated_doc.insert()
 
     return {
@@ -532,7 +701,10 @@ def generate_pdf(
     )
 
     context = _get_source_context(
-        source_doc
+        source_doc,
+        psd_entry_row=(
+            generated_doc.psd_entry_row
+        ),
     )
 
     context["generated_document"] = (
@@ -753,6 +925,9 @@ def create_revision(
         ),
         source_document=(
             source_doc.source_document
+        ),
+        psd_entry_row=(
+            source_doc.psd_entry_row
         ),
     )
 

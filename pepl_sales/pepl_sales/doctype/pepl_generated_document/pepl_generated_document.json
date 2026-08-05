@@ -17,6 +17,7 @@
   "source_column",
   "sales_invoice",
   "psd_tracker",
+  "psd_entry_row",
   "document_tracker",
   "customer",
   "sector",
@@ -121,6 +122,12 @@
    "label": "PSD Tracker",
    "fieldtype": "Link",
    "options": "PEPL PSD Tracker"
+  },
+  {
+   "fieldname": "psd_entry_row",
+   "fieldtype": "Data",
+   "label": "PSD Entry Row",
+   "description": "Name of the selected PEPL PSD Entry child row used for document generation."
   },
   {
    "fieldname": "document_tracker",
