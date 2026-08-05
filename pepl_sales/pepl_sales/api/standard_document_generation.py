@@ -647,6 +647,34 @@ def generate_pdf(
         generated_doc.error_log = None
         generated_doc.save()
 
+        duplicate_file_rows = frappe.get_all(
+            "File",
+            filters={
+                "attached_to_doctype":
+                    generated_doc.doctype,
+                "attached_to_name":
+                    generated_doc.name,
+                "file_url":
+                    generated_doc.generated_file,
+            },
+            fields=[
+                "name",
+                "creation",
+            ],
+            order_by="creation desc",
+            limit_page_length=100,
+        )
+
+        for duplicate_file in duplicate_file_rows:
+            if duplicate_file.name == file_doc.name:
+                continue
+
+            frappe.delete_doc(
+                "File",
+                duplicate_file.name,
+                ignore_permissions=True,
+            )
+
         if (
             previous_file_url
             and previous_file_url
