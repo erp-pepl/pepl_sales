@@ -308,4 +308,3 @@ function pepl_open_standard_document_dialog(frm) {
 
     dialog.show();
 }
-

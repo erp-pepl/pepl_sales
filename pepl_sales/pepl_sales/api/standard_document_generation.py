@@ -366,11 +366,15 @@ def _get_source_customer(source_doc):
 
 
 def _get_source_sector(source_doc):
-    if (
-        source_doc.meta.has_field("sector")
-        and source_doc.get("sector")
-    ):
-        return source_doc.get("sector")
+    for fieldname in [
+        "sector",
+        "custom_sector",
+    ]:
+        if (
+            source_doc.meta.has_field(fieldname)
+            and source_doc.get(fieldname)
+        ):
+            return source_doc.get(fieldname)
 
     customer = _get_source_customer(
         source_doc
