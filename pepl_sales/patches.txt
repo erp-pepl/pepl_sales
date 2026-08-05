@@ -20,3 +20,4 @@ pepl_sales.patches.v1_0.seed_standard_document_templates
 pepl_sales.patches.v1_0.initialize_psd_bg_business_fields
 pepl_sales.patches.v1_0.synchronize_sales_invoice_document_requirements
 pepl_sales.patches.v1_0.resync_sales_invoice_document_requirements
+pepl_sales.patches.v1_0.configure_psd_bg_standard_document_templates

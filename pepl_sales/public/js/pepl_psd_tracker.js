@@ -68,7 +68,18 @@ function open_generation_dialog(frm) {
                     return {
                         filters: {
                             active: 1,
-                            status: "Approved"
+                            status: "Approved",
+                            document_requirement: [
+                                "in",
+                                [
+                                    "PSD_BG_COLLECTION_AUTHORITY",
+                                    "PSD_BG_SUBMISSION_COVER",
+                                    "PSD_RETURN_REQUEST",
+                                    "PSD_BG_APPLICATION",
+                                    "PSD_BG_DEBIT_AUTHORITY",
+                                    "PSD_BG_TEXT"
+                                ]
+                            ]
                         }
                     };
                 }
