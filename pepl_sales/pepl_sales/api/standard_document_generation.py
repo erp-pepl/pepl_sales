@@ -17,6 +17,7 @@ SUPPORTED_SOURCE_DOCTYPES = {
     "Sales Invoice",
     "PEPL PSD Tracker",
     "PEPL Document Tracker",
+    "PEPL Payment Tracker",
 }
 
 
@@ -326,6 +327,63 @@ def _get_source_context(source_doc, psd_entry_row=None):
             source_doc.as_dict()
         )
 
+    elif (
+        source_doc.doctype
+        == "PEPL Payment Tracker"
+    ):
+        context["payment_tracker"] = (
+            source_doc.as_dict()
+        )
+
+        sales_invoice_name = source_doc.get(
+            "linked_sales_invoice"
+        )
+
+        sales_order_name = source_doc.get(
+            "linked_sales_order"
+        )
+
+        business_source = source_doc
+
+        if sales_invoice_name:
+            sales_invoice = frappe.get_doc(
+                "Sales Invoice",
+                sales_invoice_name,
+            )
+
+            context["sales_invoice"] = (
+                sales_invoice.as_dict()
+            )
+
+            business_source = sales_invoice
+
+            if not sales_order_name:
+                linked_orders = (
+                    _get_sales_invoice_sales_orders(
+                        sales_invoice
+                    )
+                )
+
+                if linked_orders:
+                    sales_order_name = (
+                        linked_orders[0]
+                    )
+
+        if sales_order_name:
+            sales_order = frappe.get_doc(
+                "Sales Order",
+                sales_order_name,
+            )
+
+            context["sales_order"] = (
+                sales_order.as_dict()
+            )
+
+        _add_customer_and_company_context(
+            context,
+            business_source,
+        )
+
     return context
 
 
@@ -440,6 +498,28 @@ def _set_related_links(
         generated_doc.sales_invoice = (
             source_doc.name
         )
+
+    elif (
+        source_doc.doctype
+        == "PEPL Payment Tracker"
+    ):
+        generated_doc.payment_tracker = (
+            source_doc.name
+        )
+
+        if source_doc.get(
+            "linked_sales_invoice"
+        ):
+            generated_doc.sales_invoice = (
+                source_doc.linked_sales_invoice
+            )
+
+        if source_doc.get(
+            "linked_sales_order"
+        ):
+            generated_doc.sales_order = (
+                source_doc.linked_sales_order
+            )
 
     elif (
         source_doc.doctype
@@ -1028,6 +1108,7 @@ def get_renderer_deployment_info():
 BUSINESS_SOURCE_TRANSACTION_MAP = {
     "Sales Order": "Sales Order",
     "Sales Invoice": "Sales Invoice",
+    "PEPL Payment Tracker": "Payment Tracker",
 }
 
 
@@ -1145,7 +1226,7 @@ def get_business_source_generation_info():
         "sales_invoice_supported":
             True,
         "payment_tracker_supported":
-            False,
+            True,
         "release_marker":
             "sales-order-generation-v1",
     }

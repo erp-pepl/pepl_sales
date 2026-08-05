@@ -19,6 +19,7 @@
   "psd_tracker",
   "psd_entry_row",
   "document_tracker",
+  "payment_tracker",
   "customer",
   "sector",
   "file_section",
@@ -134,6 +135,13 @@
    "label": "Document Tracker",
    "fieldtype": "Link",
    "options": "PEPL Document Tracker"
+  },
+  {
+   "fieldname": "payment_tracker",
+   "fieldtype": "Link",
+   "label": "Payment Tracker",
+   "options": "PEPL Payment Tracker",
+   "read_only": 1
   },
   {
    "fieldname": "customer",
