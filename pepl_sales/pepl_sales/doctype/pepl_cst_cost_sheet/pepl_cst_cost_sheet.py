@@ -1012,9 +1012,19 @@ def create_or_update_draft_bom(cost_sheet_name):
                 )
             )
     else:
-        bom = frappe.new_doc("BOM")
-        bom.item = cost_sheet.linked_item
-        bom.quantity = 1
+        if not frappe.db.exists(
+            "Item",
+            cost_sheet.linked_item,
+        ):
+            frappe.throw(
+                _(
+                    "Linked Item {0} does not exist."
+                ).format(
+                    frappe.bold(
+                        cost_sheet.linked_item
+                    )
+                )
+            )
 
         company = (
             frappe.defaults.get_user_default(
@@ -1026,24 +1036,90 @@ def create_or_update_draft_bom(cost_sheet_name):
             )
         )
 
-        if (
-            company
-            and bom.meta.has_field("company")
-        ):
-            bom.company = company
+        if not company:
+            frappe.throw(
+                _(
+                    "A default Company is required before "
+                    "creating the BOM. Set Default Company "
+                    "in Global Defaults or User Defaults."
+                )
+            )
 
-        bom.is_active = 1
+        finished_good_uom = frappe.db.get_value(
+            "Item",
+            cost_sheet.linked_item,
+            "stock_uom",
+        )
+
+        if not finished_good_uom:
+            frappe.throw(
+                _(
+                    "Linked Item {0} does not have a "
+                    "Stock UOM."
+                ).format(
+                    frappe.bold(
+                        cost_sheet.linked_item
+                    )
+                )
+            )
+
+        bom = frappe.new_doc("BOM")
+        bom.item = cost_sheet.linked_item
+        bom.quantity = 1
+        bom.company = company
+
+        if bom.meta.has_field("uom"):
+            bom.uom = finished_good_uom
+
+        # Keep a newly generated costing BOM as Draft and
+        # non-default until it has been reviewed.
+        bom.is_active = 0
         bom.is_default = 0
+
         created = True
 
     bom.set("items", [])
 
     for component in components:
+        if not frappe.db.exists(
+            "Item",
+            component.component_item,
+        ):
+            frappe.throw(
+                _(
+                    "Component Item {0} in row {1} "
+                    "does not exist."
+                ).format(
+                    frappe.bold(
+                        component.component_item
+                    ),
+                    component.idx,
+                )
+            )
+
         item_uom = frappe.db.get_value(
             "Item",
             component.component_item,
             "stock_uom",
         )
+
+        component_uom = (
+            component.uom
+            or item_uom
+        )
+
+        if not component_uom:
+            frappe.throw(
+                _(
+                    "Component Item {0} in row {1} "
+                    "does not have a UOM."
+                ).format(
+                    frappe.bold(
+                        component.component_item
+                    ),
+                    component.idx,
+                )
+            )
 
         bom.append(
             "items",
@@ -1055,8 +1131,7 @@ def create_or_update_draft_bom(cost_sheet_name):
                         component.quantity_per_assembly
                     ),
                 "uom":
-                    component.uom
-                    or item_uom,
+                    component_uom,
             },
         )
 
