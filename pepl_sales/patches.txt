@@ -26,3 +26,4 @@ pepl_sales.patches.v1_0.configure_sales_invoice_standard_document_templates
 pepl_sales.patches.v1_0.configure_payment_request_standard_document_template
 pepl_sales.patches.v1_0.classify_gst_certificate_as_external_evidence
 pepl_sales.patches.v1_0.restrict_tender_permissions
+pepl_sales.patches.v1_0.finalize_tender_access_controls
