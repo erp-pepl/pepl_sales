@@ -24,7 +24,6 @@ PERMISSIONS = [
         "delete": 1,
         "report": 1,
         "export": 1,
-        "import": 1,
         "share": 1,
         "print": 1,
         "email": 1,
