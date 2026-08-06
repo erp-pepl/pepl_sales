@@ -916,3 +916,207 @@ def clone_cost_sheet_for_new_tender(
         "tender": tender.name,
         "linked_item": new_cst.linked_item,
     }
+
+
+@frappe.whitelist()
+def create_or_update_draft_bom(cost_sheet_name):
+    """Create or update a draft ERPNext BOM from a Cost Sheet."""
+
+    if not cost_sheet_name:
+        frappe.throw(
+            _("Cost Sheet is required.")
+        )
+
+    cost_sheet = frappe.get_doc(
+        "PEPL CST Cost Sheet",
+        cost_sheet_name,
+    )
+
+    if not cost_sheet.linked_item:
+        frappe.throw(
+            _(
+                "Set the Linked Item before creating a BOM."
+            )
+        )
+
+    components = [
+        row
+        for row in cost_sheet.components or []
+        if row.component_item
+    ]
+
+    if not components:
+        frappe.throw(
+            _(
+                "At least one component Item is required "
+                "before creating a BOM."
+            )
+        )
+
+    invalid_rows = []
+
+    for row in components:
+        if flt(row.quantity_per_assembly) <= 0:
+            invalid_rows.append(
+                row.idx
+            )
+
+    if invalid_rows:
+        frappe.throw(
+            _(
+                "Component rows {0} require a quantity "
+                "greater than zero."
+            ).format(
+                ", ".join(
+                    str(idx)
+                    for idx in invalid_rows
+                )
+            )
+        )
+
+    bom = None
+    created = False
+
+    if (
+        cost_sheet.linked_bom
+        and frappe.db.exists(
+            "BOM",
+            cost_sheet.linked_bom,
+        )
+    ):
+        bom = frappe.get_doc(
+            "BOM",
+            cost_sheet.linked_bom,
+        )
+
+        if bom.docstatus != 0:
+            frappe.throw(
+                _(
+                    "Linked BOM {0} is submitted or cancelled. "
+                    "A submitted BOM cannot be overwritten."
+                ).format(
+                    frappe.bold(bom.name)
+                )
+            )
+
+        if bom.item != cost_sheet.linked_item:
+            frappe.throw(
+                _(
+                    "Linked BOM Item {0} does not match "
+                    "Cost Sheet Item {1}."
+                ).format(
+                    frappe.bold(bom.item),
+                    frappe.bold(
+                        cost_sheet.linked_item
+                    ),
+                )
+            )
+    else:
+        bom = frappe.new_doc("BOM")
+        bom.item = cost_sheet.linked_item
+        bom.quantity = 1
+
+        company = (
+            frappe.defaults.get_user_default(
+                "Company"
+            )
+            or frappe.db.get_single_value(
+                "Global Defaults",
+                "default_company",
+            )
+        )
+
+        if (
+            company
+            and bom.meta.has_field("company")
+        ):
+            bom.company = company
+
+        bom.is_active = 1
+        bom.is_default = 0
+        created = True
+
+    bom.set("items", [])
+
+    for component in components:
+        item_uom = frappe.db.get_value(
+            "Item",
+            component.component_item,
+            "stock_uom",
+        )
+
+        bom.append(
+            "items",
+            {
+                "item_code":
+                    component.component_item,
+                "qty":
+                    flt(
+                        component.quantity_per_assembly
+                    ),
+                "uom":
+                    component.uom
+                    or item_uom,
+            },
+        )
+
+    if bom.meta.has_field("remarks"):
+        bom.remarks = (
+            "Created or updated from PEPL CST Cost Sheet "
+            + cost_sheet.name
+        )
+
+    if created:
+        bom.insert(
+            ignore_permissions=True
+        )
+    else:
+        bom.save(
+            ignore_permissions=True
+        )
+
+    cost_sheet.db_set(
+        "linked_bom",
+        bom.name,
+        update_modified=False,
+    )
+    cost_sheet.db_set(
+        "bom_status",
+        "Draft",
+        update_modified=False,
+    )
+    cost_sheet.db_set(
+        "bom_last_synced_on",
+        frappe.utils.now_datetime(),
+        update_modified=False,
+    )
+
+    if (
+        cost_sheet.linked_product
+        and frappe.db.exists(
+            "PEPL Product Master",
+            cost_sheet.linked_product,
+        )
+    ):
+        product = frappe.get_doc(
+            "PEPL Product Master",
+            cost_sheet.linked_product,
+        )
+
+        if (
+            not product.linked_bom
+            or product.linked_bom == bom.name
+        ):
+            product.linked_bom = bom.name
+            product.save(
+                ignore_permissions=True
+            )
+
+    return {
+        "created": created,
+        "bom": bom.name,
+        "item": bom.item,
+        "component_count":
+            len(bom.items or []),
+        "docstatus": bom.docstatus,
+    }

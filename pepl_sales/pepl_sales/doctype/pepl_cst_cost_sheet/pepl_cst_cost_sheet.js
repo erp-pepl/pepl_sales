@@ -531,3 +531,69 @@ function pepl_render_cst_intelligence(frm) {
         }
     }
 }
+
+
+frappe.ui.form.on("PEPL CST Cost Sheet", {
+    refresh(frm) {
+        if (
+            frm.is_new()
+            || !frm.doc.linked_item
+            || !(frm.doc.components || []).length
+        ) {
+            return;
+        }
+
+        frm.add_custom_button(
+            __("Create / Update Draft BOM"),
+            function () {
+                frappe.call({
+                    method:
+                        "pepl_sales.pepl_sales.doctype."
+                        + "pepl_cst_cost_sheet."
+                        + "pepl_cst_cost_sheet."
+                        + "create_or_update_draft_bom",
+
+                    args: {
+                        cost_sheet_name:
+                            frm.doc.name
+                    },
+
+                    freeze: true,
+                    freeze_message:
+                        __("Creating Draft BOM..."),
+
+                    callback(response) {
+                        const result =
+                            response.message || {};
+
+                        if (!result.bom) {
+                            frappe.msgprint(
+                                __(
+                                    "BOM was not created."
+                                )
+                            );
+                            return;
+                        }
+
+                        frappe.show_alert({
+                            message: __(
+                                "Draft BOM {0} is ready.",
+                                [result.bom]
+                            ),
+                            indicator: "green"
+                        });
+
+                        frm.reload_doc();
+
+                        frappe.set_route(
+                            "Form",
+                            "BOM",
+                            result.bom
+                        );
+                    }
+                });
+            },
+            __("Actions")
+        );
+    }
+});

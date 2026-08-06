@@ -26,6 +26,10 @@
   "approved_date",
   "components_section",
   "components",
+  "bom_section",
+  "linked_bom",
+  "bom_status",
+  "bom_last_synced_on",
   "totals_section",
   "total_components_cost",
   "overhead_percent",
@@ -239,7 +243,7 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Final Bid Price",
-   "description": "What we actually quote \u2014 may differ from suggested"
+   "description": "What we actually quote — may differ from suggested"
   },
   {
    "fieldname": "column_break_4",
@@ -266,7 +270,7 @@
    "fieldname": "competitor_section",
    "fieldtype": "Section Break",
    "label": "Competitor History (Financial Tabulation)",
-   "description": "Past tenders for this item \u2014 what competitors charged. Helps inform pricing decisions."
+   "description": "Past tenders for this item — what competitors charged. Helps inform pricing decisions."
   },
   {
    "fieldname": "competitors",
@@ -283,6 +287,30 @@
    "fieldname": "remarks",
    "fieldtype": "Text Editor",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "bom_section",
+   "fieldtype": "Section Break",
+   "label": "ERPNext BOM"
+  },
+  {
+   "fieldname": "linked_bom",
+   "fieldtype": "Link",
+   "label": "Linked BOM",
+   "options": "BOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bom_status",
+   "fieldtype": "Data",
+   "label": "BOM Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bom_last_synced_on",
+   "fieldtype": "Datetime",
+   "label": "BOM Last Synced On",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
