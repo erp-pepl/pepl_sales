@@ -2,7 +2,7 @@ import frappe
 from frappe.permissions import reset_perms
 
 
-DOCTYPE_NAME = "PEPL Tender"
+TENDER_DOCTYPE = "PEPL Tender"
 TENDER_EXECUTIVE_ROLE = "PEPL Tender Executive"
 
 PROFILE_ASSIGNMENTS = {
@@ -21,49 +21,38 @@ PROFILE_ASSIGNMENTS = {
 
 def execute():
     _reset_tender_permissions()
-    _configure_tender_role_profiles()
+
+    for user, configuration in PROFILE_ASSIGNMENTS.items():
+        _create_and_assign_profile(
+            user=user,
+            source_profile=configuration["source_profile"],
+            target_profile=configuration["target_profile"],
+        )
 
 
 def _reset_tender_permissions():
     if not frappe.db.exists(
         "DocType",
-        DOCTYPE_NAME,
+        TENDER_DOCTYPE,
     ):
         return
 
-    reset_perms(DOCTYPE_NAME)
+    reset_perms(TENDER_DOCTYPE)
 
     frappe.clear_cache(
-        doctype=DOCTYPE_NAME,
+        doctype=TENDER_DOCTYPE,
     )
 
 
-def _configure_tender_role_profiles():
-    if not frappe.db.exists(
-        "Role",
-        TENDER_EXECUTIVE_ROLE,
-    ):
-        frappe.throw(
-            "Required role is missing: "
-            + TENDER_EXECUTIVE_ROLE
-        )
-
-    for user, config in PROFILE_ASSIGNMENTS.items():
-        _configure_user_profile(
-            user=user,
-            source_profile=config["source_profile"],
-            target_profile=config["target_profile"],
-        )
-
-
-def _configure_user_profile(
+def _create_and_assign_profile(
     user,
     source_profile,
     target_profile,
 ):
     if not frappe.db.exists("User", user):
         frappe.throw(
-            "Required User is missing: " + user
+            "Required User does not exist: "
+            + user
         )
 
     if not frappe.db.exists(
@@ -71,7 +60,7 @@ def _configure_user_profile(
         source_profile,
     ):
         frappe.throw(
-            "Source Role Profile is missing: "
+            "Source Role Profile does not exist: "
             + source_profile
         )
 
@@ -80,20 +69,14 @@ def _configure_user_profile(
         source_profile,
     )
 
-    source_roles = [
-        row.role
-        for row in source_doc.get("roles") or []
-        if row.role
-    ]
+    roles = []
 
-    final_roles = []
+    for row in source_doc.get("roles") or []:
+        if row.role and row.role not in roles:
+            roles.append(row.role)
 
-    for role in (
-        source_roles
-        + [TENDER_EXECUTIVE_ROLE]
-    ):
-        if role not in final_roles:
-            final_roles.append(role)
+    if TENDER_EXECUTIVE_ROLE not in roles:
+        roles.append(TENDER_EXECUTIVE_ROLE)
 
     if frappe.db.exists(
         "Role Profile",
@@ -111,7 +94,7 @@ def _configure_user_profile(
 
     target_doc.set("roles", [])
 
-    for role in final_roles:
+    for role in roles:
         target_doc.append(
             "roles",
             {
@@ -134,6 +117,7 @@ def _configure_user_profile(
     )
 
     user_doc.role_profile_name = target_profile
+
     user_doc.save(
         ignore_permissions=True,
     )
@@ -144,6 +128,16 @@ def _configure_user_profile(
         row.role
         for row in user_doc.get("roles") or []
     }
+
+    if (
+        user_doc.role_profile_name
+        != target_profile
+    ):
+        frappe.throw(
+            "Role Profile assignment did not persist "
+            "for User: "
+            + user
+        )
 
     if (
         TENDER_EXECUTIVE_ROLE
