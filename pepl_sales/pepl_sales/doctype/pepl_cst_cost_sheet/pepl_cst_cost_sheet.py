@@ -175,22 +175,188 @@ class PEPLCSTCostSheet(Document):
         if last_cst:
             component.reference_rate_last_cst = last_cst[0].last_rate
 
-        latest_purchase = frappe.db.sql(
+        self._populate_purchase_history(component)
+        self._populate_supply_history(component)
+
+        component.history_last_refreshed_on = (
+            frappe.utils.now_datetime()
+        )
+
+    def _populate_purchase_history(self, component):
+        """Populate the latest submitted purchase transaction."""
+
+        component.reference_rate_purchase = 0
+        component.last_purchase_supplier = None
+        component.last_purchase_date = None
+        component.last_purchase_document_type = None
+        component.last_purchase_document = None
+
+        purchase_receipt = frappe.db.sql(
             """
-            SELECT pr.rate
-            FROM `tabPurchase Receipt Item` pr
-            INNER JOIN `tabPurchase Receipt` parent
-                ON pr.parent = parent.name
-            WHERE pr.item_code = %s
-              AND parent.docstatus = 1
-            ORDER BY parent.posting_date DESC
+            SELECT
+                pri.rate,
+                pr.supplier,
+                pr.posting_date,
+                pr.name
+            FROM `tabPurchase Receipt Item` pri
+            INNER JOIN `tabPurchase Receipt` pr
+                ON pri.parent = pr.name
+            WHERE pri.item_code = %s
+              AND pr.docstatus = 1
+            ORDER BY
+                pr.posting_date DESC,
+                pr.posting_time DESC,
+                pr.creation DESC
             LIMIT 1
             """,
             component.component_item,
             as_dict=True,
         )
-        if latest_purchase:
-            component.reference_rate_purchase = latest_purchase[0].rate
+
+        if purchase_receipt:
+            row = purchase_receipt[0]
+
+            component.reference_rate_purchase = (
+                row.rate or 0
+            )
+            component.last_purchase_supplier = (
+                row.supplier
+            )
+            component.last_purchase_date = (
+                row.posting_date
+            )
+            component.last_purchase_document_type = (
+                "Purchase Receipt"
+            )
+            component.last_purchase_document = row.name
+            return
+
+        purchase_invoice = frappe.db.sql(
+            """
+            SELECT
+                pii.rate,
+                pi.supplier,
+                pi.posting_date,
+                pi.name
+            FROM `tabPurchase Invoice Item` pii
+            INNER JOIN `tabPurchase Invoice` pi
+                ON pii.parent = pi.name
+            WHERE pii.item_code = %s
+              AND pi.docstatus = 1
+            ORDER BY
+                pi.posting_date DESC,
+                pi.creation DESC
+            LIMIT 1
+            """,
+            component.component_item,
+            as_dict=True,
+        )
+
+        if purchase_invoice:
+            row = purchase_invoice[0]
+
+            component.reference_rate_purchase = (
+                row.rate or 0
+            )
+            component.last_purchase_supplier = (
+                row.supplier
+            )
+            component.last_purchase_date = (
+                row.posting_date
+            )
+            component.last_purchase_document_type = (
+                "Purchase Invoice"
+            )
+            component.last_purchase_document = row.name
+
+    def _populate_supply_history(self, component):
+        """Populate the latest submitted customer supply."""
+
+        component.last_supply_customer = None
+        component.last_supply_date = None
+        component.last_supply_rate = 0
+        component.last_supply_quantity = 0
+        component.last_supply_document_type = None
+        component.last_supply_document = None
+        component.history_warning = None
+
+        delivery_note = frappe.db.sql(
+            """
+            SELECT
+                dni.rate,
+                dni.qty,
+                dn.customer,
+                dn.posting_date,
+                dn.name
+            FROM `tabDelivery Note Item` dni
+            INNER JOIN `tabDelivery Note` dn
+                ON dni.parent = dn.name
+            WHERE dni.item_code = %s
+              AND dn.docstatus = 1
+            ORDER BY
+                dn.posting_date DESC,
+                dn.posting_time DESC,
+                dn.creation DESC
+            LIMIT 1
+            """,
+            component.component_item,
+            as_dict=True,
+        )
+
+        if delivery_note:
+            row = delivery_note[0]
+
+            component.last_supply_customer = row.customer
+            component.last_supply_date = row.posting_date
+            component.last_supply_rate = row.rate or 0
+            component.last_supply_quantity = row.qty or 0
+            component.last_supply_document_type = (
+                "Delivery Note"
+            )
+            component.last_supply_document = row.name
+            return
+
+        sales_invoice = frappe.db.sql(
+            """
+            SELECT
+                sii.rate,
+                sii.qty,
+                si.customer,
+                si.posting_date,
+                si.name
+            FROM `tabSales Invoice Item` sii
+            INNER JOIN `tabSales Invoice` si
+                ON sii.parent = si.name
+            WHERE sii.item_code = %s
+              AND si.docstatus = 1
+              AND si.update_stock = 1
+            ORDER BY
+                si.posting_date DESC,
+                si.posting_time DESC,
+                si.creation DESC
+            LIMIT 1
+            """,
+            component.component_item,
+            as_dict=True,
+        )
+
+        if sales_invoice:
+            row = sales_invoice[0]
+
+            component.last_supply_customer = row.customer
+            component.last_supply_date = row.posting_date
+            component.last_supply_rate = row.rate or 0
+            component.last_supply_quantity = row.qty or 0
+            component.last_supply_document_type = (
+                "Sales Invoice"
+            )
+            component.last_supply_document = row.name
+            return
+
+        component.history_warning = (
+            "No submitted Delivery Note or stock-updating "
+            "Sales Invoice was found for this component Item."
+        )
 
 
 def _get_rm_group_for_item(item_code):

@@ -25,6 +25,20 @@
   "reference_section",
   "reference_rate_last_cst",
   "reference_rate_purchase",
+  "history_section",
+  "last_purchase_supplier",
+  "last_purchase_date",
+  "last_purchase_document_type",
+  "last_purchase_document",
+  "history_column_break",
+  "last_supply_customer",
+  "last_supply_date",
+  "last_supply_rate",
+  "last_supply_quantity",
+  "last_supply_document_type",
+  "last_supply_document",
+  "history_last_refreshed_on",
+  "history_warning",
   "remarks_section",
   "component_remarks"
  ],
@@ -167,6 +181,91 @@
    "fieldname": "component_remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "history_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase and Supply History"
+  },
+  {
+   "fieldname": "last_purchase_supplier",
+   "fieldtype": "Link",
+   "label": "Last Purchase Supplier",
+   "options": "Supplier",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_purchase_date",
+   "fieldtype": "Date",
+   "label": "Last Purchase Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_purchase_document_type",
+   "fieldtype": "Data",
+   "label": "Last Purchase Document Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_purchase_document",
+   "fieldtype": "Dynamic Link",
+   "label": "Last Purchase Document",
+   "options": "last_purchase_document_type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "history_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_supply_customer",
+   "fieldtype": "Link",
+   "label": "Last Supply Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_supply_date",
+   "fieldtype": "Date",
+   "label": "Last Supply Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_supply_rate",
+   "fieldtype": "Currency",
+   "label": "Last Supply Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_supply_quantity",
+   "fieldtype": "Float",
+   "label": "Last Supply Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_supply_document_type",
+   "fieldtype": "Data",
+   "label": "Last Supply Document Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_supply_document",
+   "fieldtype": "Dynamic Link",
+   "label": "Last Supply Document",
+   "options": "last_supply_document_type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "history_last_refreshed_on",
+   "fieldtype": "Datetime",
+   "label": "History Last Refreshed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "history_warning",
+   "fieldtype": "Small Text",
+   "label": "History Warning",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,
