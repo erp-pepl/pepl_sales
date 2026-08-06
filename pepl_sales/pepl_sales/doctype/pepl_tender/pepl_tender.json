@@ -639,94 +639,17 @@
    "cancel": 1
   },
   {
-   "role": "Sales Manager",
+   "role": "PEPL Tender Manager",
    "read": 1,
    "write": 1,
    "create": 1,
-   "delete": 0,
+   "delete": 1,
    "report": 1,
    "export": 1,
+   "import": 1,
+   "share": 1,
    "print": 1,
-   "email": 1,
-   "share": 0,
-   "submit": 1,
-   "cancel": 1
-  },
-  {
-   "role": "Sales User",
-   "read": 1,
-   "write": 1,
-   "create": 1,
-   "delete": 0,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 0,
-   "submit": 0,
-   "cancel": 0
-  },
-  {
-   "role": "Accounts Manager",
-   "read": 1,
-   "write": 0,
-   "create": 0,
-   "delete": 0,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 0,
-   "submit": 0,
-   "cancel": 0
-  },
-  {
-   "role": "Accounts User",
-   "read": 1,
-   "write": 0,
-   "create": 0,
-   "delete": 0,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 0,
-   "submit": 0,
-   "cancel": 0
-  },
-  {
-   "role": "Engineering Manager",
-   "read": 1,
-   "write": 0,
-   "create": 0,
-   "delete": 0,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 0,
-   "submit": 0,
-   "cancel": 0
-  },
-  {
-   "role": "Engineering User",
-   "read": 1,
-   "write": 0,
-   "create": 0,
-   "delete": 0,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 0,
-   "submit": 0,
-   "cancel": 0
-  },
-  {
-   "role": "PEPL Tender Viewer",
-   "read": 1,
-   "report": 1,
-   "print": 1
+   "email": 1
   },
   {
    "role": "PEPL Tender Executive",
@@ -739,17 +662,10 @@
    "email": 1
   },
   {
-   "role": "PEPL Tender Manager",
+   "role": "PEPL Tender Viewer",
    "read": 1,
-   "write": 1,
-   "create": 1,
-   "delete": 1,
    "report": 1,
-   "export": 1,
-   "import": 1,
-   "share": 1,
-   "print": 1,
-   "email": 1
+   "print": 1
   }
  ],
  "sort_field": "modified",
