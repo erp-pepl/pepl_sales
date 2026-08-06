@@ -1,79 +1,20 @@
 import frappe
-
-
-PERMISSIONS = [
-    {
-        "role": "System Manager",
-        "read": 1,
-        "write": 1,
-        "create": 1,
-        "delete": 1,
-        "report": 1,
-        "export": 1,
-        "print": 1,
-        "email": 1,
-        "share": 1,
-        "submit": 1,
-        "cancel": 1,
-    },
-    {
-        "role": "PEPL Tender Manager",
-        "read": 1,
-        "write": 1,
-        "create": 1,
-        "delete": 1,
-        "report": 1,
-        "export": 1,
-        "share": 1,
-        "print": 1,
-        "email": 1,
-    },
-    {
-        "role": "PEPL Tender Executive",
-        "read": 1,
-        "write": 1,
-        "create": 1,
-        "report": 1,
-        "share": 1,
-        "print": 1,
-        "email": 1,
-    },
-    {
-        "role": "PEPL Tender Viewer",
-        "read": 1,
-        "report": 1,
-        "print": 1,
-    },
-]
+from frappe.permissions import reset_perms
 
 
 def execute():
+    doctype_name = "PEPL Tender"
+
     if not frappe.db.exists(
         "DocType",
-        "PEPL Tender",
+        doctype_name,
     ):
         return
 
-    tender_doctype = frappe.get_doc(
-        "DocType",
-        "PEPL Tender",
-    )
-
-    tender_doctype.set(
-        "permissions",
-        [],
-    )
-
-    for permission in PERMISSIONS:
-        tender_doctype.append(
-            "permissions",
-            permission,
-        )
-
-    tender_doctype.save(
-        ignore_permissions=True
-    )
+    # Reload the source-controlled permission matrix from the
+    # DocType JSON and replace the site's existing DocPerm rows.
+    reset_perms(doctype_name)
 
     frappe.clear_cache(
-        doctype="PEPL Tender"
+        doctype=doctype_name
     )
