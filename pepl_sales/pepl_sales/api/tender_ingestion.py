@@ -1510,15 +1510,30 @@ def _read_supporting_file(file_url):
             ),
         }
 
-    minimum_expected_text = max(
-        100,
-        page_count * 80,
-    )
+    if extension == ".pdf":
+        minimum_expected_text = max(
+            100,
+            page_count * 80,
+        )
+
+        if len(extracted_text) < minimum_expected_text:
+            return {
+                "filename": filename,
+                "extension": extension,
+                "page_count": page_count,
+                "text": extracted_text,
+                "status":
+                    "Read with Warnings",
+                "warning": (
+                    "Very little machine-readable text was found. "
+                    "This supporting PDF may contain scanned pages "
+                    "or drawings and requires visual/manual review."
+                ),
+            }
 
     if (
-        extension == ".pdf"
-        and len(extracted_text)
-        < minimum_expected_text
+        extension == ".docx"
+        and len(extracted_text) < 50
     ):
         return {
             "filename": filename,
@@ -1528,9 +1543,10 @@ def _read_supporting_file(file_url):
             "status":
                 "Read with Warnings",
             "warning": (
-                "Very little machine-readable text was found. "
-                "This supporting PDF may contain scanned pages "
-                "or drawings and requires visual/manual review."
+                "Very little machine-readable text was found "
+                "inside this Word document. The file may contain "
+                "images, drawing objects or unsupported embedded "
+                "content and requires visual/manual review."
             ),
         }
 
@@ -1815,6 +1831,291 @@ def _load_word_letterhead():
     return WordDocument()
 
 
+
+def _supporting_document_excerpt(row):
+    """Return a controlled excerpt for the Tender working DOCX."""
+
+    text_content = (
+        row.document_text
+        or ""
+    ).strip()
+
+    if not text_content:
+        return ""
+
+    classification = (
+        row.document_classification
+        or "Supporting Tender Document"
+    )
+
+    # GTC is retained in ERPNext as the authoritative source.
+    # Do not make the editable working document dozens of pages long.
+    if classification == "GeM GTC":
+        return ""
+
+    limits = {
+        "Buyer Specification": 4000,
+        "Drawing": 1500,
+        "Specification": 4000,
+        "Quality": 2500,
+        "PQC": 2500,
+        "Vendor Registration": 2500,
+        "Pre Integrity Pact": 2500,
+        "Buyer ATC": 4000,
+        "Supporting Tender Document": 2000,
+    }
+
+    limit = limits.get(
+        classification,
+        2000,
+    )
+
+    excerpt = text_content[:limit]
+
+    if len(text_content) > limit:
+        excerpt += (
+            "\n\n[Excerpt truncated. "
+            "Refer to the original supporting file in ERPNext.]"
+        )
+
+    return excerpt
+
+
+def _add_supporting_document_register(
+    document,
+    tender,
+):
+    document.add_heading(
+        "Supporting Tender Document Register",
+        level=2,
+    )
+
+    if not tender.tender_source_links:
+        document.add_paragraph(
+            "No supporting Tender hyperlinks or attachments were recorded."
+        )
+        return
+
+    table = document.add_table(
+        rows=1,
+        cols=7,
+    )
+
+    try:
+        table.style = "Table Grid"
+    except KeyError:
+        pass
+
+    headings = [
+        "No.",
+        "Classification",
+        "Retrieval",
+        "Read Status",
+        "Pages",
+        "Supporting File",
+        "Review Required",
+    ]
+
+    for index, heading in enumerate(
+        headings
+    ):
+        table.rows[0].cells[
+            index
+        ].text = heading
+
+    for row in tender.tender_source_links:
+        cells = table.add_row().cells
+
+        review_required = (
+            "Yes"
+            if (
+                row.retrieval_status
+                == "Manual Review Required"
+                or row.document_read_status
+                in {
+                    "Read with Warnings",
+                    "Manual Review Required",
+                    "Failed",
+                }
+                or not row.downloaded_file
+            )
+            else "No"
+        )
+
+        values = [
+            row.idx,
+            (
+                row.document_classification
+                or row.link_type
+                or "-"
+            ),
+            row.retrieval_status or "-",
+            row.document_read_status or "Not Read",
+            row.document_page_count or 0,
+            row.downloaded_file or "-",
+            review_required,
+        ]
+
+        for index, value in enumerate(
+            values
+        ):
+            cells[index].text = str(
+                value
+            )
+
+
+def _add_supporting_document_excerpts(
+    document,
+    tender,
+):
+    document.add_heading(
+        "Extracted Supporting Document Highlights",
+        level=2,
+    )
+
+    included = 0
+
+    for row in tender.tender_source_links or []:
+        excerpt = (
+            _supporting_document_excerpt(
+                row
+            )
+        )
+
+        if not excerpt:
+            continue
+
+        included += 1
+
+        document.add_heading(
+            (
+                row.document_classification
+                or f"Supporting Document {row.idx}"
+            ),
+            level=3,
+        )
+
+        metadata = document.add_paragraph()
+
+        metadata.add_run(
+            "File: "
+        ).bold = True
+
+        metadata.add_run(
+            row.downloaded_file
+            or "-"
+        )
+
+        metadata.add_run(
+            " | Read Status: "
+        ).bold = True
+
+        metadata.add_run(
+            row.document_read_status
+            or "Not Read"
+        )
+
+        if row.document_page_count:
+            metadata.add_run(
+                " | Pages: "
+            ).bold = True
+
+            metadata.add_run(
+                str(
+                    row.document_page_count
+                )
+            )
+
+        document.add_paragraph(
+            excerpt
+        )
+
+    if not included:
+        document.add_paragraph(
+            "No machine-readable supporting-document excerpts "
+            "were available. Refer to the original Tender attachments."
+        )
+
+
+def _add_manual_review_register(
+    document,
+    tender,
+):
+    review_rows = []
+
+    for row in tender.tender_source_links or []:
+        requires_review = (
+            row.retrieval_status
+            == "Manual Review Required"
+            or row.document_read_status
+            in {
+                "Read with Warnings",
+                "Manual Review Required",
+                "Failed",
+            }
+            or not row.downloaded_file
+        )
+
+        if requires_review:
+            review_rows.append(
+                row
+            )
+
+    document.add_heading(
+        "Documents Requiring Visual / Manual Review",
+        level=2,
+    )
+
+    if not review_rows:
+        document.add_paragraph(
+            "No supporting documents are currently flagged "
+            "for visual/manual review."
+        )
+        return
+
+    for row in review_rows:
+        classification = (
+            row.document_classification
+            or row.link_type
+            or f"Document {row.idx}"
+        )
+
+        paragraph = document.add_paragraph(
+            style="List Bullet"
+        )
+
+        paragraph.add_run(
+            classification
+        ).bold = True
+
+        details = []
+
+        if row.retrieval_status:
+            details.append(
+                f"Retrieval: {row.retrieval_status}"
+            )
+
+        if row.document_read_status:
+            details.append(
+                f"Read: {row.document_read_status}"
+            )
+
+        if row.remarks:
+            details.append(
+                f"Remarks: {row.remarks}"
+            )
+
+        if row.source_url:
+            details.append(
+                f"Source: {row.source_url}"
+            )
+
+        paragraph.add_run(
+            " — "
+            + " | ".join(details)
+        )
+
+
 @frappe.whitelist()
 def generate_tender_word(
     tender_name,
@@ -1828,13 +2129,12 @@ def generate_tender_word(
 
     tender.check_permission("read")
 
-    if tender.tender_ingestion_status not in {
-        "Reviewed",
-        "Read - Review Required",
-        "Read with Warnings",
-    }:
+    if tender.tender_ingestion_status != "Reviewed":
         frappe.throw(
-            _("Read the Tender PDF before generating the Word document.")
+            _(
+                "Complete Tender extraction review before "
+                "generating the editable Word document."
+            )
         )
 
     extraction = {}
@@ -2041,18 +2341,56 @@ def generate_tender_word(
                 else "No",
             ),
             (
-                "EMD Required",
+                "ERP EMD Required",
                 "Yes"
                 if tender.emd_required
                 else "No",
             ),
             (
-                "EMD Amount",
+                "ERP EMD Amount",
                 tender.emd_amount,
+            ),
+            (
+                "Extracted EMD Required",
+                parsed.get("emd_required"),
+            ),
+            (
+                "Extracted EMD Amount",
+                parsed.get("emd_amount"),
             ),
             (
                 "EMD Mode",
                 tender.emd_mode,
+            ),
+            (
+                "Extracted ePBG Percentage",
+                parsed.get(
+                    "epbg_percentage"
+                ),
+            ),
+            (
+                "Extracted ePBG Duration (Months)",
+                parsed.get(
+                    "epbg_duration_months"
+                ),
+            ),
+            (
+                "Extracted Splitting Applied",
+                parsed.get(
+                    "splitting_applied"
+                ),
+            ),
+            (
+                "Extracted Splitting Ratio",
+                parsed.get(
+                    "splitting_ratio"
+                ),
+            ),
+            (
+                "Extracted Bid Validity",
+                parsed.get(
+                    "bid_validity"
+                ),
             ),
         ],
     )
@@ -2107,44 +2445,37 @@ def generate_tender_word(
         )
 
     document.add_heading(
-        "7. Hyperlinks / Tender Attachments Discovered",
+        "7. Supporting Tender Documents",
         level=2,
     )
 
-    if tender.tender_source_links:
-        table = document.add_table(
-            rows=1,
-            cols=4,
-        )
-
-        try:
-            table.style = "Table Grid"
-        except KeyError:
-            pass
-
-        for index, heading in enumerate(
-            [
-                "Type",
-                "URL",
-                "Retrieval Status",
-                "Local File",
-            ]
-        ):
-            table.rows[0].cells[index].text = heading
-
-        for row in tender.tender_source_links:
-            cells = table.add_row().cells
-            cells[0].text = row.link_type or "-"
-            cells[1].text = row.source_url or "-"
-            cells[2].text = row.retrieval_status or "-"
-            cells[3].text = row.downloaded_file or "-"
-    else:
-        document.add_paragraph(
-            "No hyperlinks were discovered in the source PDF."
-        )
+    _add_supporting_document_register(
+        document,
+        tender,
+    )
 
     document.add_heading(
-        "8. Automatic Reading Warnings",
+        "8. Supporting Document Content",
+        level=2,
+    )
+
+    _add_supporting_document_excerpts(
+        document,
+        tender,
+    )
+
+    document.add_heading(
+        "9. Review Exceptions",
+        level=2,
+    )
+
+    _add_manual_review_register(
+        document,
+        tender,
+    )
+
+    document.add_heading(
+        "10. Automatic Reading Warnings",
         level=2,
     )
 
@@ -2158,7 +2489,7 @@ def generate_tender_word(
         )
 
     document.add_heading(
-        "9. Manual Review",
+        "11. PEPL Manual Review / Sign-Off",
         level=2,
     )
 

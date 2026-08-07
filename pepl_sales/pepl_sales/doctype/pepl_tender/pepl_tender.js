@@ -1111,13 +1111,8 @@ function pepl_add_tender_ingestion_actions(frm) {
     }
 
     if (
-        [
-            "Reviewed",
-            "Read - Review Required",
-            "Read with Warnings"
-        ].includes(
-            frm.doc.tender_ingestion_status
-        )
+        frm.doc.tender_ingestion_status
+        === "Reviewed"
     ) {
         frm.add_custom_button(
             __("Generate Editable Word"),
