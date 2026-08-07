@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from io import BytesIO
 from typing import Any
 
 import frappe
@@ -9,6 +10,7 @@ from frappe import _
 from frappe.utils import getdate, nowdate
 from frappe.utils.file_manager import save_file
 from frappe.utils.pdf import get_pdf
+from pypdf import PdfReader, PdfWriter
 
 
 SUPPORTED_SOURCE_DOCTYPES = {
@@ -19,6 +21,148 @@ SUPPORTED_SOURCE_DOCTYPES = {
     "PEPL Document Tracker",
     "PEPL Payment Tracker",
 }
+
+
+PEPL_LETTERHEAD_VERSION = "PEPL-LH-2026-01"
+
+PEPL_LETTERHEAD_FILENAME = (
+    "PEPL_Letterhead_Plain.pdf"
+)
+
+
+def _get_official_letterhead_path():
+    """Return the controlled PEPL letterhead PDF bundled with the app."""
+
+    return frappe.get_app_path(
+        "pepl_sales",
+        "public",
+        "letterhead",
+        PEPL_LETTERHEAD_FILENAME,
+    )
+
+
+def _apply_official_pepl_letterhead(pdf_content):
+    """
+    Overlay the exact approved PEPL letterhead PDF on every generated page.
+
+    The business PDF is deliberately rendered with safe top and bottom
+    margins before reaching this function. Therefore the official header
+    and footer can be overlaid without covering business content.
+    """
+
+    letterhead_path = _get_official_letterhead_path()
+
+    try:
+        with open(letterhead_path, "rb") as source:
+            letterhead_bytes = source.read()
+    except OSError as exc:
+        frappe.throw(
+            _(
+                "Official PEPL letterhead file could not be read: {0}"
+            ).format(exc)
+        )
+
+    if not letterhead_bytes:
+        frappe.throw(
+            _("Official PEPL letterhead PDF is empty.")
+        )
+
+    try:
+        business_reader = PdfReader(
+            BytesIO(pdf_content)
+        )
+
+        if not business_reader.pages:
+            frappe.throw(
+                _("Generated business PDF contains no pages.")
+            )
+
+        writer = PdfWriter()
+
+        for business_page in business_reader.pages:
+            # Create a fresh page object for every output page because
+            # merge_page mutates the page tree.
+            letterhead_reader = PdfReader(
+                BytesIO(letterhead_bytes)
+            )
+
+            if not letterhead_reader.pages:
+                frappe.throw(
+                    _(
+                        "Official PEPL letterhead PDF "
+                        "contains no pages."
+                    )
+                )
+
+            letterhead_page = (
+                letterhead_reader.pages[0]
+            )
+
+            business_width = float(
+                business_page.mediabox.width
+            )
+            business_height = float(
+                business_page.mediabox.height
+            )
+
+            letterhead_width = float(
+                letterhead_page.mediabox.width
+            )
+            letterhead_height = float(
+                letterhead_page.mediabox.height
+            )
+
+            width_difference = abs(
+                business_width
+                - letterhead_width
+            )
+            height_difference = abs(
+                business_height
+                - letterhead_height
+            )
+
+            # Both PDFs are expected to be A4. Reject a materially
+            # different page rather than silently distorting branding.
+            if (
+                width_difference > 5
+                or height_difference > 5
+            ):
+                frappe.throw(
+                    _(
+                        "Generated PDF page size does not match "
+                        "the official PEPL A4 letterhead."
+                    )
+                )
+
+            business_page.merge_page(
+                letterhead_page,
+                over=True,
+            )
+
+            writer.add_page(
+                business_page
+            )
+
+        output = BytesIO()
+        writer.write(output)
+
+        return output.getvalue()
+
+    except Exception as exc:
+        frappe.log_error(
+            message=frappe.get_traceback(),
+            title=(
+                "PEPL Official Letterhead "
+                "PDF Merge Failed"
+            ),
+        )
+
+        frappe.throw(
+            _(
+                "Unable to apply the official PEPL "
+                "letterhead: {0}"
+            ).format(exc)
+        )
 
 
 def _clean_filename(value):
@@ -927,8 +1071,51 @@ def generate_pdf(
             + audit_footer
         )
 
+        # Hide only the synthetic company identity used by the
+        # earlier HTML templates. Keep .pepl-title visible so the
+        # document type remains clearly identified below the official
+        # corporate letterhead.
+        official_letterhead_css = """
+        <style>
+            .pepl-company {
+                display: none !important;
+            }
+
+            .pepl-header {
+                border-bottom: 0 !important;
+                padding-bottom: 0 !important;
+                margin-bottom: 16px !important;
+            }
+
+            @page {
+                size: A4;
+            }
+        </style>
+        """
+
+        rendered_html = (
+            official_letterhead_css
+            + rendered_html
+        )
+
+        # The supplied PEPL letterhead occupies both the upper corporate
+        # header and the lower certification/footer band. These margins
+        # reserve those areas on every business-content page.
         pdf_content = get_pdf(
-            rendered_html
+            rendered_html,
+            options={
+                "page-size": "A4",
+                "margin-top": "52mm",
+                "margin-bottom": "35mm",
+                "margin-left": "14mm",
+                "margin-right": "14mm",
+            },
+        )
+
+        pdf_content = (
+            _apply_official_pepl_letterhead(
+                pdf_content
+            )
         )
 
         filename_pattern = (
