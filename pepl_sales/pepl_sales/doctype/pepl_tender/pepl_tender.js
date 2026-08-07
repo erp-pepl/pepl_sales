@@ -1193,6 +1193,21 @@ function pepl_add_tender_ingestion_actions(frm) {
                             value(extracted.bid_securing_declaration),
                             "<br>",
 
+                            __("EMD Mode"),
+                            ": ",
+                            value(current.emd_mode),
+                            " &rarr; ",
+                            (
+                                extracted.emd_mode_required
+                                ? (
+                                    current.emd_mode
+                                    ? value(current.emd_mode)
+                                    : __("User selection required")
+                                )
+                                : value(current.emd_mode)
+                            ),
+                            "<br>",
+
                             __("Splitting Applicable"),
                             ": ",
                             value(current.splitting_applicable),
@@ -1210,35 +1225,84 @@ function pepl_add_tender_ingestion_actions(frm) {
                             )
                         ].join("");
 
+                        const apply_values = function (emd_mode) {
+                            frappe.call({
+                                method: "pepl_sales.pepl_sales.api.tender_ingestion.apply_reviewed_tender_extraction",
+                                args: {
+                                    tender_name: frm.doc.name,
+                                    emd_mode: emd_mode || null
+                                },
+                                freeze: true,
+                                freeze_message: __(
+                                    "Applying reviewed Tender values..."
+                                ),
+                                callback(apply_r) {
+                                    const result =
+                                        apply_r.message || {};
+
+                                    frappe.msgprint({
+                                        title: __(
+                                            "Reviewed Extraction Applied"
+                                        ),
+                                        indicator: "green",
+                                        message: __(
+                                            "Reviewed deterministic Tender values were synchronized to ERPNext."
+                                        )
+                                    });
+
+                                    frm.reload_doc();
+                                }
+                            });
+                        };
+
                         frappe.confirm(
                             message,
                             function () {
-                                frappe.call({
-                                    method: "pepl_sales.pepl_sales.api.tender_ingestion.apply_reviewed_tender_extraction",
-                                    args: {
-                                        tender_name: frm.doc.name
-                                    },
-                                    freeze: true,
-                                    freeze_message: __(
-                                        "Applying reviewed Tender values..."
-                                    ),
-                                    callback(apply_r) {
-                                        const result =
-                                            apply_r.message || {};
+                                const needs_emd_mode = (
+                                    Number(
+                                        extracted.emd_required
+                                    ) === 1
+                                    && !current.emd_mode
+                                );
 
-                                        frappe.msgprint({
-                                            title: __(
-                                                "Reviewed Extraction Applied"
-                                            ),
-                                            indicator: "green",
-                                            message: __(
-                                                "Reviewed deterministic Tender values were synchronized to ERPNext."
+                                if (!needs_emd_mode) {
+                                    apply_values(
+                                        current.emd_mode
+                                    );
+                                    return;
+                                }
+
+                                const emd_mode_field = (
+                                    frm.fields_dict.emd_mode
+                                    && frm.fields_dict.emd_mode.df
+                                );
+
+                                const emd_mode_options = (
+                                    emd_mode_field
+                                    && emd_mode_field.options
+                                ) || "";
+
+                                frappe.prompt(
+                                    [
+                                        {
+                                            fieldname: "emd_mode",
+                                            fieldtype: "Select",
+                                            label: __("EMD Mode"),
+                                            options: emd_mode_options,
+                                            reqd: 1,
+                                            description: __(
+                                                "The Tender requires EMD. Select the applicable business mode before applying the reviewed extraction."
                                             )
-                                        });
-
-                                        frm.reload_doc();
-                                    }
-                                });
+                                        }
+                                    ],
+                                    function (values) {
+                                        apply_values(
+                                            values.emd_mode
+                                        );
+                                    },
+                                    __("Select EMD Mode"),
+                                    __("Apply Reviewed Extraction")
+                                );
                             }
                         );
                     }

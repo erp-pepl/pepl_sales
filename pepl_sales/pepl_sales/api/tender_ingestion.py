@@ -2321,6 +2321,8 @@ def get_reviewed_tender_extraction_preview(
                 tender.emd_amount,
             "bid_securing_declaration":
                 tender.bid_securing_declaration,
+            "emd_mode":
+                tender.emd_mode,
             "splitting_applicable":
                 tender.splitting_applicable,
         },
@@ -2348,6 +2350,11 @@ def get_reviewed_tender_extraction_preview(
                 if extracted_emd_required == 1
                 else tender.bid_securing_declaration
             ),
+            "emd_mode":
+                tender.emd_mode,
+            "emd_mode_required": (
+                extracted_emd_required == 1
+            ),
             "splitting_applicable":
                 extracted_splitting,
             "splitting_ratio":
@@ -2361,6 +2368,7 @@ def get_reviewed_tender_extraction_preview(
 @frappe.whitelist()
 def apply_reviewed_tender_extraction(
     tender_name,
+    emd_mode=None,
 ):
     tender = frappe.get_doc(
         "PEPL Tender",
@@ -2445,15 +2453,73 @@ def apply_reviewed_tender_extraction(
         # If the reviewed Tender explicitly requires EMD,
         # clear any earlier/default Bid Securing Declaration
         # before saving the ERP Tender.
-        if (
-            emd_required == 1
-            and tender.bid_securing_declaration
-        ):
-            tender.bid_securing_declaration = 0
+        if emd_required == 1:
+            if tender.bid_securing_declaration:
+                tender.bid_securing_declaration = 0
+
+                applied[
+                    "bid_securing_declaration"
+                ] = 0
+
+            selected_emd_mode = (
+                str(emd_mode or "").strip()
+                or str(
+                    tender.emd_mode or ""
+                ).strip()
+            )
+
+            if not selected_emd_mode:
+                frappe.throw(
+                    _(
+                        "EMD Mode is required because the reviewed "
+                        "Tender extraction confirms that EMD is required."
+                    )
+                )
+
+            emd_mode_field = (
+                frappe.get_meta(
+                    "PEPL Tender"
+                ).get_field(
+                    "emd_mode"
+                )
+            )
+
+            allowed_modes = []
+
+            if (
+                emd_mode_field
+                and emd_mode_field.options
+            ):
+                allowed_modes = [
+                    value.strip()
+                    for value in str(
+                        emd_mode_field.options
+                    ).splitlines()
+                    if value.strip()
+                ]
+
+            if (
+                allowed_modes
+                and selected_emd_mode
+                not in allowed_modes
+            ):
+                frappe.throw(
+                    _(
+                        "Invalid EMD Mode: {0}. "
+                        "Please select one of the configured "
+                        "PEPL Tender EMD modes."
+                    ).format(
+                        selected_emd_mode
+                    )
+                )
+
+            tender.emd_mode = (
+                selected_emd_mode
+            )
 
             applied[
-                "bid_securing_declaration"
-            ] = 0
+                "emd_mode"
+            ] = selected_emd_mode
 
     emd_amount = parsed.get(
         "emd_amount"
