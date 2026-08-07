@@ -499,6 +499,105 @@ def _validate_download_url(url):
     return hostname
 
 
+def _filename_from_response(response, final_url):
+    """Derive a safe filename for a downloaded Tender document."""
+
+    from urllib.parse import unquote
+
+    content_disposition = (
+        response.headers.get("Content-Disposition")
+        or ""
+    )
+
+    filename = None
+
+    # RFC-style filename*=UTF-8''...
+    match = re.search(
+        r"filename\*\s*=\s*UTF-8''([^;]+)",
+        content_disposition,
+        flags=re.IGNORECASE,
+    )
+
+    if match:
+        filename = unquote(
+            match.group(1).strip().strip('"')
+        )
+
+    if not filename:
+        match = re.search(
+            r'filename\s*=\s*"?([^";]+)"?',
+            content_disposition,
+            flags=re.IGNORECASE,
+        )
+
+        if match:
+            filename = match.group(1).strip()
+
+    if not filename:
+        filename = Path(
+            urlparse(final_url).path
+        ).name
+
+    content_type = (
+        response.headers.get("Content-Type")
+        or ""
+    ).split(";")[0].strip().lower()
+
+    extension_by_type = {
+        "application/pdf": ".pdf",
+        "application/msword": ".doc",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            ".docx",
+        "application/vnd.ms-excel": ".xls",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            ".xlsx",
+    }
+
+    expected_extension = extension_by_type.get(
+        content_type
+    )
+
+    if not filename:
+        filename = "tender_linked_document"
+
+    # Remove path/control characters.
+    filename = re.sub(
+        r'[\\/:*?"<>|\x00-\x1f]+',
+        "_",
+        filename,
+    ).strip()
+
+    extension = Path(filename).suffix.lower()
+
+    if (
+        not extension
+        and expected_extension
+    ):
+        filename += expected_extension
+        extension = expected_extension
+
+    if (
+        extension
+        and extension
+        not in ALLOWED_DOWNLOAD_EXTENSIONS
+    ):
+        raise RuntimeError(
+            f"Linked file type {extension} is not approved."
+        )
+
+    if (
+        content_type
+        and content_type != "application/octet-stream"
+        and expected_extension is None
+    ):
+        raise RuntimeError(
+            "Linked Tender response type is not approved: "
+            f"{content_type}"
+        )
+
+    return filename
+
+
 def _download_allowed_url(url):
     import requests
 
@@ -577,19 +676,10 @@ def _download_allowed_url(url):
                     "download size limit."
                 )
 
-        filename = Path(
-            urlparse(current_url).path
-        ).name or "tender_linked_document"
-
-        extension = Path(filename).suffix.lower()
-
-        if (
-            extension
-            and extension not in ALLOWED_DOWNLOAD_EXTENSIONS
-        ):
-            raise RuntimeError(
-                f"Linked file type {extension} is not approved."
-            )
+        filename = _filename_from_response(
+            response,
+            current_url,
+        )
 
         return {
             "content": bytes(content),
