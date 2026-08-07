@@ -1766,19 +1766,102 @@ def mark_tender_extraction_reviewed(
 
 
 def _set_docx_defaults(document):
-    from docx.shared import Inches, Pt
+    """Preserve the official PEPL Word-template layout.
 
-    styles = document.styles
+    The supplied PEPL letterhead uses a non-standard Word style set.
+    Tender generation therefore uses direct paragraph/run formatting
+    instead of depending on Normal/Heading/List named styles.
+    """
 
-    normal = styles["Normal"]
-    normal.font.name = "Arial"
-    normal.font.size = Pt(10)
+    # Intentionally do not modify:
+    # - section margins
+    # - header/footer distances
+    # - corporate header/footer
+    # - named styles
+    #
+    # The supplied PEPL DOCX remains the layout authority.
+    return document
 
-    for section in document.sections:
-        section.top_margin = Inches(0.7)
-        section.bottom_margin = Inches(0.7)
-        section.left_margin = Inches(0.7)
-        section.right_margin = Inches(0.7)
+
+def _add_docx_heading(
+    document,
+    text,
+    level=1,
+    *,
+    centered=False,
+):
+    """Add a heading without relying on Word named styles."""
+
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Pt
+
+    sizes = {
+        1: 16,
+        2: 13,
+        3: 11,
+    }
+
+    paragraph = document.add_paragraph()
+
+    if centered:
+        paragraph.alignment = (
+            WD_ALIGN_PARAGRAPH.CENTER
+        )
+
+    paragraph.paragraph_format.space_before = Pt(
+        8 if level > 1 else 10
+    )
+    paragraph.paragraph_format.space_after = Pt(
+        5
+    )
+
+    run = paragraph.add_run(
+        str(text or "")
+    )
+
+    run.bold = True
+    run.font.name = "Arial"
+    run.font.size = Pt(
+        sizes.get(level, 11)
+    )
+
+    return paragraph
+
+
+def _add_docx_bullet(
+    document,
+    text,
+):
+    """Add a bullet without relying on the List Bullet style."""
+
+    from docx.shared import Pt
+
+    paragraph = document.add_paragraph()
+
+    paragraph.paragraph_format.left_indent = Pt(
+        14
+    )
+    paragraph.paragraph_format.first_line_indent = Pt(
+        -10
+    )
+    paragraph.paragraph_format.space_after = Pt(
+        3
+    )
+
+    bullet = paragraph.add_run(
+        "\u2022 "
+    )
+    bullet.font.name = "Arial"
+    bullet.font.size = Pt(10)
+
+    content = paragraph.add_run(
+        str(text or "")
+    )
+    content.font.name = "Arial"
+    content.font.size = Pt(10)
+
+    return paragraph
+
 
 
 def _add_key_value_table(
@@ -1885,7 +1968,8 @@ def _add_supporting_document_register(
     document,
     tender,
 ):
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "Supporting Tender Document Register",
         level=2,
     )
@@ -1968,7 +2052,8 @@ def _add_supporting_document_excerpts(
     document,
     tender,
 ):
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "Extracted Supporting Document Highlights",
         level=2,
     )
@@ -2061,7 +2146,8 @@ def _add_manual_review_register(
                 row
             )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "Documents Requiring Visual / Manual Review",
         level=2,
     )
@@ -2080,13 +2166,13 @@ def _add_manual_review_register(
             or f"Document {row.idx}"
         )
 
-        paragraph = document.add_paragraph(
-            style="List Bullet"
+        paragraph = _add_docx_bullet(
+            document,
+            classification,
         )
 
-        paragraph.add_run(
-            classification
-        ).bold = True
+        if paragraph.runs:
+            paragraph.runs[-1].bold = True
 
         details = []
 
@@ -2155,11 +2241,12 @@ def generate_tender_word(
     document = _load_word_letterhead()
     _set_docx_defaults(document)
 
-    title = document.add_heading(
+    title = _add_docx_heading(
+        document,
         "TENDER REVIEW / BID PREPARATION DOCUMENT",
         level=1,
+        centered=True,
     )
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     paragraph = document.add_paragraph()
     paragraph.add_run(
@@ -2170,7 +2257,8 @@ def generate_tender_word(
         "original tender before bid submission."
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "1. Tender Identification",
         level=2,
     )
@@ -2206,7 +2294,8 @@ def generate_tender_word(
         ],
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "2. Critical Dates",
         level=2,
     )
@@ -2236,7 +2325,8 @@ def generate_tender_word(
         ],
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "3. Extracted Organisation Information",
         level=2,
     )
@@ -2263,7 +2353,8 @@ def generate_tender_word(
         ],
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "4. Tender Items in ERPNext",
         level=2,
     )
@@ -2326,7 +2417,8 @@ def generate_tender_word(
             "Tender Items have not yet been mapped to ERPNext Item Master."
         )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "5. EMD / Bid Security",
         level=2,
     )
@@ -2395,7 +2487,8 @@ def generate_tender_word(
         ],
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "6. Required Bid Documents",
         level=2,
     )
@@ -2444,7 +2537,8 @@ def generate_tender_word(
             "Bid-document checklist has not yet been generated."
         )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "7. Supporting Tender Documents",
         level=2,
     )
@@ -2454,7 +2548,8 @@ def generate_tender_word(
         tender,
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "8. Supporting Document Content",
         level=2,
     )
@@ -2464,7 +2559,8 @@ def generate_tender_word(
         tender,
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "9. Review Exceptions",
         level=2,
     )
@@ -2474,7 +2570,8 @@ def generate_tender_word(
         tender,
     )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "10. Automatic Reading Warnings",
         level=2,
     )
@@ -2488,7 +2585,8 @@ def generate_tender_word(
             "No automatic-reading warnings were recorded."
         )
 
-    document.add_heading(
+    _add_docx_heading(
+        document,
         "11. PEPL Manual Review / Sign-Off",
         level=2,
     )
