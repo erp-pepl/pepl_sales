@@ -2328,17 +2328,35 @@ def get_reviewed_tender_extraction_preview(
         },
         "extracted": {
             "publication_date":
-                parsed.get(
+                _parse_date(
+                    parsed.get(
+                        "publication_date"
+                    )
+                )
+                if parsed.get(
                     "publication_date"
-                ),
+                )
+                else None,
             "bid_submission_deadline":
-                parsed.get(
+                _parse_datetime(
+                    parsed.get(
+                        "bid_end"
+                    )
+                )
+                if parsed.get(
                     "bid_end"
-                ),
+                )
+                else None,
             "bid_opening_date":
-                parsed.get(
+                _parse_datetime(
+                    parsed.get(
+                        "bid_opening"
+                    )
+                )
+                if parsed.get(
                     "bid_opening"
-                ),
+                )
+                else None,
             "emd_required":
                 extracted_emd_required,
             "emd_amount":
@@ -2398,39 +2416,87 @@ def apply_reviewed_tender_extraction(
     )
 
     if publication_date:
+        parsed_publication_date = (
+            _parse_date(
+                publication_date
+            )
+        )
+
+        if not parsed_publication_date:
+            frappe.throw(
+                _(
+                    "Extracted Publication Date could not "
+                    "be converted to ERPNext date format: {0}"
+                ).format(
+                    publication_date
+                )
+            )
+
         tender.publication_date = (
-            publication_date
+            parsed_publication_date
         )
 
         applied[
             "publication_date"
-        ] = publication_date
+        ] = parsed_publication_date
 
     bid_end = parsed.get(
         "bid_end"
     )
 
     if bid_end:
+        parsed_bid_end = (
+            _parse_datetime(
+                bid_end
+            )
+        )
+
+        if not parsed_bid_end:
+            frappe.throw(
+                _(
+                    "Extracted Bid Submission Deadline could not "
+                    "be converted to ERPNext datetime format: {0}"
+                ).format(
+                    bid_end
+                )
+            )
+
         tender.bid_submission_deadline = (
-            bid_end
+            parsed_bid_end
         )
 
         applied[
             "bid_submission_deadline"
-        ] = bid_end
+        ] = parsed_bid_end
 
     bid_opening = parsed.get(
         "bid_opening"
     )
 
     if bid_opening:
+        parsed_bid_opening = (
+            _parse_datetime(
+                bid_opening
+            )
+        )
+
+        if not parsed_bid_opening:
+            frappe.throw(
+                _(
+                    "Extracted Bid Opening Date could not "
+                    "be converted to ERPNext datetime format: {0}"
+                ).format(
+                    bid_opening
+                )
+            )
+
         tender.bid_opening_date = (
-            bid_opening
+            parsed_bid_opening
         )
 
         applied[
             "bid_opening_date"
-        ] = bid_opening
+        ] = parsed_bid_opening
 
     emd_required = _reviewed_yes_no(
         parsed.get(
