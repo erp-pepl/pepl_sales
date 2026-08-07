@@ -45,6 +45,243 @@ def get_primary_evaluated_price(row, item_row=None):
     return 0
 
 
+
+def _get_historical_tender_rows_for_item(
+    current_tender,
+    item_code,
+):
+    """Return the first non-empty historical Tender match tier for an item.
+
+    Matching priority:
+    1. Customer + Sector + Item
+    2. Sector + Item
+    3. Item
+
+    This method is read-only. Historical rows are reference evidence and are
+    never copied into the current Tender competitor result.
+    """
+
+    priorities = []
+
+    if current_tender.customer and current_tender.sector:
+        priorities.append(
+            (
+                "Customer + Sector + Item",
+                {
+                    "customer": current_tender.customer,
+                    "sector": current_tender.sector,
+                },
+            )
+        )
+
+    if current_tender.sector:
+        priorities.append(
+            (
+                "Sector + Item",
+                {
+                    "sector": current_tender.sector,
+                },
+            )
+        )
+
+    priorities.append(
+        (
+            "Item",
+            {},
+        )
+    )
+
+    for match_level, extra_filters in priorities:
+        filters = {
+            "name": ["!=", current_tender.name],
+            "status": [
+                "in",
+                [
+                    "Won",
+                    "Partially Won",
+                    "Lost",
+                    "Cancelled",
+                ],
+            ],
+        }
+
+        filters.update(extra_filters)
+
+        historical_tenders = frappe.get_list(
+            "PEPL Tender",
+            filters=filters,
+            fields=[
+                "name",
+                "nit_number",
+                "publication_date",
+                "customer",
+                "sector",
+                "status",
+                "result_source_type",
+                "modified",
+            ],
+            order_by="publication_date desc, modified desc",
+            limit_page_length=200,
+        )
+
+        rows = []
+
+        for historical in historical_tenders:
+            historical_doc = frappe.get_doc(
+                "PEPL Tender",
+                historical.name,
+            )
+
+            if not historical_doc.has_permission("read"):
+                continue
+
+            for item_row in historical_doc.items or []:
+                if item_row.item != item_code:
+                    continue
+
+                if item_row.outcome not in {
+                    "Won",
+                    "Partially Won",
+                    "Lost",
+                    "Cancelled",
+                }:
+                    continue
+
+                rows.append(
+                    {
+                        "match_level":
+                            match_level,
+                        "tender_reference":
+                            historical.name,
+                        "nit_number":
+                            historical.nit_number,
+                        "tender_date":
+                            historical.publication_date,
+                        "customer":
+                            historical.customer,
+                        "sector":
+                            historical.sector,
+                        "item":
+                            item_row.item,
+                        "drawing_reference":
+                            item_row.drawing_no,
+                        "drawing_revision":
+                            item_row.current_drawing_revision,
+                        "quoted_rate":
+                            flt(
+                                item_row.our_bid_unit_price
+                            ),
+                        "rank":
+                            item_row.our_rank,
+                        "outcome":
+                            item_row.outcome,
+                        "winning_competitor":
+                            item_row.winning_competitor,
+                        "winning_price":
+                            flt(
+                                item_row.winning_price
+                            ),
+                        "result_source_type":
+                            historical.result_source_type,
+                    }
+                )
+
+        if rows:
+            return match_level, rows
+
+    return "None", []
+
+
+@frappe.whitelist()
+def get_historical_tender_analysis(tender_name):
+    """Return historical Tender analysis for every item in a Tender.
+
+    The result is read-only and is intended for Tender decision support.
+    It satisfies the historical Tender analysis requirement without mixing
+    historical quotations with the current Tender's official result rows.
+    """
+
+    if not tender_name:
+        frappe.throw(
+            _("Tender is required.")
+        )
+
+    tender = frappe.get_doc(
+        "PEPL Tender",
+        tender_name,
+    )
+
+    if not tender.has_permission("read"):
+        frappe.throw(
+            _("You do not have permission to view this Tender.")
+        )
+
+    if not tender.items:
+        return {
+            "rows": [],
+            "items_searched": 0,
+            "message":
+                "Add at least one Tender Item before "
+                "fetching historical analysis.",
+        }
+
+    result_rows = []
+    item_results = []
+
+    for item_row in tender.items:
+        if not item_row.item:
+            continue
+
+        match_level, rows = (
+            _get_historical_tender_rows_for_item(
+                tender,
+                item_row.item,
+            )
+        )
+
+        item_results.append(
+            {
+                "item":
+                    item_row.item,
+                "match_level":
+                    match_level,
+                "rows_found":
+                    len(rows),
+            }
+        )
+
+        result_rows.extend(rows)
+
+    result_rows.sort(
+        key=lambda row: (
+            str(
+                row.get("tender_date")
+                or ""
+            ),
+            row.get(
+                "tender_reference"
+            )
+            or "",
+            row.get("item")
+            or "",
+        ),
+        reverse=True,
+    )
+
+    return {
+        "rows":
+            result_rows[:200],
+        "total_found":
+            len(result_rows),
+        "items_searched":
+            len(item_results),
+        "item_results":
+            item_results,
+        "limited":
+            len(result_rows) > 200,
+    }
+
+
 class PEPLTender(Document):
     def autoname(self):
         from frappe.model.naming import make_autoname

@@ -499,6 +499,206 @@ function pepl_add_competitor_actions(frm) {
     }
 
     frm.add_custom_button(
+        __("Fetch Historical Tender Analysis"),
+        function () {
+            if (!(frm.doc.items || []).length) {
+                frappe.msgprint(
+                    __(
+                        "Add at least one Tender Item before "
+                        + "fetching historical analysis."
+                    )
+                );
+                return;
+            }
+
+            frappe.call({
+                method:
+                    "pepl_sales.pepl_sales.doctype."
+                    + "pepl_tender.pepl_tender."
+                    + "get_historical_tender_analysis",
+                args: {
+                    tender_name: frm.doc.name
+                },
+                freeze: true,
+                freeze_message: __(
+                    "Searching historical Tenders..."
+                ),
+                callback(r) {
+                    const result = r.message || {};
+                    const rows = result.rows || [];
+
+                    if (!rows.length) {
+                        frappe.msgprint({
+                            title: __(
+                                "Historical Tender Analysis"
+                            ),
+                            indicator: "orange",
+                            message: __(
+                                "No completed historical Tender "
+                                + "data was found for the current "
+                                + "Tender Item(s)."
+                            )
+                        });
+                        return;
+                    }
+
+                    const escape = value =>
+                        frappe.utils.escape_html(
+                            String(
+                                value === null
+                                || value === undefined
+                                    ? ""
+                                    : value
+                            )
+                        );
+
+                    const body = rows.map(row => {
+                        const quoted_rate = frappe.format(
+                            row.quoted_rate || 0,
+                            {
+                                fieldtype: "Currency",
+                                currency: "INR"
+                            }
+                        );
+
+                        const winning_price = frappe.format(
+                            row.winning_price || 0,
+                            {
+                                fieldtype: "Currency",
+                                currency: "INR"
+                            }
+                        );
+
+                        return `
+                            <tr>
+                                <td>${escape(
+                                    row.tender_reference
+                                )}</td>
+                                <td>${escape(
+                                    row.tender_date
+                                )}</td>
+                                <td>${escape(
+                                    row.customer
+                                )}</td>
+                                <td>${escape(
+                                    row.item
+                                )}</td>
+                                <td>${escape(
+                                    row.drawing_reference
+                                )}</td>
+                                <td>${escape(
+                                    row.drawing_revision
+                                )}</td>
+                                <td>${quoted_rate}</td>
+                                <td>${escape(
+                                    row.rank
+                                )}</td>
+                                <td>${escape(
+                                    row.outcome
+                                )}</td>
+                                <td>${escape(
+                                    row.winning_competitor
+                                )}</td>
+                                <td>${winning_price}</td>
+                                <td>${escape(
+                                    row.match_level
+                                )}</td>
+                            </tr>
+                        `;
+                    }).join("");
+
+                    const html = `
+                        <div style="
+                            max-height: 520px;
+                            overflow: auto;
+                        ">
+                            <p>
+                                <strong>
+                                    ${__(
+                                        "Historical records found:"
+                                    )}
+                                </strong>
+                                ${escape(
+                                    result.total_found || rows.length
+                                )}
+                            </p>
+
+                            <table
+                                class="table table-bordered table-sm"
+                                style="
+                                    min-width: 1500px;
+                                    font-size: 12px;
+                                "
+                            >
+                                <thead>
+                                    <tr>
+                                        <th>${__("Tender")}</th>
+                                        <th>${__("Date")}</th>
+                                        <th>${__("Customer")}</th>
+                                        <th>${__("Item")}</th>
+                                        <th>${__(
+                                            "Drawing"
+                                        )}</th>
+                                        <th>${__(
+                                            "Drawing Rev."
+                                        )}</th>
+                                        <th>${__(
+                                            "PEPL Quoted Rate"
+                                        )}</th>
+                                        <th>${__(
+                                            "PEPL Rank"
+                                        )}</th>
+                                        <th>${__("Outcome")}</th>
+                                        <th>${__(
+                                            "Winning Competitor"
+                                        )}</th>
+                                        <th>${__(
+                                            "Winning Price / Value"
+                                        )}</th>
+                                        <th>${__(
+                                            "Match Level"
+                                        )}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${body}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    const dialog = new frappe.ui.Dialog({
+                        title: __(
+                            "Historical Tender Analysis"
+                        ),
+                        size: "extra-large",
+                        fields: [
+                            {
+                                fieldname:
+                                    "history_html",
+                                fieldtype: "HTML"
+                            }
+                        ],
+                        primary_action_label:
+                            __("Close"),
+                        primary_action() {
+                            dialog.hide();
+                        }
+                    });
+
+                    dialog.fields_dict
+                        .history_html
+                        .$wrapper
+                        .html(html);
+
+                    dialog.show();
+                }
+            });
+        },
+        __("Tender Analysis")
+    );
+
+    frm.add_custom_button(
         __("Calculate Competitor Analysis"),
         function () {
             const rows = pepl_get_all_competitor_rows(frm);
