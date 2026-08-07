@@ -903,3 +903,255 @@ function pepl_render_tender_bid_readiness(frm) {
         );
     }
 }
+
+
+// PEPL TENDER AUTOMATIC READING / EDITABLE WORD WORKFLOW
+frappe.ui.form.on("PEPL Tender", {
+    refresh(frm) {
+        pepl_add_tender_ingestion_actions(frm);
+        pepl_render_tender_ingestion_status(frm);
+    }
+});
+
+
+function pepl_add_tender_ingestion_actions(frm) {
+    if (frm.is_new()) {
+        return;
+    }
+
+    if (
+        frm.doc.docstatus === 0
+        && frm.doc.tender_source_pdf
+    ) {
+        frm.add_custom_button(
+            __("Read Tender PDF"),
+            function () {
+                frappe.call({
+                    method: "pepl_sales.pepl_sales.api.tender_ingestion.read_tender_pdf",
+                    args: {
+                        tender_name: frm.doc.name
+                    },
+                    freeze: true,
+                    freeze_message: __("Reading Tender PDF..."),
+                    callback(r) {
+                        const result = r.message || {};
+
+                        frappe.msgprint({
+                            title: __("Tender Reading Completed"),
+                            indicator: (
+                                result.warning_count
+                                    ? "orange"
+                                    : "green"
+                            ),
+                            message: __(
+                                "Pages read: {0}<br>"
+                                + "Hyperlinks discovered: {1}<br>"
+                                + "Warnings: {2}<br><br>"
+                                + "Review the extracted fields against "
+                                + "the original Tender before proceeding.",
+                                [
+                                    result.page_count || 0,
+                                    result.link_count || 0,
+                                    result.warning_count || 0
+                                ]
+                            )
+                        });
+
+                        frm.reload_doc();
+                    }
+                });
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (
+        frm.doc.docstatus === 0
+        && (frm.doc.tender_source_links || []).some(
+            row =>
+                row.link_type === "GeM Document"
+                && !row.downloaded_file
+        )
+    ) {
+        frm.add_custom_button(
+            __("Download GeM Tender Documents"),
+            function () {
+                frappe.call({
+                    method: "pepl_sales.pepl_sales.api.tender_ingestion.download_discovered_gem_documents",
+                    args: {
+                        tender_name: frm.doc.name
+                    },
+                    freeze: true,
+                    freeze_message: __(
+                        "Retrieving approved GeM tender documents..."
+                    ),
+                    callback(r) {
+                        const result = r.message || {};
+
+                        frappe.msgprint({
+                            title: __("GeM Document Retrieval"),
+                            indicator: (
+                                result.failed
+                                    ? "orange"
+                                    : "green"
+                            ),
+                            message: __(
+                                "Downloaded: {0}<br>"
+                                + "Failed: {1}<br>"
+                                + "Skipped: {2}",
+                                [
+                                    result.downloaded || 0,
+                                    result.failed || 0,
+                                    result.skipped || 0
+                                ]
+                            )
+                        });
+
+                        frm.reload_doc();
+                    }
+                });
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (
+        frm.doc.docstatus === 0
+        && [
+            "Read - Review Required",
+            "Read with Warnings"
+        ].includes(
+            frm.doc.tender_ingestion_status
+        )
+    ) {
+        frm.add_custom_button(
+            __("Mark Extraction Reviewed"),
+            function () {
+                frappe.confirm(
+                    __(
+                        "Confirm that you have compared the extracted "
+                        + "information with the original Tender PDF."
+                    ),
+                    function () {
+                        frappe.call({
+                            method: "pepl_sales.pepl_sales.api.tender_ingestion.mark_tender_extraction_reviewed",
+                            args: {
+                                tender_name: frm.doc.name
+                            },
+                            callback() {
+                                frappe.show_alert({
+                                    message: __(
+                                        "Tender extraction marked Reviewed."
+                                    ),
+                                    indicator: "green"
+                                });
+
+                                frm.reload_doc();
+                            }
+                        });
+                    }
+                );
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (
+        [
+            "Reviewed",
+            "Read - Review Required",
+            "Read with Warnings"
+        ].includes(
+            frm.doc.tender_ingestion_status
+        )
+    ) {
+        frm.add_custom_button(
+            __("Generate Editable Word"),
+            function () {
+                frappe.call({
+                    method: "pepl_sales.pepl_sales.api.tender_ingestion.generate_tender_word",
+                    args: {
+                        tender_name: frm.doc.name
+                    },
+                    freeze: true,
+                    freeze_message: __(
+                        "Generating editable Tender Word document..."
+                    ),
+                    callback(r) {
+                        const result = r.message || {};
+
+                        if (!result.file_url) {
+                            frappe.msgprint(
+                                __("Word document could not be generated.")
+                            );
+                            return;
+                        }
+
+                        frappe.show_alert({
+                            message: __(
+                                "Editable Tender Word generated successfully."
+                            ),
+                            indicator: "green"
+                        });
+
+                        window.open(
+                            result.file_url,
+                            "_blank"
+                        );
+
+                        frm.reload_doc();
+                    }
+                });
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (frm.doc.generated_tender_word) {
+        frm.add_custom_button(
+            __("Open Generated Word"),
+            function () {
+                window.open(
+                    frm.doc.generated_tender_word,
+                    "_blank"
+                );
+            },
+            __("Tender Automation")
+        );
+    }
+}
+
+
+function pepl_render_tender_ingestion_status(frm) {
+    if (!frm.doc.tender_source_pdf) {
+        return;
+    }
+
+    const status =
+        frm.doc.tender_ingestion_status
+        || "Not Read";
+
+    const colors = {
+        "Not Read": "grey",
+        "Read - Review Required": "orange",
+        "Reviewed": "green",
+        "Read with Warnings": "orange",
+        "Failed": "red"
+    };
+
+    frm.dashboard.add_indicator(
+        __("Tender Reading: {0}", [status]),
+        colors[status] || "grey"
+    );
+
+    if (frm.doc.tender_ingestion_warnings) {
+        frm.dashboard.add_comment(
+            __(
+                "Automatic Tender reading requires review: {0}",
+                [frm.doc.tender_ingestion_warnings]
+            ),
+            "orange",
+            true
+        );
+    }
+}

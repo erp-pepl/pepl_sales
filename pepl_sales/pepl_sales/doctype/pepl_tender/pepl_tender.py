@@ -53,6 +53,8 @@ class PEPLTender(Document):
         self.name = self.tender_no
 
     def validate(self):
+        self._validate_operational_required_fields()
+
         # Auto-set sub-sector from customer group if not already set
         if self.customer_group and not self.sub_sector:
             cg = self.customer_group
@@ -124,6 +126,36 @@ class PEPLTender(Document):
                     alert=True,
                 )
 
+
+    def _validate_operational_required_fields(self):
+        """Allow Draft intake before extraction, but protect operational Tenders."""
+
+        if self.status == "Draft":
+            return
+
+        missing = []
+
+        required_values = {
+            "NIT Number / Tender Reference": self.nit_number,
+            "Customer": self.customer,
+            "Sector": self.sector,
+            "Bid Submission Deadline": self.bid_submission_deadline,
+        }
+
+        for label, value in required_values.items():
+            if not value:
+                missing.append(label)
+
+        if not self.items:
+            missing.append("Tender Items")
+
+        if missing:
+            frappe.throw(
+                _(
+                    "Complete the following before moving the Tender out "
+                    "of Draft: {0}"
+                ).format(", ".join(missing))
+            )
 
     def before_update_after_submit(self):
         """Recalculate PO-derived fields during permitted post-submit edits.

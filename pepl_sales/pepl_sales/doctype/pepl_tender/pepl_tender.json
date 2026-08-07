@@ -12,6 +12,16 @@
   "column_break_1",
   "publication_date",
   "tender_portal_url",
+  "tender_ingestion_section",
+  "tender_source_pdf",
+  "tender_ingestion_status",
+  "ingestion_column_break",
+  "tender_ingestion_last_run",
+  "generated_tender_word",
+  "tender_ingestion_summary",
+  "tender_extraction_json",
+  "tender_ingestion_warnings",
+  "tender_source_links",
   "customer_section",
   "customer",
   "customer_group",
@@ -110,7 +120,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "NIT Number / Tender Reference",
-   "reqd": 1,
+   "reqd": 0,
    "description": "Customer's NIT or tender reference number"
   },
   {
@@ -146,7 +156,7 @@
    "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer",
-   "reqd": 1
+   "reqd": 0
   },
   {
    "fetch_from": "customer.customer_group",
@@ -167,7 +177,7 @@
    "in_standard_filter": 1,
    "label": "Sector",
    "options": "\nRailways\nDefence\nPrivate\nOthers",
-   "reqd": 1
+   "reqd": 0
   },
   {
    "fieldname": "sub_sector",
@@ -190,7 +200,7 @@
    "fieldtype": "Datetime",
    "in_list_view": 1,
    "label": "Bid Submission Deadline",
-   "reqd": 1
+   "reqd": 0
   },
   {
    "fieldname": "column_break_3",
@@ -283,7 +293,7 @@
    "fieldtype": "Table",
    "label": "Items",
    "options": "PEPL Tender Item",
-   "reqd": 1
+   "reqd": 0
   },
   {
    "fieldname": "competitor_analysis_section",
@@ -613,6 +623,70 @@
    "fieldtype": "Text",
    "label": "Outcome Summary",
    "read_only": 1
+  },
+  {
+   "fieldname": "tender_ingestion_section",
+   "fieldtype": "Section Break",
+   "label": "Tender Automatic Reading",
+   "description": "Upload the original tender PDF, read its contents and hyperlinks, review the extracted information, then generate an editable Word document."
+  },
+  {
+   "fieldname": "tender_source_pdf",
+   "fieldtype": "Attach",
+   "label": "Original Tender PDF",
+   "description": "Upload the original customer / GeM tender PDF."
+  },
+  {
+   "fieldname": "tender_ingestion_status",
+   "fieldtype": "Select",
+   "label": "Reading Status",
+   "options": "Not Read\nRead - Review Required\nReviewed\nRead with Warnings\nFailed",
+   "default": "Not Read",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ingestion_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tender_ingestion_last_run",
+   "fieldtype": "Datetime",
+   "label": "Last Read On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "generated_tender_word",
+   "fieldtype": "Attach",
+   "label": "Generated Editable Tender Word",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_ingestion_summary",
+   "fieldtype": "Long Text",
+   "label": "Extracted Tender Summary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_extraction_json",
+   "fieldtype": "Code",
+   "label": "Tender Extraction Data (JSON)",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_ingestion_warnings",
+   "fieldtype": "Long Text",
+   "label": "Automatic Reading Warnings",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_source_links",
+   "fieldtype": "Table",
+   "label": "Hyperlinks / Tender Attachments Discovered",
+   "options": "PEPL Tender Source Link",
+   "read_only": 1,
+   "description": "Links discovered automatically inside the uploaded Tender PDF."
   }
  ],
  "index_web_pages_for_search": 1,
