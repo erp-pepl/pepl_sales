@@ -2072,7 +2072,8 @@ def _add_supporting_document_excerpts(
 
         included += 1
 
-        document.add_heading(
+        _add_docx_heading(
+            document,
             (
                 row.document_classification
                 or f"Supporting Document {row.idx}"
@@ -2206,8 +2207,6 @@ def _add_manual_review_register(
 def generate_tender_word(
     tender_name,
 ):
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-
     tender = frappe.get_doc(
         "PEPL Tender",
         tender_name,
