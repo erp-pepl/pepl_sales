@@ -1032,48 +1032,154 @@ def download_discovered_gem_documents(
 
 
 
+def _extract_primary_document_titles(tender):
+    """Return GeM Additional Scope document titles in source order."""
+
+    if not tender.tender_extraction_json:
+        return []
+
+    try:
+        extraction = json.loads(
+            tender.tender_extraction_json
+        )
+    except Exception:
+        return []
+
+    pages = extraction.get(
+        "pages",
+        [],
+    )
+
+    canonical_titles = [
+        "Drawing",
+        "Specification",
+        "Quality",
+        "PQC",
+        "Vendor Registration",
+        "Pre Integrity Pact",
+    ]
+
+    keyword_map = {
+        "Drawing": [
+            "DRAWING",
+        ],
+        "Specification": [
+            "SPECIFICATION",
+        ],
+        "Quality": [
+            "QUALITY",
+        ],
+        "PQC": [
+            "PQC",
+        ],
+        "Vendor Registration": [
+            "VRAF",
+        ],
+        "Pre Integrity Pact": [
+            "PRE INTEGRITY PACT",
+        ],
+    }
+
+    for page in pages:
+        page_text = (
+            page.get("text")
+            or ""
+        )
+
+        upper_text = page_text.upper()
+
+        if "DOCUMENT TITLE" not in upper_text:
+            continue
+
+        found = []
+
+        for title in canonical_titles:
+            positions = []
+
+            for keyword in keyword_map[title]:
+                position = upper_text.find(
+                    keyword.upper()
+                )
+
+                if position >= 0:
+                    positions.append(
+                        position
+                    )
+
+            if positions:
+                found.append(
+                    (
+                        min(positions),
+                        title,
+                    )
+                )
+
+        found.sort(
+            key=lambda value: value[0]
+        )
+
+        return [
+            title
+            for _, title in found
+        ]
+
+    return []
+
+
 def _classify_supporting_document(
     filename,
     text_content,
+    source_url=None,
+    preferred_classification=None,
 ):
+    """Classify a Tender document using source metadata first."""
+
+    if preferred_classification:
+        return preferred_classification
+
+    source_url = (
+        source_url
+        or ""
+    ).lower()
+
+    filename_lower = (
+        filename
+        or ""
+    ).lower()
+
+    if (
+        "admin.gem.gov.in" in source_url
+        or "new-gtc" in filename_lower
+        or "gem-gtc" in filename_lower
+    ):
+        return "GeM GTC"
+
+    if (
+        "/specificationdocument/" in source_url
+        or "specificationdocument" in source_url
+    ):
+        return "Buyer Specification"
+
+    if (
+        "fulfilment.gem.gov.in" in source_url
+        and filename_lower.endswith(".docx")
+    ):
+        return "Buyer ATC"
+
     value = (
         f"{filename or ''}\n"
         f"{text_content or ''}"
     ).lower()
 
+    # More specific classifications must be checked
+    # before broad words such as drawing/specification.
     rules = [
         (
-            "Drawing",
+            "Pre Integrity Pact",
             [
-                "drawing",
-                "drg.",
-                "drg ",
-                "ofm-",
-                "ofm -",
-            ],
-        ),
-        (
-            "Specification",
-            [
-                "specification",
-                "annexure a",
-                "technical specification",
-            ],
-        ),
-        (
-            "Quality",
-            [
-                "quality",
-                "annexure q",
-                "quality assurance",
-            ],
-        ),
-        (
-            "PQC",
-            [
-                "pqc",
-                "annexure b",
-                "capacity verification",
+                "pre integrity pact",
+                "integrity pact",
+                "annexure 5b",
             ],
         ),
         (
@@ -1085,27 +1191,50 @@ def _classify_supporting_document(
             ],
         ),
         (
-            "Pre Integrity Pact",
+            "PQC",
             [
-                "integrity pact",
-                "pre integrity",
-                "annexure 5b",
+                "pqc",
+                "capacity verification",
+                "annexure b",
+            ],
+        ),
+        (
+            "Quality",
+            [
+                "annexure q",
+                "quality assurance",
+                "quality requirement",
             ],
         ),
         (
             "Buyer ATC",
             [
-                "buyer added",
-                "atc",
-                "additional terms",
-                "terms and conditions",
+                "buyer uploaded atc",
+                "buyer added bid specific atc",
+                "additional terms and conditions",
             ],
         ),
         (
-            "GeM GTC",
+            "Buyer Specification",
             [
-                "general terms and conditions",
-                "gem gtc",
+                "buyer specification",
+                "technical specification",
+                "specification document",
+            ],
+        ),
+        (
+            "Drawing",
+            [
+                "drawing",
+                "drg.",
+                "drg ",
+            ],
+        ),
+        (
+            "Specification",
+            [
+                "specification",
+                "annexure a",
             ],
         ),
         (
@@ -1124,6 +1253,7 @@ def _classify_supporting_document(
                 return classification
 
     return "Supporting Tender Document"
+
 
 
 def _extract_pdf_supporting_document(content):
@@ -1201,10 +1331,83 @@ def _extract_docx_supporting_document(content):
                     " | ".join(values)
                 )
 
+    normal_text = "\n".join(
+        blocks
+    ).strip()
+
+    if normal_text:
+        return {
+            "page_count": 0,
+            "text": normal_text,
+        }
+
+    # Fallback for Word textboxes/shapes that python-docx
+    # does not expose through document.paragraphs.
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    xml_blocks = []
+
+    word_namespace = (
+        "{http://schemas.openxmlformats.org/"
+        "wordprocessingml/2006/main}"
+    )
+
+    with zipfile.ZipFile(
+        BytesIO(content)
+    ) as archive:
+        xml_names = [
+            name
+            for name in archive.namelist()
+            if (
+                name == "word/document.xml"
+                or name.startswith(
+                    "word/header"
+                )
+                or name.startswith(
+                    "word/footer"
+                )
+                or name in {
+                    "word/footnotes.xml",
+                    "word/endnotes.xml",
+                }
+            )
+        ]
+
+        for xml_name in xml_names:
+            try:
+                root = ET.fromstring(
+                    archive.read(
+                        xml_name
+                    )
+                )
+            except Exception:
+                continue
+
+            values = []
+
+            for node in root.iter(
+                word_namespace + "t"
+            ):
+                value = _clean_text(
+                    node.text
+                )
+
+                if value:
+                    values.append(value)
+
+            if values:
+                xml_blocks.append(
+                    "\n".join(values)
+                )
+
     return {
         "page_count": 0,
-        "text": "\n".join(blocks),
+        "text": "\n\n".join(
+            xml_blocks
+        ),
     }
+
 
 
 def _read_supporting_file(file_url):
@@ -1288,12 +1491,16 @@ def _read_supporting_file(file_url):
         or ""
     ).strip()
 
+    page_count = (
+        result.get("page_count")
+        or 0
+    )
+
     if not extracted_text:
         return {
             "filename": filename,
             "extension": extension,
-            "page_count":
-                result.get("page_count") or 0,
+            "page_count": page_count,
             "text": "",
             "status":
                 "Read with Warnings",
@@ -1303,11 +1510,34 @@ def _read_supporting_file(file_url):
             ),
         }
 
+    minimum_expected_text = max(
+        100,
+        page_count * 80,
+    )
+
+    if (
+        extension == ".pdf"
+        and len(extracted_text)
+        < minimum_expected_text
+    ):
+        return {
+            "filename": filename,
+            "extension": extension,
+            "page_count": page_count,
+            "text": extracted_text,
+            "status":
+                "Read with Warnings",
+            "warning": (
+                "Very little machine-readable text was found. "
+                "This supporting PDF may contain scanned pages "
+                "or drawings and requires visual/manual review."
+            ),
+        }
+
     return {
         "filename": filename,
         "extension": extension,
-        "page_count":
-            result.get("page_count") or 0,
+        "page_count": page_count,
         "text": extracted_text,
         "status": "Read",
         "warning": "",
@@ -1339,6 +1569,38 @@ def read_supporting_tender_documents(
     failed_count = 0
     skipped_count = 0
 
+    primary_document_titles = (
+        _extract_primary_document_titles(
+            tender
+        )
+    )
+
+    direct_document_rows = [
+        row
+        for row in (
+            tender.tender_source_links
+            or []
+        )
+        if (
+            "/bidding/bid/documentdownload/"
+            in (row.source_url or "")
+        )
+    ]
+
+    preferred_classification = {}
+
+    for index, row in enumerate(
+        direct_document_rows
+    ):
+        if index < len(
+            primary_document_titles
+        ):
+            preferred_classification[
+                row.name
+            ] = primary_document_titles[
+                index
+            ]
+
     for row in tender.tender_source_links or []:
         if not row.downloaded_file:
             skipped_count += 1
@@ -1368,6 +1630,12 @@ def read_supporting_tender_documents(
                 _classify_supporting_document(
                     result.get("filename"),
                     result.get("text"),
+                    source_url=row.source_url,
+                    preferred_classification=(
+                        preferred_classification.get(
+                            row.name
+                        )
+                    ),
                 )
             )
 
@@ -1376,7 +1644,13 @@ def read_supporting_tender_documents(
                 or ""
             )
 
-            if warning:
+            if (
+                warning
+                and warning not in (
+                    row.remarks
+                    or ""
+                )
+            ):
                 row.remarks = (
                     (
                         row.remarks
