@@ -1916,7 +1916,12 @@ def _load_word_letterhead():
 
 
 def _supporting_document_excerpt(row):
-    """Return a controlled excerpt for the Tender working DOCX."""
+    """Return only useful machine-readable content for the working DOCX.
+
+    The authoritative supporting file always remains attached to ERPNext.
+    Warning/scanned/drawing-heavy documents are referenced in the register
+    and manual-review section rather than dumping unreliable extracted text.
+    """
 
     text_content = (
         row.document_text
@@ -1931,26 +1936,36 @@ def _supporting_document_excerpt(row):
         or "Supporting Tender Document"
     )
 
-    # GTC is retained in ERPNext as the authoritative source.
-    # Do not make the editable working document dozens of pages long.
-    if classification == "GeM GTC":
+    # Never place unreliable extraction into the client-facing
+    # editable Tender document.
+    if (
+        row.document_read_status
+        != "Read"
+    ):
+        return ""
+
+    # Drawings usually extract as layout noise, while the full GeM GTC
+    # is intentionally retained only as an authoritative source file.
+    if classification in {
+        "Drawing",
+        "GeM GTC",
+    }:
         return ""
 
     limits = {
-        "Buyer Specification": 4000,
-        "Drawing": 1500,
-        "Specification": 4000,
-        "Quality": 2500,
-        "PQC": 2500,
-        "Vendor Registration": 2500,
-        "Pre Integrity Pact": 2500,
-        "Buyer ATC": 4000,
-        "Supporting Tender Document": 2000,
+        "Buyer Specification": 3000,
+        "Specification": 3000,
+        "Quality": 1500,
+        "PQC": 1500,
+        "Vendor Registration": 1800,
+        "Pre Integrity Pact": 2200,
+        "Buyer ATC": 2500,
+        "Supporting Tender Document": 1800,
     }
 
     limit = limits.get(
         classification,
-        2000,
+        1800,
     )
 
     excerpt = text_content[:limit]
@@ -1962,6 +1977,7 @@ def _supporting_document_excerpt(row):
         )
 
     return excerpt
+
 
 
 def _add_supporting_document_register(
@@ -2067,17 +2083,19 @@ def _add_supporting_document_excerpts(
             )
         )
 
-        if not excerpt:
+        if not row.downloaded_file:
             continue
 
         included += 1
 
+        classification = (
+            row.document_classification
+            or f"Supporting Document {row.idx}"
+        )
+
         _add_docx_heading(
             document,
-            (
-                row.document_classification
-                or f"Supporting Document {row.idx}"
-            ),
+            classification,
             level=3,
         )
 
@@ -2112,9 +2130,43 @@ def _add_supporting_document_excerpts(
                 )
             )
 
-        document.add_paragraph(
-            excerpt
-        )
+        if excerpt:
+            document.add_paragraph(
+                excerpt
+            )
+        else:
+            if (
+                row.document_read_status
+                != "Read"
+            ):
+                note = (
+                    "Machine-readable content is incomplete or "
+                    "unreliable. Refer to the original supporting "
+                    "file and complete visual/manual review."
+                )
+
+            elif classification == "Drawing":
+                note = (
+                    "Engineering drawing retained as the authoritative "
+                    "supporting file. Raw PDF text extraction is not "
+                    "included in this working document."
+                )
+
+            elif classification == "GeM GTC":
+                note = (
+                    "Full GeM General Terms and Conditions are retained "
+                    "as the authoritative supporting file in ERPNext "
+                    "and are not reproduced in this working document."
+                )
+
+            else:
+                note = (
+                    "Refer to the original supporting file in ERPNext."
+                )
+
+            document.add_paragraph(
+                note
+            )
 
     if not included:
         document.add_paragraph(
