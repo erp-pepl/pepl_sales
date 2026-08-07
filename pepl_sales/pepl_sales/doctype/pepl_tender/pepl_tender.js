@@ -1186,6 +1186,13 @@ function pepl_add_tender_ingestion_actions(frm) {
                             value(extracted.emd_amount),
                             "<br>",
 
+                            __("Bid Securing Declaration"),
+                            ": ",
+                            value(current.bid_securing_declaration),
+                            " &rarr; ",
+                            value(extracted.bid_securing_declaration),
+                            "<br>",
+
                             __("Splitting Applicable"),
                             ": ",
                             value(current.splitting_applicable),

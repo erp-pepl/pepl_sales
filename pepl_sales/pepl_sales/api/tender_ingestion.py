@@ -2319,6 +2319,8 @@ def get_reviewed_tender_extraction_preview(
                 tender.emd_required,
             "emd_amount":
                 tender.emd_amount,
+            "bid_securing_declaration":
+                tender.bid_securing_declaration,
             "splitting_applicable":
                 tender.splitting_applicable,
         },
@@ -2341,6 +2343,11 @@ def get_reviewed_tender_extraction_preview(
                 parsed.get(
                     "emd_amount"
                 ),
+            "bid_securing_declaration": (
+                0
+                if extracted_emd_required == 1
+                else tender.bid_securing_declaration
+            ),
             "splitting_applicable":
                 extracted_splitting,
             "splitting_ratio":
@@ -2431,6 +2438,22 @@ def apply_reviewed_tender_extraction(
         applied[
             "emd_required"
         ] = emd_required
+
+        # PEPL business rule:
+        # EMD and Bid Securing Declaration are mutually exclusive.
+        #
+        # If the reviewed Tender explicitly requires EMD,
+        # clear any earlier/default Bid Securing Declaration
+        # before saving the ERP Tender.
+        if (
+            emd_required == 1
+            and tender.bid_securing_declaration
+        ):
+            tender.bid_securing_declaration = 0
+
+            applied[
+                "bid_securing_declaration"
+            ] = 0
 
     emd_amount = parsed.get(
         "emd_amount"
