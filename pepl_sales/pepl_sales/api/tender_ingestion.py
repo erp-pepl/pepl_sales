@@ -11,9 +11,6 @@ from urllib.parse import urlparse
 
 import frappe
 import requests
-from docx import Document as WordDocument
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches, Pt
 from frappe import _
 from frappe.utils import now_datetime
 from pypdf import PdfReader
@@ -163,82 +160,183 @@ def _first_match(patterns, text, flags=re.IGNORECASE):
 
 
 def _parse_gem_tender(text):
+    """Extract stable GeM Tender header information.
+
+    GeM PDFs contain bilingual labels and formatting varies between
+    releases. Separators such as ':' are therefore treated as optional.
+    """
+
     result = {}
+
+    separator = r"\s*(?::|-)?\s*"
 
     result["bid_number"] = _first_match(
         [
-            r"Bid\s*Number\s*[:\-]\s*([A-Z0-9/\-]+)",
-            r"Bid\s*No\.?\s*[:\-]\s*([A-Z0-9/\-]+)",
+            r"Bid\s*Number"
+            + separator
+            + r"([A-Z0-9][A-Z0-9/\-]+)",
+            r"Bid\s*No\.?"
+            + separator
+            + r"([A-Z0-9][A-Z0-9/\-]+)",
         ],
         text,
     )
 
     result["publication_date"] = _first_match(
         [
-            r"(?:Dated|Published\s+On)\s*[:\-]\s*"
-            r"(\d{1,2}[-/]\d{1,2}[-/]\d{4})",
+            r"(?:Dated|Published\s+On)"
+            + separator
+            + r"(\d{1,2}[-/]\d{1,2}[-/]\d{4})",
         ],
         text,
     )
 
     result["bid_end"] = _first_match(
         [
-            r"Bid\s*End\s*Date\s*/?\s*Time\s*[:\-]\s*"
-            r"([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{4}"
-            r"(?:\s+[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)?)",
+            r"Bid\s*End\s*Date\s*/?\s*Time"
+            + separator
+            + r"("
+            r"\d{1,2}[-/]\d{1,2}[-/]\d{4}"
+            r"(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?"
+            r")",
         ],
         text,
     )
 
     result["bid_opening"] = _first_match(
         [
-            r"Bid\s*Opening\s*Date\s*/?\s*Time\s*[:\-]\s*"
-            r"([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{4}"
-            r"(?:\s+[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)?)",
+            r"Bid\s*Opening\s*Date\s*/?\s*Time"
+            + separator
+            + r"("
+            r"\d{1,2}[-/]\d{1,2}[-/]\d{4}"
+            r"(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?"
+            r")",
         ],
         text,
     )
 
     result["ministry"] = _first_match(
         [
-            r"Ministry\s*/?\s*State\s*Name\s*[:\-]\s*(.+)",
-            r"Ministry\s*[:\-]\s*(.+)",
+            r"Ministry\s*/?\s*State\s*Name"
+            + separator
+            + r"([^\n]+)",
+            r"Ministry"
+            + separator
+            + r"([^\n]+)",
         ],
         text,
     )
 
     result["department"] = _first_match(
         [
-            r"Department\s*Name\s*[:\-]\s*(.+)",
-            r"Department\s*[:\-]\s*(.+)",
+            r"Department\s*Name"
+            + separator
+            + r"([^\n]+)",
+            r"Department"
+            + separator
+            + r"([^\n]+)",
         ],
         text,
     )
 
     result["organisation"] = _first_match(
         [
-            r"Organisation\s*Name\s*[:\-]\s*(.+)",
-            r"Organisation\s*[:\-]\s*(.+)",
+            r"Organi[sz]ation\s*Name"
+            + separator
+            + r"([^\n]+)",
+            r"Organi[sz]ation"
+            + separator
+            + r"([^\n]+)",
+        ],
+        text,
+    )
+
+    result["office"] = _first_match(
+        [
+            r"Office\s*Name"
+            + separator
+            + r"([^\n]+)",
         ],
         text,
     )
 
     result["total_quantity"] = _first_match(
         [
-            r"Total\s*Quantity\s*[:\-]\s*([\d,.]+)",
+            r"Total\s*Quantity"
+            + separator
+            + r"([\d,.]+)",
         ],
         text,
     )
 
-    result["emd_amount"] = _first_match(
+    result["item_category"] = _first_match(
         [
-            r"EMD\s*Amount\s*[:\-]\s*(?:INR|Rs\.?)?\s*([\d,.]+)",
+            r"Item\s*Category"
+            + separator
+            + r"([^\n]+)",
         ],
         text,
+    )
+
+    result["bid_validity"] = _first_match(
+        [
+            r"Bid\s*Offer\s*Validity"
+            r"(?:\s*\(From\s*End\s*Date\))?"
+            + separator
+            + r"([^\n]+)",
+        ],
+        text,
+    )
+
+    result["emd_required"] = _first_match(
+        [
+            r"EMD\s*Detail.*?"
+            r"Required"
+            + separator
+            + r"(Yes|No)",
+        ],
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    result["epbg_percentage"] = _first_match(
+        [
+            r"ePBG\s*Percentage\s*\(%\)"
+            + separator
+            + r"([\d.]+)",
+        ],
+        text,
+    )
+
+    result["epbg_duration_months"] = _first_match(
+        [
+            r"Duration\s*of\s*ePBG"
+            r"\s*required\s*\(Months\)\.?"
+            + separator
+            + r"([\d.]+)",
+        ],
+        text,
+    )
+
+    result["splitting_applied"] = _first_match(
+        [
+            r"Splitting\s*Applied"
+            + separator
+            + r"(Yes|No)",
+        ],
+        text,
+    )
+
+    result["splitting_ratio"] = _first_match(
+        [
+            r"Split\s*Criteria.*?"
+            r"(\d+\s*:\s*\d+)",
+        ],
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
     )
 
     return result
-
 
 def _parse_date(value):
     if not value:
@@ -287,15 +385,22 @@ def _build_summary(parsed, links, page_count):
         f"Publication Date: {parsed.get('publication_date') or 'Not detected'}",
         f"Bid Closing: {parsed.get('bid_end') or 'Not detected'}",
         f"Bid Opening: {parsed.get('bid_opening') or 'Not detected'}",
+        f"Bid Validity: {parsed.get('bid_validity') or 'Not detected'}",
         f"Ministry: {parsed.get('ministry') or 'Not detected'}",
         f"Department: {parsed.get('department') or 'Not detected'}",
         f"Organisation: {parsed.get('organisation') or 'Not detected'}",
+        f"Office: {parsed.get('office') or 'Not detected'}",
+        f"Item Category: {parsed.get('item_category') or 'Not detected'}",
         f"Total Quantity: {parsed.get('total_quantity') or 'Not detected'}",
+        f"EMD Required: {parsed.get('emd_required') or 'Not detected'}",
+        f"ePBG Percentage: {parsed.get('epbg_percentage') or 'Not detected'}",
+        f"ePBG Duration (Months): {parsed.get('epbg_duration_months') or 'Not detected'}",
+        f"Splitting Applied: {parsed.get('splitting_applied') or 'Not detected'}",
+        f"Splitting Ratio: {parsed.get('splitting_ratio') or 'Not detected'}",
         f"Hyperlinks Discovered: {len(links)}",
     ]
 
     return "\n".join(lines)
-
 
 def _build_warnings(parsed, pages):
     warnings = []
@@ -833,6 +938,8 @@ def mark_tender_extraction_reviewed(
 
 
 def _set_docx_defaults(document):
+    from docx.shared import Inches, Pt
+
     styles = document.styles
 
     normal = styles["Normal"]
@@ -877,6 +984,8 @@ def _add_key_value_table(
 
 
 def _load_word_letterhead():
+    from docx import Document as WordDocument
+
     letterhead_path = Path(
         frappe.get_app_path(
             "pepl_sales",
@@ -898,6 +1007,8 @@ def _load_word_letterhead():
 def generate_tender_word(
     tender_name,
 ):
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
     tender = frappe.get_doc(
         "PEPL Tender",
         tender_name,
