@@ -2203,6 +2203,305 @@ def _add_manual_review_register(
         )
 
 
+
+def _reviewed_yes_no(value):
+    value = str(
+        value or ""
+    ).strip().lower()
+
+    if value in {
+        "yes",
+        "y",
+        "true",
+        "1",
+    }:
+        return 1
+
+    if value in {
+        "no",
+        "n",
+        "false",
+        "0",
+    }:
+        return 0
+
+    return None
+
+
+def _get_reviewed_tender_parsed_data(
+    tender,
+):
+    if (
+        tender.tender_ingestion_status
+        != "Reviewed"
+    ):
+        frappe.throw(
+            _(
+                "Tender extraction must be Reviewed "
+                "before applying extracted values."
+            )
+        )
+
+    if not tender.tender_extraction_json:
+        frappe.throw(
+            _(
+                "Tender Extraction Data is not available."
+            )
+        )
+
+    try:
+        extraction = json.loads(
+            tender.tender_extraction_json
+        )
+    except Exception:
+        frappe.throw(
+            _(
+                "Tender Extraction Data contains invalid JSON."
+            )
+        )
+
+    parsed = extraction.get(
+        "parsed"
+    ) or {}
+
+    if not parsed:
+        frappe.throw(
+            _(
+                "No parsed Tender information is available."
+            )
+        )
+
+    return parsed
+
+
+@frappe.whitelist()
+def get_reviewed_tender_extraction_preview(
+    tender_name,
+):
+    tender = frappe.get_doc(
+        "PEPL Tender",
+        tender_name,
+    )
+
+    tender.check_permission("read")
+
+    parsed = (
+        _get_reviewed_tender_parsed_data(
+            tender
+        )
+    )
+
+    extracted_emd_required = (
+        _reviewed_yes_no(
+            parsed.get(
+                "emd_required"
+            )
+        )
+    )
+
+    extracted_splitting = (
+        _reviewed_yes_no(
+            parsed.get(
+                "splitting_applied"
+            )
+        )
+    )
+
+    return {
+        "current": {
+            "publication_date":
+                tender.publication_date,
+            "bid_submission_deadline":
+                tender.bid_submission_deadline,
+            "bid_opening_date":
+                tender.bid_opening_date,
+            "emd_required":
+                tender.emd_required,
+            "emd_amount":
+                tender.emd_amount,
+            "splitting_applicable":
+                tender.splitting_applicable,
+        },
+        "extracted": {
+            "publication_date":
+                parsed.get(
+                    "publication_date"
+                ),
+            "bid_submission_deadline":
+                parsed.get(
+                    "bid_end"
+                ),
+            "bid_opening_date":
+                parsed.get(
+                    "bid_opening"
+                ),
+            "emd_required":
+                extracted_emd_required,
+            "emd_amount":
+                parsed.get(
+                    "emd_amount"
+                ),
+            "splitting_applicable":
+                extracted_splitting,
+            "splitting_ratio":
+                parsed.get(
+                    "splitting_ratio"
+                ),
+        },
+    }
+
+
+@frappe.whitelist()
+def apply_reviewed_tender_extraction(
+    tender_name,
+):
+    tender = frappe.get_doc(
+        "PEPL Tender",
+        tender_name,
+    )
+
+    tender.check_permission("write")
+
+    if tender.docstatus != 0:
+        frappe.throw(
+            _(
+                "Reviewed Tender extraction can be "
+                "applied only while the Tender is Draft."
+            )
+        )
+
+    parsed = (
+        _get_reviewed_tender_parsed_data(
+            tender
+        )
+    )
+
+    applied = {}
+
+    publication_date = parsed.get(
+        "publication_date"
+    )
+
+    if publication_date:
+        tender.publication_date = (
+            publication_date
+        )
+
+        applied[
+            "publication_date"
+        ] = publication_date
+
+    bid_end = parsed.get(
+        "bid_end"
+    )
+
+    if bid_end:
+        tender.bid_submission_deadline = (
+            bid_end
+        )
+
+        applied[
+            "bid_submission_deadline"
+        ] = bid_end
+
+    bid_opening = parsed.get(
+        "bid_opening"
+    )
+
+    if bid_opening:
+        tender.bid_opening_date = (
+            bid_opening
+        )
+
+        applied[
+            "bid_opening_date"
+        ] = bid_opening
+
+    emd_required = _reviewed_yes_no(
+        parsed.get(
+            "emd_required"
+        )
+    )
+
+    if emd_required is not None:
+        tender.emd_required = (
+            emd_required
+        )
+
+        applied[
+            "emd_required"
+        ] = emd_required
+
+    emd_amount = parsed.get(
+        "emd_amount"
+    )
+
+    if emd_amount not in {
+        None,
+        "",
+    }:
+        try:
+            clean_amount = float(
+                str(
+                    emd_amount
+                ).replace(
+                    ",",
+                    "",
+                )
+            )
+
+            tender.emd_amount = (
+                clean_amount
+            )
+
+            applied[
+                "emd_amount"
+            ] = clean_amount
+
+        except ValueError:
+            frappe.throw(
+                _(
+                    "Extracted EMD Amount is not numeric: {0}"
+                ).format(
+                    emd_amount
+                )
+            )
+
+    splitting = _reviewed_yes_no(
+        parsed.get(
+            "splitting_applied"
+        )
+    )
+
+    if splitting is not None:
+        tender.splitting_applicable = (
+            splitting
+        )
+
+        applied[
+            "splitting_applicable"
+        ] = splitting
+
+    tender.save()
+
+    tender.add_comment(
+        "Info",
+        (
+            "Reviewed Tender extraction applied "
+            "to deterministic ERP fields. "
+            f"Applied values: {json.dumps(applied)}"
+        ),
+    )
+
+    return {
+        "applied": applied,
+        "splitting_ratio":
+            parsed.get(
+                "splitting_ratio"
+            ),
+    }
+
+
 @frappe.whitelist()
 def generate_tender_word(
     tender_name,

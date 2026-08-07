@@ -1111,6 +1111,137 @@ function pepl_add_tender_ingestion_actions(frm) {
     }
 
     if (
+        frm.doc.docstatus === 0
+        && frm.doc.tender_ingestion_status
+            === "Reviewed"
+    ) {
+        frm.add_custom_button(
+            __("Apply Reviewed Extraction"),
+            function () {
+                frappe.call({
+                    method: "pepl_sales.pepl_sales.api.tender_ingestion.get_reviewed_tender_extraction_preview",
+                    args: {
+                        tender_name: frm.doc.name
+                    },
+                    freeze: true,
+                    freeze_message: __(
+                        "Preparing reviewed extraction preview..."
+                    ),
+                    callback(r) {
+                        const data = r.message || {};
+                        const current = data.current || {};
+                        const extracted = data.extracted || {};
+
+                        const value = function (v) {
+                            if (
+                                v === null
+                                || v === undefined
+                                || v === ""
+                            ) {
+                                return "-";
+                            }
+
+                            return frappe.utils.escape_html(
+                                String(v)
+                            );
+                        };
+
+                        const message = [
+                            "<b>",
+                            __("The following reviewed values will be applied to the ERP Tender:"),
+                            "</b><br><br>",
+
+                            __("Publication Date"),
+                            ": ",
+                            value(current.publication_date),
+                            " &rarr; ",
+                            value(extracted.publication_date),
+                            "<br>",
+
+                            __("Bid Submission Deadline"),
+                            ": ",
+                            value(current.bid_submission_deadline),
+                            " &rarr; ",
+                            value(extracted.bid_submission_deadline),
+                            "<br>",
+
+                            __("Bid Opening"),
+                            ": ",
+                            value(current.bid_opening_date),
+                            " &rarr; ",
+                            value(extracted.bid_opening_date),
+                            "<br>",
+
+                            __("EMD Required"),
+                            ": ",
+                            value(current.emd_required),
+                            " &rarr; ",
+                            value(extracted.emd_required),
+                            "<br>",
+
+                            __("EMD Amount"),
+                            ": ",
+                            value(current.emd_amount),
+                            " &rarr; ",
+                            value(extracted.emd_amount),
+                            "<br>",
+
+                            __("Splitting Applicable"),
+                            ": ",
+                            value(current.splitting_applicable),
+                            " &rarr; ",
+                            value(extracted.splitting_applicable),
+                            "<br>",
+
+                            __("Extracted Split Ratio"),
+                            ": ",
+                            value(extracted.splitting_ratio),
+                            "<br><br>",
+
+                            __(
+                                "Customer, Sector, Item and other master-linked fields will not be changed."
+                            )
+                        ].join("");
+
+                        frappe.confirm(
+                            message,
+                            function () {
+                                frappe.call({
+                                    method: "pepl_sales.pepl_sales.api.tender_ingestion.apply_reviewed_tender_extraction",
+                                    args: {
+                                        tender_name: frm.doc.name
+                                    },
+                                    freeze: true,
+                                    freeze_message: __(
+                                        "Applying reviewed Tender values..."
+                                    ),
+                                    callback(apply_r) {
+                                        const result =
+                                            apply_r.message || {};
+
+                                        frappe.msgprint({
+                                            title: __(
+                                                "Reviewed Extraction Applied"
+                                            ),
+                                            indicator: "green",
+                                            message: __(
+                                                "Reviewed deterministic Tender values were synchronized to ERPNext."
+                                            )
+                                        });
+
+                                        frm.reload_doc();
+                                    }
+                                });
+                            }
+                        );
+                    }
+                });
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (
         frm.doc.tender_ingestion_status
         === "Reviewed"
     ) {
