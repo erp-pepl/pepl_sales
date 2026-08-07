@@ -10,7 +10,6 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import frappe
-import requests
 from frappe import _
 from frappe.utils import now_datetime
 from pypdf import PdfReader
@@ -501,6 +500,8 @@ def _validate_download_url(url):
 
 
 def _download_allowed_url(url):
+    import requests
+
     current_url = url
 
     for redirect_index in range(MAX_REDIRECTS + 1):

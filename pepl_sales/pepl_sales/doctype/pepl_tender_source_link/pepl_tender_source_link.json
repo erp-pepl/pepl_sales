@@ -14,10 +14,11 @@
  "fields": [
   {
    "fieldname": "source_url",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "Source URL",
-   "in_list_view": 1,
-   "read_only": 1
+   "in_list_view": 0,
+   "read_only": 1,
+   "description": "Full URL discovered inside the uploaded Tender PDF. Stored as Small Text because GeM document URLs may exceed 140 characters."
   },
   {
    "fieldname": "source_host",
