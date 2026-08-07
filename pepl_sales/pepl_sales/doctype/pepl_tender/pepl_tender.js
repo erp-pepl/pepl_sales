@@ -1017,6 +1017,60 @@ function pepl_add_tender_ingestion_actions(frm) {
 
     if (
         frm.doc.docstatus === 0
+        && (frm.doc.tender_source_links || []).some(
+            row => row.downloaded_file
+        )
+    ) {
+        frm.add_custom_button(
+            __("Read Supporting Tender Documents"),
+            function () {
+                frappe.call({
+                    method: "pepl_sales.pepl_sales.api.tender_ingestion.read_supporting_tender_documents",
+                    args: {
+                        tender_name: frm.doc.name
+                    },
+                    freeze: true,
+                    freeze_message: __(
+                        "Reading supporting Tender documents..."
+                    ),
+                    callback(r) {
+                        const result = r.message || {};
+
+                        frappe.msgprint({
+                            title: __(
+                                "Supporting Document Reading Completed"
+                            ),
+                            indicator: (
+                                result.failed
+                                    ? "orange"
+                                    : "green"
+                            ),
+                            message: __(
+                                "Read successfully: {0}<br>"
+                                + "Read with warnings: {1}<br>"
+                                + "Manual review: {2}<br>"
+                                + "Failed: {3}<br>"
+                                + "Skipped: {4}",
+                                [
+                                    result.read || 0,
+                                    result.warnings || 0,
+                                    result.manual_review || 0,
+                                    result.failed || 0,
+                                    result.skipped || 0
+                                ]
+                            )
+                        });
+
+                        frm.reload_doc();
+                    }
+                });
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (
+        frm.doc.docstatus === 0
         && [
             "Read - Review Required",
             "Read with Warnings"

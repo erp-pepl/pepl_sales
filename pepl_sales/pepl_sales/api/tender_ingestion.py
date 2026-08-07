@@ -1031,6 +1031,409 @@ def download_discovered_gem_documents(
     }
 
 
+
+def _classify_supporting_document(
+    filename,
+    text_content,
+):
+    value = (
+        f"{filename or ''}\n"
+        f"{text_content or ''}"
+    ).lower()
+
+    rules = [
+        (
+            "Drawing",
+            [
+                "drawing",
+                "drg.",
+                "drg ",
+                "ofm-",
+                "ofm -",
+            ],
+        ),
+        (
+            "Specification",
+            [
+                "specification",
+                "annexure a",
+                "technical specification",
+            ],
+        ),
+        (
+            "Quality",
+            [
+                "quality",
+                "annexure q",
+                "quality assurance",
+            ],
+        ),
+        (
+            "PQC",
+            [
+                "pqc",
+                "annexure b",
+                "capacity verification",
+            ],
+        ),
+        (
+            "Vendor Registration",
+            [
+                "vraf",
+                "vendor application",
+                "vendor registration",
+            ],
+        ),
+        (
+            "Pre Integrity Pact",
+            [
+                "integrity pact",
+                "pre integrity",
+                "annexure 5b",
+            ],
+        ),
+        (
+            "Buyer ATC",
+            [
+                "buyer added",
+                "atc",
+                "additional terms",
+                "terms and conditions",
+            ],
+        ),
+        (
+            "GeM GTC",
+            [
+                "general terms and conditions",
+                "gem gtc",
+            ],
+        ),
+        (
+            "MSE / MII Document",
+            [
+                "mse",
+                "make in india",
+                "mii",
+            ],
+        ),
+    ]
+
+    for classification, keywords in rules:
+        for keyword in keywords:
+            if keyword in value:
+                return classification
+
+    return "Supporting Tender Document"
+
+
+def _extract_pdf_supporting_document(content):
+    reader = PdfReader(
+        BytesIO(content)
+    )
+
+    pages = []
+
+    for page_number, page in enumerate(
+        reader.pages,
+        start=1,
+    ):
+        try:
+            page_text = (
+                page.extract_text()
+                or ""
+            )
+        except Exception:
+            page_text = ""
+
+        page_text = _normalise_multiline_text(
+            page_text
+        )
+
+        if page_text:
+            pages.append(
+                f"[Page {page_number}]\n"
+                f"{page_text}"
+            )
+
+    return {
+        "page_count": len(reader.pages),
+        "text": "\n\n".join(pages),
+    }
+
+
+def _extract_docx_supporting_document(content):
+    from docx import Document as WordDocument
+
+    document = WordDocument(
+        BytesIO(content)
+    )
+
+    blocks = []
+
+    for paragraph in document.paragraphs:
+        value = _clean_text(
+            paragraph.text
+        )
+
+        if value:
+            blocks.append(value)
+
+    for table_number, table in enumerate(
+        document.tables,
+        start=1,
+    ):
+        blocks.append(
+            f"[Table {table_number}]"
+        )
+
+        for row in table.rows:
+            values = []
+
+            for cell in row.cells:
+                value = _clean_text(
+                    cell.text
+                )
+
+                values.append(value)
+
+            if any(values):
+                blocks.append(
+                    " | ".join(values)
+                )
+
+    return {
+        "page_count": 0,
+        "text": "\n".join(blocks),
+    }
+
+
+def _read_supporting_file(file_url):
+    file_name = frappe.db.get_value(
+        "File",
+        {
+            "file_url": file_url,
+        },
+        "name",
+    )
+
+    if not file_name:
+        raise RuntimeError(
+            f"Supporting File not found: {file_url}"
+        )
+
+    file_doc = frappe.get_doc(
+        "File",
+        file_name,
+    )
+
+    content = file_doc.get_content()
+
+    filename = (
+        file_doc.file_name
+        or Path(file_url).name
+    )
+
+    extension = Path(
+        filename
+    ).suffix.lower()
+
+    if extension == ".pdf":
+        result = (
+            _extract_pdf_supporting_document(
+                content
+            )
+        )
+
+    elif extension == ".docx":
+        result = (
+            _extract_docx_supporting_document(
+                content
+            )
+        )
+
+    elif extension in {
+        ".doc",
+        ".xls",
+        ".xlsx",
+    }:
+        return {
+            "filename": filename,
+            "extension": extension,
+            "page_count": 0,
+            "text": "",
+            "status":
+                "Manual Review Required",
+            "warning": (
+                f"{extension} automatic text "
+                "extraction is not enabled."
+            ),
+        }
+
+    else:
+        return {
+            "filename": filename,
+            "extension": extension,
+            "page_count": 0,
+            "text": "",
+            "status":
+                "Manual Review Required",
+            "warning": (
+                "Unsupported supporting "
+                f"document type: {extension or 'unknown'}"
+            ),
+        }
+
+    extracted_text = (
+        result.get("text")
+        or ""
+    ).strip()
+
+    if not extracted_text:
+        return {
+            "filename": filename,
+            "extension": extension,
+            "page_count":
+                result.get("page_count") or 0,
+            "text": "",
+            "status":
+                "Read with Warnings",
+            "warning": (
+                "No machine-readable text was "
+                "found in this supporting document."
+            ),
+        }
+
+    return {
+        "filename": filename,
+        "extension": extension,
+        "page_count":
+            result.get("page_count") or 0,
+        "text": extracted_text,
+        "status": "Read",
+        "warning": "",
+    }
+
+
+@frappe.whitelist()
+def read_supporting_tender_documents(
+    tender_name,
+):
+    tender = frappe.get_doc(
+        "PEPL Tender",
+        tender_name,
+    )
+
+    tender.check_permission("write")
+
+    if tender.docstatus != 0:
+        frappe.throw(
+            _(
+                "Supporting Tender documents can "
+                "be read only while the Tender is Draft."
+            )
+        )
+
+    read_count = 0
+    warning_count = 0
+    manual_count = 0
+    failed_count = 0
+    skipped_count = 0
+
+    for row in tender.tender_source_links or []:
+        if not row.downloaded_file:
+            skipped_count += 1
+            continue
+
+        try:
+            result = _read_supporting_file(
+                row.downloaded_file
+            )
+
+            row.document_page_count = (
+                result.get("page_count")
+                or 0
+            )
+
+            row.document_text = (
+                result.get("text")
+                or ""
+            )
+
+            row.document_read_status = (
+                result.get("status")
+                or "Failed"
+            )
+
+            row.document_classification = (
+                _classify_supporting_document(
+                    result.get("filename"),
+                    result.get("text"),
+                )
+            )
+
+            warning = (
+                result.get("warning")
+                or ""
+            )
+
+            if warning:
+                row.remarks = (
+                    (
+                        row.remarks
+                        + "\n"
+                    )
+                    if row.remarks
+                    else ""
+                ) + warning
+
+            if (
+                row.document_read_status
+                == "Read"
+            ):
+                read_count += 1
+
+            elif (
+                row.document_read_status
+                == "Read with Warnings"
+            ):
+                warning_count += 1
+
+            elif (
+                row.document_read_status
+                == "Manual Review Required"
+            ):
+                manual_count += 1
+
+            else:
+                failed_count += 1
+
+        except Exception as exc:
+            row.document_read_status = "Failed"
+            row.document_text = ""
+            row.document_page_count = 0
+
+            row.remarks = (
+                (
+                    row.remarks
+                    + "\n"
+                )
+                if row.remarks
+                else ""
+            ) + str(exc)[:500]
+
+            failed_count += 1
+
+    tender.save()
+
+    return {
+        "read": read_count,
+        "warnings": warning_count,
+        "manual_review": manual_count,
+        "failed": failed_count,
+        "skipped": skipped_count,
+    }
+
+
 @frappe.whitelist()
 def mark_tender_extraction_reviewed(
     tender_name,

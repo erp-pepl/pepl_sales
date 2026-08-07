@@ -9,6 +9,10 @@
   "link_type",
   "retrieval_status",
   "downloaded_file",
+  "document_classification",
+  "document_read_status",
+  "document_page_count",
+  "document_text",
   "remarks"
  ],
  "fields": [
@@ -54,6 +58,33 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks",
+   "read_only": 1
+  },
+  {
+   "fieldname": "document_classification",
+   "fieldtype": "Data",
+   "label": "Document Classification",
+   "read_only": 1,
+   "description": "Automatically classified supporting Tender document."
+  },
+  {
+   "fieldname": "document_read_status",
+   "fieldtype": "Select",
+   "label": "Document Read Status",
+   "options": "Not Read\nRead\nRead with Warnings\nManual Review Required\nFailed",
+   "default": "Not Read",
+   "read_only": 1
+  },
+  {
+   "fieldname": "document_page_count",
+   "fieldtype": "Int",
+   "label": "Pages",
+   "read_only": 1
+  },
+  {
+   "fieldname": "document_text",
+   "fieldtype": "Long Text",
+   "label": "Extracted Supporting Document Text",
    "read_only": 1
   }
  ],
