@@ -46,8 +46,9 @@
   {
    "fieldname": "downloaded_file",
    "fieldtype": "Attach",
-   "label": "Downloaded File",
-   "read_only": 1
+   "label": "Supporting File",
+   "read_only": 0,
+   "description": "Automatically downloaded from GeM, or manually attach the document here when GeM requires a browser/session to retrieve it."
   },
   {
    "fieldname": "remarks",

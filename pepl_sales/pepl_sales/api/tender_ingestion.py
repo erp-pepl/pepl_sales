@@ -287,6 +287,15 @@ def _parse_gem_tender(text):
         text,
     )
 
+    result["emd_amount"] = _first_match(
+        [
+            r"EMD\s*Amount"
+            + separator
+            + r"(?:INR|Rs\.?)?\s*([\d,]+(?:\.\d+)?)",
+        ],
+        text,
+    )
+
     result["emd_required"] = _first_match(
         [
             r"EMD\s*Detail.*?"
@@ -297,6 +306,23 @@ def _parse_gem_tender(text):
         text,
         flags=re.IGNORECASE | re.DOTALL,
     )
+
+    # Some GeM formats show EMD Amount without an explicit
+    # "Required Yes" row. A positive amount deterministically
+    # means EMD is required.
+    if (
+        not result["emd_required"]
+        and result["emd_amount"]
+    ):
+        try:
+            emd_value = float(
+                result["emd_amount"].replace(",", "")
+            )
+
+            if emd_value > 0:
+                result["emd_required"] = "Yes"
+        except ValueError:
+            pass
 
     result["epbg_percentage"] = _first_match(
         [
@@ -329,7 +355,7 @@ def _parse_gem_tender(text):
     result["splitting_ratio"] = _first_match(
         [
             r"Split\s*Criteria.*?"
-            r"(\d+\s*:\s*\d+)",
+            r"(\d+(?:\s*:\s*\d+)+)",
         ],
         text,
         flags=re.IGNORECASE | re.DOTALL,
@@ -392,6 +418,7 @@ def _build_summary(parsed, links, page_count):
         f"Item Category: {parsed.get('item_category') or 'Not detected'}",
         f"Total Quantity: {parsed.get('total_quantity') or 'Not detected'}",
         f"EMD Required: {parsed.get('emd_required') or 'Not detected'}",
+        f"EMD Amount: {parsed.get('emd_amount') or 'Not detected'}",
         f"ePBG Percentage: {parsed.get('epbg_percentage') or 'Not detected'}",
         f"ePBG Duration (Months): {parsed.get('epbg_duration_months') or 'Not detected'}",
         f"Splitting Applied: {parsed.get('splitting_applied') or 'Not detected'}",
@@ -974,8 +1001,25 @@ def download_discovered_gem_documents(
             downloaded += 1
 
         except Exception as exc:
-            row.retrieval_status = "Failed"
-            row.remarks = str(exc)[:500]
+            message = str(exc)
+
+            if (
+                "text/html" in message.lower()
+                or "not approved" in message.lower()
+            ):
+                row.retrieval_status = (
+                    "Manual Review Required"
+                )
+                row.remarks = (
+                    "GeM returned a browser/session response "
+                    "instead of a downloadable document. "
+                    "Open this URL manually and attach the "
+                    "supporting document to the Tender if required."
+                )
+            else:
+                row.retrieval_status = "Failed"
+                row.remarks = message[:500]
+
             failed += 1
 
     tender.save()
