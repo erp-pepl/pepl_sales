@@ -43,11 +43,13 @@ def _get_official_letterhead_path():
 
 def _apply_official_pepl_letterhead(pdf_content):
     """
-    Overlay the exact approved PEPL letterhead PDF on every generated page.
+    Apply only the exact approved PEPL header and footer regions from
+    PEPL_Letterhead_Plain.pdf to every generated PDF page.
 
-    The business PDF is deliberately rendered with safe top and bottom
-    margins before reaching this function. Therefore the official header
-    and footer can be overlaid without covering business content.
+    The official source PDF contains a full-page white background.
+    Therefore we intentionally crop the source to the header and footer
+    bands before merging, so the white centre of the source letterhead
+    cannot cover business-document content.
     """
 
     letterhead_path = _get_official_letterhead_path()
@@ -72,32 +74,52 @@ def _apply_official_pepl_letterhead(pdf_content):
             BytesIO(pdf_content)
         )
 
+        source_reader = PdfReader(
+            BytesIO(letterhead_bytes)
+        )
+
+        if not source_reader.pages:
+            frappe.throw(
+                _(
+                    "Official PEPL letterhead PDF "
+                    "contains no pages."
+                )
+            )
+
         if not business_reader.pages:
             frappe.throw(
                 _("Generated business PDF contains no pages.")
             )
 
+        source_page = source_reader.pages[0]
+
+        source_width = float(
+            source_page.mediabox.width
+        )
+        source_height = float(
+            source_page.mediabox.height
+        )
+
+        # The supplied source is A4, approximately 596 x 842 pt.
+        #
+        # Header contains:
+        # - PEPL logo and corporate identity
+        # - address, CIN, GSTIN and email
+        # - blue/gold divider
+        #
+        # Footer contains:
+        # - blue divider
+        # - Defence & Aerospace / Railways / Automobile strapline
+        # - certification logos
+        #
+        # Keep the crop slightly generous so the source appearance
+        # remains byte-for-byte visually represented within those bands.
+        HEADER_HEIGHT_PT = 165
+        FOOTER_HEIGHT_PT = 95
+
         writer = PdfWriter()
 
         for business_page in business_reader.pages:
-            # Create a fresh page object for every output page because
-            # merge_page mutates the page tree.
-            letterhead_reader = PdfReader(
-                BytesIO(letterhead_bytes)
-            )
-
-            if not letterhead_reader.pages:
-                frappe.throw(
-                    _(
-                        "Official PEPL letterhead PDF "
-                        "contains no pages."
-                    )
-                )
-
-            letterhead_page = (
-                letterhead_reader.pages[0]
-            )
-
             business_width = float(
                 business_page.mediabox.width
             )
@@ -105,27 +127,9 @@ def _apply_official_pepl_letterhead(pdf_content):
                 business_page.mediabox.height
             )
 
-            letterhead_width = float(
-                letterhead_page.mediabox.width
-            )
-            letterhead_height = float(
-                letterhead_page.mediabox.height
-            )
-
-            width_difference = abs(
-                business_width
-                - letterhead_width
-            )
-            height_difference = abs(
-                business_height
-                - letterhead_height
-            )
-
-            # Both PDFs are expected to be A4. Reject a materially
-            # different page rather than silently distorting branding.
             if (
-                width_difference > 5
-                or height_difference > 5
+                abs(business_width - source_width) > 5
+                or abs(business_height - source_height) > 5
             ):
                 frappe.throw(
                     _(
@@ -134,8 +138,46 @@ def _apply_official_pepl_letterhead(pdf_content):
                     )
                 )
 
+            # Use fresh readers because merge_page mutates page content.
+            header_reader = PdfReader(
+                BytesIO(letterhead_bytes)
+            )
+            header_page = header_reader.pages[0]
+
+            header_page.cropbox.lower_left = (
+                0,
+                source_height - HEADER_HEIGHT_PT,
+            )
+            header_page.cropbox.upper_right = (
+                source_width,
+                source_height,
+            )
+
+            footer_reader = PdfReader(
+                BytesIO(letterhead_bytes)
+            )
+            footer_page = footer_reader.pages[0]
+
+            footer_page.cropbox.lower_left = (
+                0,
+                0,
+            )
+            footer_page.cropbox.upper_right = (
+                source_width,
+                FOOTER_HEIGHT_PT,
+            )
+
+            # pypdf clips merged content to each source page's cropbox.
+            # Thus only the official top and bottom regions are overlaid;
+            # the blank white middle area is never placed over the
+            # generated business document.
             business_page.merge_page(
-                letterhead_page,
+                header_page,
+                over=True,
+            )
+
+            business_page.merge_page(
+                footer_page,
                 over=True,
             )
 
