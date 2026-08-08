@@ -50,7 +50,7 @@
   {
    "depends_on": "eval:doc.document_source==\"Item Specification\"",
    "fieldname": "linked_specification",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Specification",
    "options": "PEPL Specification"
   },
