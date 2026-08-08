@@ -8,7 +8,7 @@
  *   ② Column formatters   (badges, icons, numeric styling)
  *   ③ Embedded bar chart  (top-8 competitors: bids vs wins)
  *   ④ Row entrance animation
- *   ⑤ Summary-card hover effect
+ *   ⑤ Outcome summary cards — count-up animation + click-to-filter
  *   ⑥ Monospace numeric display
  *   ⑦ Frappe v15-compatible preset mounting
  */
@@ -483,18 +483,29 @@ frappe.query_reports["PEPL Competitor Bid Comparison"] = {
 		setTimeout(function () {
 			_peplMountPresets(report);
 		}, 1500);
+
+		/* ── Summary Cards ─────────────────────────────── */
+		_peplInitSummaryCards(report);
 	},
 
 	/* ═══════════════════════════════════════════════════════════
 	   5 ▸ AFTER RENDER
 	═══════════════════════════════════════════════════════════ */
 	after_render() {
+		/* Row entrance animation */
 		document
 			.querySelectorAll(".dt-body .dt-row")
 			.forEach(function (row, index) {
 				row.style.animationDelay =
 					(index * 18) + "ms";
 			});
+
+		/* Redraw summary cards with fresh data */
+		setTimeout(function () {
+			_peplDrawSummaryCards(
+				frappe.query_report
+			);
+		}, 150);
 	}
 };
 
@@ -502,6 +513,406 @@ frappe.query_reports["PEPL Competitor Bid Comparison"] = {
 /* ═══════════════════════════════════════════════════════════════
    PRIVATE HELPERS
 ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Safely read report rows from whichever object has them.
+ */
+function _peplGetRows(report) {
+	if (report && Array.isArray(report.data)) {
+		return report.data;
+	}
+
+	if (
+		frappe.query_report &&
+		Array.isArray(frappe.query_report.data)
+	) {
+		return frappe.query_report.data;
+	}
+
+	return [];
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   SUMMARY CARDS
+   Mirrors the Appointment Report's card strip:
+     • 4-column grid, white cards, coloured top-accent bar
+     • Count-up animation on every draw
+     • Click any card to filter the report by that outcome
+     • Active card gets a ring highlight
+───────────────────────────────────────────────────────────── */
+
+/**
+ * Called once from onload. Polls until data is ready,
+ * then draws for the first time.
+ */
+function _peplInitSummaryCards(report) {
+	_peplEnsureSummaryWrapper(report);
+
+	var attempts = 0;
+
+	var poll = setInterval(function () {
+		attempts++;
+
+		var rows = _peplGetRows(frappe.query_report);
+
+		if (rows.length > 0 || attempts > 30) {
+			clearInterval(poll);
+			_peplDrawSummaryCards(frappe.query_report);
+		}
+	}, 200);
+}
+
+
+/**
+ * Create the wrapper div once and return it.
+ * Inserted just below Frappe's filter form.
+ */
+function _peplEnsureSummaryWrapper(report) {
+	var existing = document.getElementById(
+		"pepl-bid-summary-wrap"
+	);
+
+	if (existing) {
+		return existing;
+	}
+
+	var wrapper = document.createElement("div");
+	wrapper.id = "pepl-bid-summary-wrap";
+
+	try {
+		var pageForm =
+			report.page.main.find(".frappe-form")[0];
+
+		if (pageForm) {
+			pageForm.parentNode.insertBefore(
+				wrapper,
+				pageForm.nextSibling
+			);
+		} else {
+			var pageBody = report.page.main[0];
+
+			if (pageBody) {
+				pageBody.insertBefore(
+					wrapper,
+					pageBody.firstChild
+				);
+			}
+		}
+	} catch (e) {
+		document.body.appendChild(wrapper);
+	}
+
+	return wrapper;
+}
+
+
+/**
+ * Build / rebuild the card strip using current report data.
+ */
+function _peplDrawSummaryCards(report) {
+	var wrapper = document.getElementById(
+		"pepl-bid-summary-wrap"
+	);
+
+	if (!wrapper) {
+		wrapper = _peplEnsureSummaryWrapper(
+			report || frappe.query_report
+		);
+	}
+
+	if (!wrapper) {
+		return;
+	}
+
+	var rows = _peplGetRows(report || frappe.query_report);
+	var counts = _peplCountOutcomes(rows);
+
+	/*
+	 * Card definitions — accent colour matches the formatter
+	 * badges so the visual language stays consistent.
+	 */
+	var cards = [
+		{
+			label: "Total Entries",
+			value: counts.total,
+			accent: "#1e4db7",
+			css: "pepl-card-blue",
+			outcome: ""
+		},
+		{
+			label: "PEPL Bids",
+			value: counts.pepl_bids,
+			accent: "#1e4db7",
+			css: "pepl-card-navy",
+			outcome: "__pepl__"
+		},
+		{
+			label: "Won",
+			value: counts.won,
+			accent: "#15803d",
+			css: "pepl-card-green",
+			outcome: "Won"
+		},
+		{
+			label: "Partially Won",
+			value: counts.partially_won,
+			accent: "#92400e",
+			css: "pepl-card-amber",
+			outcome: "Partially Won"
+		},
+		{
+			label: "Lost",
+			value: counts.lost,
+			accent: "#b91c1c",
+			css: "pepl-card-red",
+			outcome: "Lost"
+		},
+		{
+			label: "Pending",
+			value: counts.pending,
+			accent: "#475569",
+			css: "pepl-card-slate",
+			outcome: "Pending"
+		},
+		{
+			label: "Cancelled",
+			value: counts.cancelled,
+			accent: "#6d28d9",
+			css: "pepl-card-purple",
+			outcome: "Cancelled"
+		},
+		{
+			label: "L1 Bids",
+			value: counts.l1_bids,
+			accent: "#0f766e",
+			css: "pepl-card-teal",
+			outcome: "__l1__"
+		}
+	];
+
+	var html = '<div class="pepl-bid-summary-grid">';
+
+	cards.forEach(function (card) {
+		html +=
+			'<div class="pepl-bid-summary-card" ' +
+			'data-outcome="' + card.outcome + '" ' +
+			'style="--card-accent:' + card.accent + ';" ' +
+			'title="Click to filter by ' + card.label + '">' +
+
+			'<div class="pepl-card-label">' +
+			card.label +
+			"</div>" +
+
+			'<div class="pepl-card-value ' + card.css + '" ' +
+			'data-target="' + card.value + '">0</div>' +
+
+			"</div>";
+	});
+
+	html += "</div>";
+
+	wrapper.innerHTML = html;
+
+	/* Count-up animation on every card */
+	wrapper
+		.querySelectorAll(
+			".pepl-card-value[data-target]"
+		)
+		.forEach(function (el) {
+			_peplAnimateCount(
+				el,
+				parseInt(el.getAttribute("data-target"), 10) || 0,
+				600
+			);
+		});
+
+	/* Click-to-filter */
+	wrapper
+		.querySelectorAll(".pepl-bid-summary-card")
+		.forEach(function (card) {
+			card.addEventListener("click", function () {
+				var outcome =
+					card.getAttribute("data-outcome");
+
+				var isActive =
+					card.classList.contains(
+						"pepl-card-active"
+					);
+
+				/* Remove active state from all cards */
+				wrapper
+					.querySelectorAll(
+						".pepl-bid-summary-card"
+					)
+					.forEach(function (c) {
+						c.classList.remove("pepl-card-active");
+					});
+
+				if (isActive) {
+					/* Second click → clear filter */
+					_peplClearOutcomeFilter();
+					return;
+				}
+
+				card.classList.add("pepl-card-active");
+				_peplApplyOutcomeFilter(outcome);
+			});
+		});
+}
+
+
+/**
+ * Count totals from raw report rows.
+ */
+function _peplCountOutcomes(rows) {
+	var counts = {
+		total: 0,
+		pepl_bids: 0,
+		won: 0,
+		partially_won: 0,
+		lost: 0,
+		pending: 0,
+		cancelled: 0,
+		l1_bids: 0
+	};
+
+	(rows || []).forEach(function (row) {
+		if (!row) {
+			return;
+		}
+
+		counts.total++;
+
+		if (row.is_pepl) {
+			counts.pepl_bids++;
+		}
+
+		if (row.is_l1) {
+			counts.l1_bids++;
+		}
+
+		switch (row.item_outcome) {
+			case "Won":
+				counts.won++;
+				break;
+			case "Partially Won":
+				counts.partially_won++;
+				break;
+			case "Lost":
+				counts.lost++;
+				break;
+			case "Pending":
+				counts.pending++;
+				break;
+			case "Cancelled":
+				counts.cancelled++;
+				break;
+		}
+	});
+
+	return counts;
+}
+
+
+/**
+ * Apply the correct filter based on the clicked card.
+ * Special sentinels __pepl__ and __l1__ use the
+ * is_pepl and rank filters instead of item_outcome.
+ */
+function _peplApplyOutcomeFilter(outcome) {
+	if (outcome === "__pepl__") {
+		frappe.query_report.set_filter_value(
+			"is_pepl",
+			"1"
+		);
+		frappe.query_report.set_filter_value(
+			"item_outcome",
+			""
+		);
+	} else if (outcome === "__l1__") {
+		frappe.query_report.set_filter_value(
+			"rank",
+			"L1"
+		);
+		frappe.query_report.set_filter_value(
+			"item_outcome",
+			""
+		);
+		frappe.query_report.set_filter_value(
+			"is_pepl",
+			""
+		);
+	} else if (outcome === "") {
+		_peplClearOutcomeFilter();
+		return;
+	} else {
+		frappe.query_report.set_filter_value(
+			"item_outcome",
+			outcome
+		);
+		frappe.query_report.set_filter_value(
+			"is_pepl",
+			""
+		);
+		frappe.query_report.set_filter_value(
+			"rank",
+			""
+		);
+	}
+
+	frappe.query_report.refresh();
+}
+
+
+/**
+ * Remove the outcome / pepl / rank card filters.
+ */
+function _peplClearOutcomeFilter() {
+	frappe.query_report.set_filter_value(
+		"item_outcome",
+		""
+	);
+	frappe.query_report.set_filter_value(
+		"is_pepl",
+		""
+	);
+	frappe.query_report.set_filter_value(
+		"rank",
+		""
+	);
+	frappe.query_report.refresh();
+}
+
+
+/**
+ * Smooth count-up animation for a numeric display element.
+ */
+function _peplAnimateCount(element, target, duration) {
+	if (!element) {
+		return;
+	}
+
+	var start = 0;
+	var step = Math.max(
+		1,
+		Math.ceil(target / (duration / 30))
+	);
+
+	element.textContent = "0";
+
+	var timer = setInterval(function () {
+		start += step;
+
+		if (start >= target) {
+			element.textContent = target;
+			clearInterval(timer);
+		} else {
+			element.textContent = start;
+		}
+	}, 30);
+}
+
 
 /**
  * Inject custom report stylesheet once.
@@ -519,7 +930,8 @@ function _peplInjectStyles() {
 	style.id = "pepl-bid-cmp-styles";
 
 	style.textContent = [
-		/* DataTable */
+
+		/* ── DataTable row hover ─────────────────────── */
 		".dt-cell__content {",
 		"  transition: background .15s ease !important;",
 		"}",
@@ -528,26 +940,100 @@ function _peplInjectStyles() {
 		"  background: rgba(30,77,183,.055) !important;",
 		"}",
 
-		/* Summary cards */
-		".report-summary-wrapper .summary-card,",
-		".report-summary .summary-card,",
-		".report-summary-wrapper .summary-item,",
-		".report-summary .summary-item {",
+		/* ── Summary card grid ───────────────────────── */
+		"#pepl-bid-summary-wrap {",
+		"  margin: 16px 0 18px 0;",
+		"}",
+
+		".pepl-bid-summary-grid {",
+		"  display: grid;",
+		"  grid-template-columns: repeat(4, minmax(0, 1fr));",
+		"  gap: 12px;",
+		"  width: 100%;",
+		"}",
+
+		"@media (max-width: 900px) {",
+		"  .pepl-bid-summary-grid {",
+		"    grid-template-columns: repeat(2, minmax(0, 1fr));",
+		"  }",
+		"}",
+
+		/* ── Individual card ─────────────────────────── */
+		".pepl-bid-summary-card {",
+		"  background: #ffffff;",
+		"  border: 1px solid #d1d8dd;",
+		"  border-radius: 12px;",
+		"  padding: 16px 12px 14px 12px;",
+		"  text-align: center;",
+		"  cursor: pointer;",
 		"  transition:",
-		"    transform .22s cubic-bezier(.34,1.56,.64,1),",
-		"    box-shadow .22s ease !important;",
-		"  cursor: default;",
+		"    transform .18s ease,",
+		"    box-shadow .18s ease,",
+		"    border-color .18s ease;",
+		"  box-shadow: 0 1px 4px rgba(0,0,0,0.06);",
+		"  position: relative;",
+		"  overflow: hidden;",
 		"}",
 
-		".report-summary-wrapper .summary-card:hover,",
-		".report-summary .summary-card:hover,",
-		".report-summary-wrapper .summary-item:hover,",
-		".report-summary .summary-item:hover {",
-		"  transform: translateY(-4px) scale(1.025) !important;",
-		"  box-shadow: 0 14px 32px rgba(30,77,183,.16) !important;",
+		/* Coloured accent bar at top of every card */
+		".pepl-bid-summary-card::before {",
+		"  content: '';",
+		"  display: block;",
+		"  position: absolute;",
+		"  top: 0; left: 0; right: 0;",
+		"  height: 4px;",
+		"  background: var(--card-accent, #1e4db7);",
+		"  border-radius: 12px 12px 0 0;",
 		"}",
 
-		/* Quick-filter preset bar */
+		".pepl-bid-summary-card:hover {",
+		"  transform: translateY(-4px);",
+		"  box-shadow: 0 8px 22px rgba(30,77,183,.16);",
+		"  border-color: #b0bec5;",
+		"}",
+
+		/* Active / selected card gets a coloured ring */
+		".pepl-bid-summary-card.pepl-card-active {",
+		"  box-shadow: 0 0 0 3px rgba(30,77,183,.35);",
+		"  border-color: #1e4db7;",
+		"}",
+
+		/* Label */
+		".pepl-card-label {",
+		"  font-size: 11px;",
+		"  font-weight: 700;",
+		"  color: #6c757d;",
+		"  margin-bottom: 8px;",
+		"  white-space: nowrap;",
+		"  overflow: hidden;",
+		"  text-overflow: ellipsis;",
+		"  text-transform: uppercase;",
+		"  letter-spacing: 0.5px;",
+		"}",
+
+		/* Value number */
+		".pepl-card-value {",
+		"  font-size: 32px;",
+		"  font-weight: 700;",
+		"  line-height: 1.1;",
+		"}",
+
+		/* Per-card colour classes */
+		".pepl-card-blue   { color: #1e4db7; }",
+		".pepl-card-navy   { color: #1e40af; }",
+		".pepl-card-green  { color: #15803d; }",
+		".pepl-card-amber  { color: #92400e; }",
+		".pepl-card-red    { color: #b91c1c; }",
+		".pepl-card-slate  { color: #475569; }",
+		".pepl-card-purple { color: #6d28d9; }",
+		".pepl-card-teal   { color: #0f766e; }",
+
+		/* Hide Frappe's built-in report summary (our cards replace it) */
+		".query-report .report-summary {",
+		"  display: none !important;",
+		"}",
+
+		/* ── Quick-filter preset bar ─────────────────── */
 		"#_pepl-presets {",
 		"  display: flex;",
 		"  align-items: center;",
@@ -605,7 +1091,7 @@ function _peplInjectStyles() {
 		"  border-color: #dc2626 !important;",
 		"}",
 
-		/* Row animation */
+		/* ── Row entrance animation ───────────────────── */
 		"@keyframes _ppRowIn {",
 		"  from {",
 		"    opacity: 0;",
@@ -621,7 +1107,7 @@ function _peplInjectStyles() {
 		"  animation: _ppRowIn .28s ease both;",
 		"}",
 
-		/* Numeric fields */
+		/* ── Monospace numeric columns ────────────────── */
 		"[data-fieldtype='Currency'] .dt-cell__content,",
 		"[data-fieldtype='Percent'] .dt-cell__content,",
 		"[data-fieldtype='Float'] .dt-cell__content,",
@@ -632,6 +1118,7 @@ function _peplInjectStyles() {
 		"    monospace !important;",
 		"  font-size: 12px;",
 		"}"
+
 	].join("\n");
 
 	document.head.appendChild(style);
@@ -646,9 +1133,6 @@ function _peplFindFilterContainer(report) {
 		return null;
 	}
 
-	/*
-	 * Prefer Frappe's actual page-form jQuery object.
-	 */
 	if (
 		report.page &&
 		report.page.page_form &&
@@ -658,14 +1142,10 @@ function _peplFindFilterContainer(report) {
 	}
 
 	var root =
-		report.page &&
-		report.page.wrapper
+		report.page && report.page.wrapper
 			? report.page.wrapper
 			: document;
 
-	/*
-	 * Compatibility fallbacks for various Frappe v15 builds.
-	 */
 	var selectors = [
 		".page-form",
 		".filter-area",
@@ -758,10 +1238,6 @@ function _peplMountPresets(report) {
 		"</span>" +
 		buttonHtml;
 
-	/*
-	 * Put the quick filter strip above existing
-	 * Frappe report filters.
-	 */
 	if (wrap.firstChild) {
 		wrap.insertBefore(
 			bar,
@@ -781,20 +1257,12 @@ function _peplMountPresets(report) {
 					event.stopPropagation();
 
 					bar
-						.querySelectorAll(
-							".pp-btn"
-						)
-						.forEach(
-							function (item) {
-								item.classList.remove(
-									"active"
-								);
-							}
-						);
+						.querySelectorAll(".pp-btn")
+						.forEach(function (item) {
+							item.classList.remove("active");
+						});
 
-					button.classList.add(
-						"active"
-					);
+					button.classList.add("active");
 
 					_peplApplyPreset(
 						button.dataset.key,
@@ -813,55 +1281,28 @@ function _peplApplyPreset(key, report) {
 	var today =
 		frappe.datetime.get_today();
 
-	/*
-	 * Use Frappe date rather than browser-local
-	 * new Date() as the primary source.
-	 */
 	var now =
-		frappe.datetime.str_to_obj(
-			today
-		);
+		frappe.datetime.str_to_obj(today);
 
 	var financialYearStart =
 		now.getMonth() >= 3
 			? now.getFullYear()
 			: now.getFullYear() - 1;
 
-	var toDateString = function (
-		dateObject
-	) {
-		return frappe.datetime.obj_to_str(
-			dateObject
-		);
+	var toDateString = function (dateObject) {
+		return frappe.datetime.obj_to_str(dateObject);
 	};
 
-	var monthStart = function (
-		dateString
-	) {
-		var date =
-			frappe.datetime.str_to_obj(
-				dateString
-			);
-
+	var monthStart = function (dateString) {
+		var date = frappe.datetime.str_to_obj(dateString);
 		date.setDate(1);
-
 		return toDateString(date);
 	};
 
-	var monthEnd = function (
-		dateString
-	) {
-		var date =
-			frappe.datetime.str_to_obj(
-				dateString
-			);
-
-		date.setMonth(
-			date.getMonth() + 1
-		);
-
+	var monthEnd = function (dateString) {
+		var date = frappe.datetime.str_to_obj(dateString);
+		date.setMonth(date.getMonth() + 1);
 		date.setDate(0);
-
 		return toDateString(date);
 	};
 
@@ -871,127 +1312,66 @@ function _peplApplyPreset(key, report) {
 	switch (key) {
 
 		case "This Month":
-			fromDate =
-				monthStart(today);
-
-			toDate =
-				monthEnd(today);
+			fromDate = monthStart(today);
+			toDate   = monthEnd(today);
 			break;
 
 		case "Last Month": {
 			var lastMonth =
-				frappe.datetime.add_months(
-					today,
-					-1
-				);
-
-			fromDate =
-				monthStart(lastMonth);
-
-			toDate =
-				monthEnd(lastMonth);
+				frappe.datetime.add_months(today, -1);
+			fromDate = monthStart(lastMonth);
+			toDate   = monthEnd(lastMonth);
 			break;
 		}
 
 		case "This Quarter": {
 			var currentQuarter =
-				Math.floor(
-					now.getMonth() / 3
-				);
-
-			fromDate =
-				toDateString(
-					new Date(
-						now.getFullYear(),
-						currentQuarter * 3,
-						1
-					)
-				);
-
-			toDate =
-				toDateString(
-					new Date(
-						now.getFullYear(),
-						(currentQuarter + 1) * 3,
-						0
-					)
-				);
+				Math.floor(now.getMonth() / 3);
+			fromDate = toDateString(
+				new Date(now.getFullYear(), currentQuarter * 3, 1)
+			);
+			toDate = toDateString(
+				new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0)
+			);
 			break;
 		}
 
 		case "Last Quarter": {
 			var previousQuarter =
-				Math.floor(
-					now.getMonth() / 3
-				) - 1;
-
+				Math.floor(now.getMonth() / 3) - 1;
 			var previousQuarterYear;
 			var adjustedQuarter;
 
 			if (previousQuarter < 0) {
-				previousQuarterYear =
-					now.getFullYear() - 1;
-
-				adjustedQuarter = 3;
+				previousQuarterYear = now.getFullYear() - 1;
+				adjustedQuarter     = 3;
 			} else {
-				previousQuarterYear =
-					now.getFullYear();
-
-				adjustedQuarter =
-					previousQuarter;
+				previousQuarterYear = now.getFullYear();
+				adjustedQuarter     = previousQuarter;
 			}
 
-			fromDate =
-				toDateString(
-					new Date(
-						previousQuarterYear,
-						adjustedQuarter * 3,
-						1
-					)
-				);
-
-			toDate =
-				toDateString(
-					new Date(
-						previousQuarterYear,
-						(adjustedQuarter + 1) * 3,
-						0
-					)
-				);
+			fromDate = toDateString(
+				new Date(previousQuarterYear, adjustedQuarter * 3, 1)
+			);
+			toDate = toDateString(
+				new Date(previousQuarterYear, (adjustedQuarter + 1) * 3, 0)
+			);
 			break;
 		}
 
 		case "This FY":
-			fromDate =
-				financialYearStart +
-				"-04-01";
-
-			toDate =
-				(financialYearStart + 1) +
-				"-03-31";
+			fromDate = financialYearStart + "-04-01";
+			toDate   = (financialYearStart + 1) + "-03-31";
 			break;
 
 		case "Last FY":
-			fromDate =
-				(financialYearStart - 1) +
-				"-04-01";
-
-			toDate =
-				financialYearStart +
-				"-03-31";
+			fromDate = (financialYearStart - 1) + "-04-01";
+			toDate   = financialYearStart + "-03-31";
 			break;
 
 		case "Clear":
-			report.set_filter_value(
-				"from_date",
-				""
-			);
-
-			report.set_filter_value(
-				"to_date",
-				""
-			);
-
+			report.set_filter_value("from_date", "");
+			report.set_filter_value("to_date", "");
 			report.refresh();
 			return;
 
@@ -999,15 +1379,7 @@ function _peplApplyPreset(key, report) {
 			return;
 	}
 
-	report.set_filter_value(
-		"from_date",
-		fromDate
-	);
-
-	report.set_filter_value(
-		"to_date",
-		toDate
-	);
-
+	report.set_filter_value("from_date", fromDate);
+	report.set_filter_value("to_date",   toDate);
 	report.refresh();
 }
