@@ -289,6 +289,22 @@ class PEPLTender(Document):
         self.tender_no = make_autoname("TND-.YYYY.-.####")
         self.name = self.tender_no
 
+    def on_update(self):
+        """Create/update item-wise CST Cost Sheets after every save."""
+        from pepl_sales.pepl_sales.tender_cst_sync import (
+            sync_tender_cost_sheets,
+        )
+
+        sync_tender_cost_sheets(self)
+
+    def on_update_after_submit(self):
+        """Keep Tender-owned CST snapshot fields aligned after permitted post-submit updates."""
+        from pepl_sales.pepl_sales.tender_cst_sync import (
+            sync_tender_cost_sheets,
+        )
+
+        sync_tender_cost_sheets(self)
+
     def validate(self):
         self._validate_operational_required_fields()
 

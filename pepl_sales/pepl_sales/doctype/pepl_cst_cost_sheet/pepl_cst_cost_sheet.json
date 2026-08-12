@@ -14,8 +14,21 @@
   "column_break_1",
   "linked_tender",
   "linked_tender_item",
+  "tender_item_key",
   "customer",
   "sector",
+  "tender_snapshot_section",
+  "tender_nit_number",
+  "tender_title",
+  "tender_publication_date",
+  "tender_bid_submission_deadline",
+  "tender_business_status",
+  "tender_snapshot_column_break",
+  "tender_item_quantity",
+  "tender_item_uom",
+  "tender_estimated_unit_price",
+  "tender_estimated_total_value",
+  "tender_delivery_period_days",
   "status_section",
   "status",
   "costing_date",
@@ -310,6 +323,88 @@
    "fieldname": "bom_last_synced_on",
    "fieldtype": "Datetime",
    "label": "BOM Last Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_item_key",
+   "fieldtype": "Data",
+   "label": "Tender Item Unique Key",
+   "read_only": 1,
+   "hidden": 1,
+   "unique": 1,
+   "no_copy": 1,
+   "description": "System key enforcing one CST per Tender Item row."
+  },
+  {
+   "fieldname": "tender_snapshot_section",
+   "fieldtype": "Section Break",
+   "label": "Tender Snapshot",
+   "collapsible": 1,
+   "description": "Tender-owned costing context synchronized automatically whenever the linked Tender is saved."
+  },
+  {
+   "fieldname": "tender_nit_number",
+   "fieldtype": "Data",
+   "label": "Tender / NIT Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_title",
+   "fieldtype": "Data",
+   "label": "Tender Title",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_publication_date",
+   "fieldtype": "Date",
+   "label": "Tender Publication Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_bid_submission_deadline",
+   "fieldtype": "Datetime",
+   "label": "Bid Submission Deadline",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_business_status",
+   "fieldtype": "Data",
+   "label": "Tender Business Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_snapshot_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tender_item_quantity",
+   "fieldtype": "Float",
+   "label": "Tender Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_item_uom",
+   "fieldtype": "Link",
+   "label": "Tender UOM",
+   "options": "UOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_estimated_unit_price",
+   "fieldtype": "Currency",
+   "label": "Tender Estimated Unit Price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_estimated_total_value",
+   "fieldtype": "Currency",
+   "label": "Tender Estimated Total Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tender_delivery_period_days",
+   "fieldtype": "Int",
+   "label": "Tender Delivery Period (Days)",
    "read_only": 1
   }
  ],

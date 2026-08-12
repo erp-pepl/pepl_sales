@@ -47,6 +47,9 @@
   "emd_return_date",
   "items_section",
   "items",
+  "costing_link_section",
+  "primary_cost_sheet",
+  "cost_sheet_count",
   "competitor_analysis_section",
   "competitor_entries",
   "documents_section",
@@ -687,6 +690,30 @@
    "options": "PEPL Tender Source Link",
    "read_only": 1,
    "description": "Links discovered automatically inside the uploaded Tender PDF."
+  },
+  {
+   "fieldname": "costing_link_section",
+   "fieldtype": "Section Break",
+   "label": "CST Cost Sheet Linkage",
+   "description": "One CST Cost Sheet is automatically created for each Tender Item when the Tender is saved.",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "primary_cost_sheet",
+   "fieldtype": "Link",
+   "label": "Primary Cost Sheet",
+   "options": "PEPL CST Cost Sheet",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "description": "Convenience link to the first Tender Item's Cost Sheet. Item-wise links remain authoritative."
+  },
+  {
+   "fieldname": "cost_sheet_count",
+   "fieldtype": "Int",
+   "label": "Linked Cost Sheets",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "default": "0"
   }
  ],
  "index_web_pages_for_search": 1,

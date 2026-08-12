@@ -19,57 +19,20 @@ class PEPLCSTCostSheet(Document):
                 self._fetch_reference_rates(comp)
 
     def on_update(self):
-        self.link_cost_sheet_to_tender()
+        """Maintain Tender backlinks without recursively saving the Tender."""
+        from pepl_sales.pepl_sales.tender_cst_sync import (
+            link_cst_to_tender,
+        )
 
-    def link_cost_sheet_to_tender(self):
-        """Link this Cost Sheet to its specific Tender Item row."""
-        if not self.linked_tender:
-            return
-
-        tender = frappe.get_doc("PEPL Tender", self.linked_tender)
-        linked_row = None
-
-        if self.linked_tender_item:
-            linked_row = next(
-                (
-                    row
-                    for row in tender.items or []
-                    if row.name == self.linked_tender_item
-                ),
-                None,
-            )
-
-        if not linked_row and self.linked_item:
-            linked_row = next(
-                (
-                    row
-                    for row in tender.items or []
-                    if row.item == self.linked_item
-                ),
-                None,
-            )
-
-        if linked_row and linked_row.linked_cost_sheet != self.name:
-            linked_row.linked_cost_sheet = self.name
-
-        status_field = tender.meta.get_field("status")
-
-        if status_field and status_field.options:
-            allowed_statuses = [
-                option.strip()
-                for option in status_field.options.splitlines()
-                if option.strip()
-            ]
-
-            if (
-                "Costed" in allowed_statuses
-                and tender.status in {"Draft", "Active Bid", "Costing"}
-            ):
-                tender.status = "Costed"
-
-        tender.save(ignore_permissions=True)
+        link_cst_to_tender(self)
 
     def validate(self):
+        from pepl_sales.pepl_sales.tender_cst_sync import (
+            validate_cst_tender_link,
+        )
+
+        validate_cst_tender_link(self)
+
         for comp in self.components:
             if comp.manufactured_or_bought_out == "Manufactured":
                 comp.component_subtotal = (

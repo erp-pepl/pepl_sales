@@ -1606,3 +1606,77 @@ function pepl_render_tender_ingestion_status(frm) {
         );
     }
 }
+
+
+// PEPL_TENDER_CST_AUTOMATIC_LINKAGE
+// CST creation itself is server-side. These buttons are navigation only.
+frappe.ui.form.on("PEPL Tender", {
+    refresh(frm) {
+        pepl_add_cst_navigation(frm);
+    }
+});
+
+
+function pepl_add_cst_navigation(frm) {
+    if (frm.is_new()) {
+        return;
+    }
+
+    const linked_rows = (frm.doc.items || []).filter(
+        row => Boolean(row.linked_cost_sheet)
+    );
+
+    if (
+        frm.doc.primary_cost_sheet
+        && linked_rows.length === 1
+    ) {
+        frm.add_custom_button(
+            __("View CST Cost Sheet"),
+            function () {
+                frappe.set_route(
+                    "Form",
+                    "PEPL CST Cost Sheet",
+                    frm.doc.primary_cost_sheet
+                );
+            },
+            __("Costing")
+        );
+
+        frm.dashboard.add_indicator(
+            __("CST Linked: {0}", [
+                frm.doc.primary_cost_sheet
+            ]),
+            "green"
+        );
+
+        return;
+    }
+
+    if (
+        Number(frm.doc.cost_sheet_count || 0) > 0
+        || linked_rows.length > 0
+    ) {
+        frm.add_custom_button(
+            __("View Cost Sheets"),
+            function () {
+                frappe.route_options = {
+                    linked_tender: frm.doc.name
+                };
+
+                frappe.set_route(
+                    "List",
+                    "PEPL CST Cost Sheet"
+                );
+            },
+            __("Costing")
+        );
+
+        frm.dashboard.add_indicator(
+            __("Linked CST Cost Sheets: {0}", [
+                frm.doc.cost_sheet_count
+                    || linked_rows.length
+            ]),
+            "green"
+        );
+    }
+}

@@ -72,14 +72,14 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "PL Number",
-   "description": "Auto-fetched on save. Editable \u2014 type to override or fill manually."
+   "description": "Auto-fetched on save. Editable — type to override or fill manually."
   },
   {
    "fieldname": "drawing_no",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Drawing Number",
-   "description": "Auto-fetched on save. Editable \u2014 type to override or fill manually."
+   "description": "Auto-fetched on save. Editable — type to override or fill manually."
   },
   {
    "fieldname": "column_break_1",
@@ -90,21 +90,21 @@
    "fieldtype": "Data",
    "label": "Current Drawing Revision",
    "read_only": 1,
-   "description": "Auto-fetched from PEPL Product Master. Read-only \u2014 managed in Product Master."
+   "description": "Auto-fetched from PEPL Product Master. Read-only — managed in Product Master."
   },
   {
    "fieldname": "current_specification",
    "fieldtype": "Data",
    "label": "Current Specification",
    "read_only": 1,
-   "description": "Auto-fetched from PEPL Product Master. Read-only \u2014 managed in Product Master."
+   "description": "Auto-fetched from PEPL Product Master. Read-only — managed in Product Master."
   },
   {
    "fieldname": "vendor_approval_stage",
    "fieldtype": "Data",
    "label": "Vendor Approval Stage",
    "read_only": 1,
-   "description": "Auto-fetched from Vendor Approval Status. Read-only \u2014 managed in VAS DocType."
+   "description": "Auto-fetched from Vendor Approval Status. Read-only — managed in VAS DocType."
   },
   {
    "fieldname": "qty_section",
@@ -155,7 +155,8 @@
    "fieldtype": "Link",
    "label": "Linked Cost Sheet",
    "options": "PEPL CST Cost Sheet",
-   "description": "Created via 'Create Cost Sheet' button when this module is built"
+   "description": "Automatically created and maintained from the parent PEPL Tender. One Cost Sheet per Tender Item row.",
+   "read_only": 1
   },
   {
    "fieldname": "bid_section",
