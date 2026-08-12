@@ -175,16 +175,8 @@ doc_events = {
     },
 
     "PEPL CST Cost Sheet": {
-        "validate": (
-            "pepl_sales.tender_cst_orchestration."
-            "validate_cst_tender_linkage"
-        ),
-        "on_update": (
-            "pepl_sales.tender_cst_orchestration."
-            "synchronize_cst_to_tender"
-        ),
         "on_trash": (
-            "pepl_sales.tender_cst_orchestration."
+            "pepl_sales.pepl_sales.tender_cst_sync."
             "clear_cst_from_tender"
         ),
     },

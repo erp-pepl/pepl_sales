@@ -946,17 +946,32 @@ def link_cst_to_tender(cst):
             )
         )
 
-    if (
-        linked_row.linked_cost_sheet
-        != cst.name
-    ):
-        frappe.db.set_value(
-            TENDER_ITEM_DOCTYPE,
-            linked_row.name,
-            "linked_cost_sheet",
+    tender_item_values = {
+        "linked_cost_sheet":
             cst.name,
-            update_modified=False,
-        )
+        "our_bid_unit_price":
+            flt(cst.final_bid_price),
+    }
+
+    quantity = frappe.db.get_value(
+        TENDER_ITEM_DOCTYPE,
+        linked_row.name,
+        "quantity",
+    ) or 0
+
+    tender_item_values[
+        "our_bid_total_value"
+    ] = (
+        flt(quantity)
+        * flt(cst.final_bid_price)
+    )
+
+    frappe.db.set_value(
+        TENDER_ITEM_DOCTYPE,
+        linked_row.name,
+        tender_item_values,
+        update_modified=False,
+    )
 
     _refresh_parent_cost_sheet_summary(
         cst.linked_tender
@@ -1100,3 +1115,67 @@ def backfill_existing_tender_cost_sheets(
                 raise
 
     return result
+
+
+def clear_cst_from_tender(doc, method=None):
+    """Safely clear Tender backlinks when a CST is deleted.
+
+    This deliberately uses direct database writes instead of Tender.save()
+    so CST deletion cannot trigger Tender -> CST recreation or alter the
+    Tender business status.
+    """
+
+    tender_name = (
+        doc.linked_tender
+        or ""
+    ).strip()
+
+    tender_item_name = (
+        doc.linked_tender_item
+        or ""
+    ).strip()
+
+    if (
+        not tender_name
+        or not tender_item_name
+    ):
+        return
+
+    row = frappe.db.get_value(
+        TENDER_ITEM_DOCTYPE,
+        tender_item_name,
+        [
+            "name",
+            "parent",
+            "parenttype",
+            "parentfield",
+            "linked_cost_sheet",
+        ],
+        as_dict=True,
+    )
+
+    if not row:
+        return
+
+    if (
+        row.parent != tender_name
+        or row.parenttype != TENDER_DOCTYPE
+        or row.parentfield != "items"
+    ):
+        return
+
+    if row.linked_cost_sheet == doc.name:
+        frappe.db.set_value(
+            TENDER_ITEM_DOCTYPE,
+            tender_item_name,
+            {
+                "linked_cost_sheet": None,
+                "our_bid_unit_price": 0,
+                "our_bid_total_value": 0,
+            },
+            update_modified=False,
+        )
+
+    _refresh_parent_cost_sheet_summary(
+        tender_name
+    )
