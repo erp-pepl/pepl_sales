@@ -331,7 +331,6 @@
    "label": "Tender Item Unique Key",
    "read_only": 1,
    "hidden": 1,
-   "unique": 1,
    "no_copy": 1,
    "description": "System key enforcing one CST per Tender Item row."
   },
