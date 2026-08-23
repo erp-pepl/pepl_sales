@@ -1857,27 +1857,109 @@ def _attach_content(
 
 
 def _populate_source_links(tender, links):
-    tender.set(
-        "tender_source_links",
-        [],
-    )
+    """
+    Synchronize discovered Tender URLs without destroying previously
+    downloaded/read supporting-document state.
+
+    Existing rows are matched by Source URL and preserved in place.
+    Newly discovered URLs are appended as new rows. URLs no longer
+    present in a subsequent PDF read are retained as historical Tender
+    evidence rather than silently deleting attachments.
+    """
+
+    existing_by_url = {}
+
+    for row in (
+        tender.tender_source_links
+        or []
+    ):
+        source_url = (
+            row.source_url
+            or ""
+        ).strip()
+
+        if (
+            source_url
+            and source_url not in existing_by_url
+        ):
+            existing_by_url[
+                source_url
+            ] = row
+
+    seen_urls = set()
 
     for link in links:
+        source_url = (
+            link.get("url")
+            or ""
+        ).strip()
+
+        if (
+            not source_url
+            or source_url in seen_urls
+        ):
+            continue
+
+        seen_urls.add(
+            source_url
+        )
+
         status = (
             "Discovered"
-            if link["link_type"] == "GeM Document"
+            if (
+                link.get("link_type")
+                == "GeM Document"
+            )
             else "Manual Review Required"
         )
+
+        existing = existing_by_url.get(
+            source_url
+        )
+
+        if existing:
+            # Refresh discovery metadata only. Never reset retrieval,
+            # download, classification, read status, extracted text,
+            # page count or existing processing remarks.
+            if link.get("host"):
+                existing.source_host = (
+                    link["host"]
+                )
+
+            if link.get("link_type"):
+                existing.link_type = (
+                    link["link_type"]
+                )
+
+            if not existing.retrieval_status:
+                existing.retrieval_status = (
+                    status
+                )
+
+            if not existing.remarks:
+                existing.remarks = (
+                    f"Discovered on PDF page "
+                    f"{link.get('page') or '-'}."
+                )
+
+            continue
 
         tender.append(
             "tender_source_links",
             {
-                "source_url": link["url"],
-                "source_host": link["host"],
-                "link_type": link["link_type"],
+                "source_url": source_url,
+                "source_host": (
+                    link.get("host")
+                    or ""
+                ),
+                "link_type": (
+                    link.get("link_type")
+                    or ""
+                ),
                 "retrieval_status": status,
                 "remarks": (
-                    f"Discovered on PDF page {link['page']}."
+                    f"Discovered on PDF page "
+                    f"{link.get('page') or '-'}."
                 ),
             },
         )
@@ -1958,9 +2040,18 @@ def _set_safe_extracted_fields(tender, parsed):
         parsed.get("factory_name"),
     )
 
+    # Primary Tender extraction owns Nomenclature. The value "of"
+    # is a known stale automatic fragment produced by an older
+    # supporting-document extraction rule and is safe to repair.
     set_if_unreviewed(
         "nomenclature",
         parsed.get("nomenclature"),
+        empty_values={
+            None,
+            "",
+            "Not Detected",
+            "of",
+        },
     )
 
     set_if_unreviewed(
