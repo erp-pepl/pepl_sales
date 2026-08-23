@@ -42,17 +42,18 @@
    "fieldname": "retrieval_status",
    "fieldtype": "Select",
    "label": "Retrieval Status",
-   "options": "Discovered\nDownloaded\nManual Review Required\nFailed",
+   "options": "Discovered\nDownloaded\nPortal / Reference Link\nManual Download Required\nManual Review Required\nUnavailable\nFailed",
    "default": "Discovered",
    "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "description": "Business retrieval state. 'Failed' is reserved for a genuine application/download error; browser/session requirements should use 'Manual Download Required'."
   },
   {
    "fieldname": "downloaded_file",
    "fieldtype": "Attach",
    "label": "Supporting File",
    "read_only": 0,
-   "description": "Automatically downloaded from GeM, or manually attach the document here when GeM requires a browser/session to retrieve it."
+   "description": "Automatically downloaded from GeM, or manually attached when the portal requires an authenticated browser/session."
   },
   {
    "fieldname": "remarks",
@@ -65,7 +66,7 @@
    "fieldtype": "Data",
    "label": "Document Classification",
    "read_only": 1,
-   "description": "Automatically classified supporting Tender document."
+   "description": "Business classification such as Buyer Specification, Buyer ATC, Drawing, MII/MSE Document, GeM Reference or Other Supporting Document."
   },
   {
    "fieldname": "document_read_status",

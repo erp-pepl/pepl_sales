@@ -20,6 +20,32 @@
   "generated_tender_word",
   "tender_ingestion_summary",
   "tender_extraction_json",
+  "tender_business_review_section",
+  "factory_name",
+  "nomenclature",
+  "specification_drawing_reference",
+  "business_review_column_break",
+  "tender_participation_type",
+  "reverse_auction_status",
+  "advance_sample_status",
+  "delivery_period_requirement",
+  "option_clause_status",
+  "documents_required_from_bidders",
+  "tender_commercial_review_section",
+  "emd_detection_status",
+  "inspection_status",
+  "inspection_type",
+  "inspection_authority",
+  "commercial_review_column_break",
+  "epbg_percentage",
+  "epbg_duration_months",
+  "mii_purchase_preference_status",
+  "mse_purchase_preference_status",
+  "drawing_review_section",
+  "drawing_status",
+  "drawing_supporting_file",
+  "drawing_review_column_break",
+  "generated_nda_word",
   "tender_ingestion_warnings",
   "tender_source_links",
   "customer_section",
@@ -675,7 +701,10 @@
    "fieldtype": "Code",
    "label": "Tender Extraction Data (JSON)",
    "options": "JSON",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1,
+   "description": "Internal automatic-reading payload retained for backwards compatibility. Not intended for end users."
   },
   {
    "fieldname": "tender_ingestion_warnings",
@@ -714,6 +743,166 @@
    "read_only": 1,
    "allow_on_submit": 1,
    "default": "0"
+  },
+  {
+   "fieldname": "tender_business_review_section",
+   "fieldtype": "Section Break",
+   "label": "Tender Business Review",
+   "description": "Business information detected from the Tender. Automatically populated values must be reviewed against the source document before bid submission."
+  },
+  {
+   "fieldname": "factory_name",
+   "fieldtype": "Data",
+   "label": "Factory / Unit",
+   "description": "Buyer factory, consignee, unit or beneficiary identified from the Tender."
+  },
+  {
+   "fieldname": "nomenclature",
+   "fieldtype": "Small Text",
+   "label": "Nomenclature",
+   "description": "Business nomenclature / item description identified from the Tender."
+  },
+  {
+   "fieldname": "specification_drawing_reference",
+   "fieldtype": "Small Text",
+   "label": "Specification / Drawing Reference",
+   "description": "Specification number, drawing number or other technical reference identified from the Tender."
+  },
+  {
+   "fieldname": "business_review_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tender_participation_type",
+   "fieldtype": "Select",
+   "label": "Tender Type",
+   "options": "\nOpen\nLimited\nSource Development\nNot Detected\nReview Required",
+   "description": "Open / Limited / Source Development where the Tender provides enough evidence to determine it."
+  },
+  {
+   "fieldname": "reverse_auction_status",
+   "fieldtype": "Select",
+   "label": "Reverse Auction (RA)",
+   "options": "Not Detected\nYes\nNo\nReview Required",
+   "default": "Not Detected"
+  },
+  {
+   "fieldname": "advance_sample_status",
+   "fieldtype": "Select",
+   "label": "Advance Sample Required",
+   "options": "Not Detected\nYes\nNo\nReview Required",
+   "default": "Not Detected",
+   "description": "Generic GeM policy wording must not be treated as a tender-specific sample requirement."
+  },
+  {
+   "fieldname": "delivery_period_requirement",
+   "fieldtype": "Small Text",
+   "label": "Delivery Period / DP Requirement",
+   "description": "Tender-specific delivery period or delivery schedule requirement."
+  },
+  {
+   "fieldname": "option_clause_status",
+   "fieldtype": "Select",
+   "label": "Option Clause Applicable",
+   "options": "Not Detected\nYes\nNo\nReview Required",
+   "default": "Not Detected"
+  },
+  {
+   "fieldname": "documents_required_from_bidders",
+   "fieldtype": "Small Text",
+   "label": "Documents Required from All Bidders",
+   "description": "Tender-specific documents explicitly requested from bidders."
+  },
+  {
+   "fieldname": "tender_commercial_review_section",
+   "fieldtype": "Section Break",
+   "label": "Tender Commercial & Inspection Review",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "emd_detection_status",
+   "fieldtype": "Select",
+   "label": "EMD Requirement Detection",
+   "options": "Not Detected\nRequired\nNot Required\nReview Required",
+   "default": "Not Detected",
+   "description": "Extraction confidence for EMD. The existing 'EMD Required' field remains the operational value."
+  },
+  {
+   "fieldname": "inspection_status",
+   "fieldtype": "Select",
+   "label": "Inspection Required",
+   "options": "Not Detected\nYes\nNo\nReview Required",
+   "default": "Not Detected"
+  },
+  {
+   "fieldname": "inspection_type",
+   "fieldtype": "Data",
+   "label": "Inspection Type",
+   "description": "Example: Pre Dispatch / Post Dispatch."
+  },
+  {
+   "fieldname": "inspection_authority",
+   "fieldtype": "Data",
+   "label": "Inspection Agency / Authority"
+  },
+  {
+   "fieldname": "commercial_review_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "epbg_percentage",
+   "fieldtype": "Percent",
+   "label": "ePBG Percentage"
+  },
+  {
+   "fieldname": "epbg_duration_months",
+   "fieldtype": "Int",
+   "label": "ePBG Duration (Months)"
+  },
+  {
+   "fieldname": "mii_purchase_preference_status",
+   "fieldtype": "Select",
+   "label": "MII Purchase Preference",
+   "options": "Not Detected\nYes\nNo\nReview Required",
+   "default": "Not Detected"
+  },
+  {
+   "fieldname": "mse_purchase_preference_status",
+   "fieldtype": "Select",
+   "label": "MSE Purchase Preference",
+   "options": "Not Detected\nYes\nNo\nReview Required",
+   "default": "Not Detected"
+  },
+  {
+   "fieldname": "drawing_review_section",
+   "fieldtype": "Section Break",
+   "label": "Drawing / Specification Availability",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "drawing_status",
+   "fieldtype": "Select",
+   "label": "Drawing Status",
+   "options": "Not Detected\nAvailable\nNot Available in Tender Documents\nManual Review Required\nNot Applicable",
+   "default": "Not Detected",
+   "description": "Availability determined from the Tender and processed supporting documents."
+  },
+  {
+   "fieldname": "drawing_supporting_file",
+   "fieldtype": "Attach",
+   "label": "Drawing / Specification File",
+   "description": "Downloaded or manually attached Tender drawing or specification evidence."
+  },
+  {
+   "fieldname": "drawing_review_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "generated_nda_word",
+   "fieldtype": "Attach",
+   "label": "Generated Editable NDA",
+   "read_only": 1,
+   "description": "Editable NDA generated for requesting unavailable Tender drawing / specification."
   }
  ],
  "index_web_pages_for_search": 1,
