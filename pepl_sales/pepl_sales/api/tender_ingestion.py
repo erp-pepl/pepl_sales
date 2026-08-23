@@ -203,26 +203,358 @@ def _detect_tender_participation_type(text):
     return "Not Detected"
 
 
+
+def _normalise_business_text(value):
+    """Collapse PDF line breaks for label-aware Tender extraction."""
+    return re.sub(
+        r"\s+",
+        " ",
+        value or "",
+    ).strip()
+
+
+def _clean_business_value(value):
+    value = _normalise_business_text(
+        value
+    )
+
+    return value.strip(
+        " \t\r\n:-/"
+    )
+
+
+def _unique_business_values(values):
+    result = []
+
+    for value in values:
+        value = _clean_business_value(
+            value
+        )
+
+        if not value:
+            continue
+
+        key = value.lower()
+
+        if any(
+            existing.lower() == key
+            for existing in result
+        ):
+            continue
+
+        result.append(value)
+
+    return result
+
+
+def _extract_factory_unit(text):
+    """
+    Extract a real factory/unit name rather than Ministry/Department
+    continuation text.
+    """
+    value = _normalise_business_text(
+        text
+    )
+
+    patterns = [
+        (
+            r"\b("
+            r"Ammunition\s+Factory\s+"
+            r"[A-Za-z0-9][A-Za-z0-9 .&()/-]{1,80}?"
+            r")"
+            r"(?=,\s*(?:Department|Ministry|Munitions|Organisation)"
+            r"|\s*\(|\s+(?:Department|Ministry)\b)"
+        ),
+        (
+            r"\b("
+            r"Ordnance\s+Factory\s+"
+            r"[A-Za-z0-9][A-Za-z0-9 .&()/-]{1,80}?"
+            r")"
+            r"(?=,\s*(?:Department|Ministry|Organisation)"
+            r"|\s*\()"
+        ),
+        (
+            r"\b("
+            r"[A-Za-z0-9][A-Za-z0-9 .&()/-]{1,80}"
+            r"\s+Factory"
+            r")"
+            r"(?=,\s*(?:Department|Ministry|Organisation)"
+            r"|\s*\()"
+        ),
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            value,
+            re.IGNORECASE,
+        )
+
+        if match:
+            return _clean_business_value(
+                match.group(1)
+            )
+
+    return None
+
+
+def _extract_technical_references(text):
+    """
+    Extract only strong drawing/specification identifiers.
+
+    Generic prose containing the word 'specification' is deliberately
+    ignored so phrases such as 'specification and got rejected by'
+    cannot become a technical reference.
+    """
+    value = _normalise_business_text(
+        text
+    )
+
+    values = []
+
+    patterns = [
+        (
+            r"\bCIA/AMN/\d+"
+            r"\s+(?:PT\.?|PART)"
+            r"\s*NO\.?\s*[A-Z0-9-]+"
+        ),
+        (
+            r"\bDES\s+REF\s+NO\.?\s*"
+            r"([A-Z0-9][A-Z0-9./()\- ]{2,100}?)"
+            r"(?=\s+(?:GeMARPTS|SPECN|DC|Authorized|"
+            r"Category|Technical|\(\s*\d+\s+pieces)|$)"
+        ),
+        (
+            r"\bSPECN\s+NO\.?\s*"
+            r"([A-Z0-9][A-Z0-9 ()/.\-]{2,80}?)"
+            r"(?=\s+(?:DC\s*\d|&\s*L\s*\d|"
+            r"Authorized|Technical|\(\s*\d+\s+pieces)|$)"
+        ),
+        r"\bDC\s*\d+-[A-Z]\b",
+        r"\bL\s*\d+-[A-Z]\b",
+    ]
+
+    for pattern in patterns:
+        for match in re.finditer(
+            pattern,
+            value,
+            re.IGNORECASE,
+        ):
+            candidate = (
+                match.group(1)
+                if match.lastindex
+                else match.group(0)
+            )
+
+            values.append(
+                candidate
+            )
+
+    values = _unique_business_values(
+        values
+    )
+
+    if not values:
+        return None
+
+    return "; ".join(
+        values[:8]
+    )
+
+
+def _extract_explicit_delivery_period(text):
+    """
+    Capture only an explicit numeric delivery period/schedule.
+
+    Generic contractual prose mentioning delivery is ignored.
+    """
+    value = _normalise_business_text(
+        text
+    )
+
+    patterns = [
+        (
+            r"\bDelivery\s+Period\b"
+            r"\s*(?::|-)?\s*"
+            r"("
+            r"\d+(?:\s*[-–]\s*\d+)?"
+            r"\s*(?:day|days|week|weeks|month|months)"
+            r"(?:\s+from\s+[A-Za-z0-9 /().,-]+)?"
+            r")"
+        ),
+        (
+            r"\bDelivery\s+Schedule\b"
+            r"\s*(?::|-)?\s*"
+            r"("
+            r"\d+(?:\s*[-–]\s*\d+)?"
+            r"\s*(?:day|days|week|weeks|month|months)"
+            r")"
+        ),
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            value,
+            re.IGNORECASE,
+        )
+
+        if match:
+            return _clean_business_value(
+                match.group(1)
+            )
+
+    return None
+
+
+def _extract_documents_required_from_bidders(text):
+    value = _normalise_business_text(
+        text
+    )
+
+    patterns = [
+        (
+            r"\bDocument\s+required\s+from\s+seller\b"
+            r"\s*(?::|-)?\s*"
+            r"(.+?)"
+            r"(?=\s+\*In\s+case|\s+Bid\s+Number\b|$)"
+        ),
+        (
+            r"\bDocuments\s+Required\s+From\s+All\s+Bidders\b"
+            r"\s*(?::|-)?\s*"
+            r"(.+?)"
+            r"(?=\s+\*In\s+case|\s+Bid\s+Number\b|$)"
+        ),
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            value,
+            re.IGNORECASE,
+        )
+
+        if match:
+            candidate = _clean_business_value(
+                match.group(1)
+            )
+
+            if candidate:
+                return candidate
+
+    return None
+
+
+def _extract_inspection_required(text):
+    value = _normalise_business_text(
+        text
+    )
+
+    match = re.search(
+        (
+            r"\bInspection\s+Required\b"
+            r".{0,260}?"
+            r"\b(Yes|No)\b"
+        ),
+        value,
+        re.IGNORECASE,
+    )
+
+    if not match:
+        return None
+
+    return match.group(1).title()
+
+
+def _extract_inspection_type(text):
+    value = _normalise_business_text(
+        text
+    )
+
+    patterns = [
+        (
+            r"\bType\s+Of\s+Inspection\b"
+            r"\s*(?::|-)?\s*"
+            r"(.+?)"
+            r"(?=\s+Name\s+of\s+the\s+Empanelled|\s+Auto\s+CRAC|$)"
+        ),
+        (
+            r"\bInspection\s+Type\b"
+            r"\s*(?::|-)?\s*"
+            r"(.+?)"
+            r"(?=\s+Name\s+of\s+the\s+Empanelled|\s+Auto\s+CRAC|$)"
+        ),
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            value,
+            re.IGNORECASE,
+        )
+
+        if match:
+            candidate = _clean_business_value(
+                match.group(1)
+            )
+
+            if candidate:
+                return candidate
+
+    return None
+
+
+def _extract_inspection_authority(text):
+    value = _normalise_business_text(
+        text
+    )
+
+    patterns = [
+        (
+            r"\bName\s+of\s+the\s+Empanelled\s+Inspection"
+            r"\s+Agency\s*/?\s*Authority\b"
+            r"\s*(?::|-)?\s*"
+            r"(.+?)"
+            r"(?=\s+Auto\s+CRAC|\s+Evaluation\s+Method|$)"
+        ),
+        (
+            r"\bInspection\s+Agency\s+Name\b"
+            r"\s*(?::|-)?\s*"
+            r"(.+?)"
+            r"(?=\s+Auto\s+CRAC|\s+Evaluation\s+Method|$)"
+        ),
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            value,
+            re.IGNORECASE,
+        )
+
+        if match:
+            candidate = _clean_business_value(
+                match.group(1)
+            )
+
+            if candidate:
+                return candidate
+
+    return None
+
+
 def _extract_tender_business_review(text, parsed):
     """Extract conservative business-facing Tender information.
 
-    The rules deliberately prefer Not Detected over guessing.
-    Generic GeM policy / disclaimer text must not create a Yes value.
+    Prefer explicit labels and technical identifiers over generic prose.
+    Generic GeM policy/disclaimer text must not create a business value.
     """
     result = {}
 
-    result["factory_name"] = _first_match(
-        [
-            r"Beneficiary\s*Name"
-            r"\s*(?::|-)?\s*([^\n]+)",
-
-            r"Consignee\s*Name"
-            r"\s*(?::|-)?\s*([^\n]+)",
-
-            r"Factory\s*(?:Name)?"
-            r"\s*(?::|-)?\s*([^\n]+)",
-        ],
-        text,
+    result["factory_name"] = (
+        _extract_factory_unit(
+            text
+        )
     )
 
     result["nomenclature"] = (
@@ -236,21 +568,10 @@ def _extract_tender_business_review(text, parsed):
         or parsed.get("item_category")
     )
 
-    result["specification_drawing_reference"] = (
-        _first_match(
-            [
-                r"(?:Drawing|Drg\.?)"
-                r"\s*(?:No\.?|Number|Reference|Ref\.?)?"
-                r"\s*(?::|-)?\s*"
-                r"([A-Z0-9][A-Z0-9./()\- ]{2,120})",
-
-                r"Specification"
-                r"\s*(?:No\.?|Number|Reference|Ref\.?)?"
-                r"\s*(?::|-)?\s*"
-                r"([A-Z0-9][A-Z0-9./()\- ]{2,120})",
-            ],
-            text,
-        )
+    result[
+        "specification_drawing_reference"
+    ] = _extract_technical_references(
+        text
     )
 
     result["reverse_auction"] = _first_match(
@@ -265,8 +586,7 @@ def _extract_tender_business_review(text, parsed):
         text,
     )
 
-    # Deliberately only match explicit Advance Sample labels.
-    # Generic GeM sample-policy paragraphs are not evidence.
+    # Deliberately match only explicit Advance Sample labels.
     result["advance_sample"] = _first_match(
         [
             r"Advance\s*Sample"
@@ -279,17 +599,10 @@ def _extract_tender_business_review(text, parsed):
         text,
     )
 
-    result["delivery_period_requirement"] = (
-        _first_match(
-            [
-                r"Delivery\s*Period"
-                r"\s*(?::|-)?\s*([^\n]+)",
-
-                r"Delivery\s*Schedule"
-                r"\s*(?::|-)?\s*([^\n]+)",
-            ],
-            text,
-        )
+    result[
+        "delivery_period_requirement"
+    ] = _extract_explicit_delivery_period(
+        text
     )
 
     result["option_clause"] = _first_match(
@@ -301,50 +614,33 @@ def _extract_tender_business_review(text, parsed):
         text,
     )
 
-    result["documents_required_from_bidders"] = (
-        _first_match(
-            [
-                r"Documents\s*Required\s*From\s*All\s*Bidders"
-                r"\s*(?::|-)?\s*([^\n]+)",
-
-                r"Documents\s*required\s*from\s*all\s*bidders"
-                r".*?\s*(?::|-)\s*([^\n]+)",
-            ],
-            text,
-        )
+    result[
+        "documents_required_from_bidders"
+    ] = _extract_documents_required_from_bidders(
+        text
     )
 
-    result["inspection_required"] = _first_match(
-        [
-            r"Inspection\s*Required"
-            r"\s*(?::|-)?\s*(Yes|No)",
-        ],
-        text,
+    result[
+        "inspection_required"
+    ] = _extract_inspection_required(
+        text
     )
 
-    result["inspection_type"] = _first_match(
-        [
-            r"Inspection\s*Type"
-            r"\s*(?::|-)?\s*([^\n]+)",
-
-            r"Type\s*of\s*Inspection"
-            r"\s*(?::|-)?\s*([^\n]+)",
-        ],
-        text,
+    result[
+        "inspection_type"
+    ] = _extract_inspection_type(
+        text
     )
 
-    result["inspection_authority"] = _first_match(
-        [
-            r"Inspection\s*(?:Agency|Authority)"
-            r"\s*(?::|-)?\s*([^\n]+)",
-
-            r"Inspection\s*Agency\s*Name"
-            r"\s*(?::|-)?\s*([^\n]+)",
-        ],
-        text,
+    result[
+        "inspection_authority"
+    ] = _extract_inspection_authority(
+        text
     )
 
-    result["mii_purchase_preference"] = _first_match(
+    result[
+        "mii_purchase_preference"
+    ] = _first_match(
         [
             r"MII\s*Purchase\s*Preference"
             r"\s*(?::|-)?\s*(Yes|No)",
@@ -355,7 +651,9 @@ def _extract_tender_business_review(text, parsed):
         text,
     )
 
-    result["mse_purchase_preference"] = _first_match(
+    result[
+        "mse_purchase_preference"
+    ] = _first_match(
         [
             r"MSE\s*Purchase\s*Preference"
             r"\s*(?::|-)?\s*(Yes|No)",
@@ -366,13 +664,333 @@ def _extract_tender_business_review(text, parsed):
         text,
     )
 
-    result["tender_participation_type"] = (
-        _detect_tender_participation_type(
-            text
-        )
+    result[
+        "tender_participation_type"
+    ] = _detect_tender_participation_type(
+        text
     )
 
     return result
+
+
+def _load_tender_extraction_payload(tender):
+    raw = getattr(
+        tender,
+        "tender_extraction_json",
+        None,
+    )
+
+    if not raw:
+        return {}
+
+    try:
+        payload = json.loads(raw)
+
+        if isinstance(payload, dict):
+            return payload
+
+    except Exception:
+        pass
+
+    return {}
+
+
+def _business_field_is_safe_to_refresh(
+    fieldname,
+    current,
+    previous_auto_value=None,
+):
+    """
+    Refresh only empty/not-detected values or recognisable stale automatic
+    values produced by the previous extraction rules.
+    """
+    if current in {
+        None,
+        "",
+        "Not Detected",
+        "Review Required",
+    }:
+        return True
+
+    if (
+        previous_auto_value not in {
+            None,
+            "",
+        }
+        and str(current).strip()
+        == str(previous_auto_value).strip()
+    ):
+        return True
+
+    value = str(
+        current
+    ).strip().lower()
+
+    stale_patterns = {
+        "factory_name": [
+            "department of defence production",
+            "ministry of",
+        ],
+        "specification_drawing_reference": [
+            "got rejected",
+            "rejected by",
+        ],
+        "delivery_period_requirement": [
+            "otherwise becomes apparent",
+            "inability otherwise",
+        ],
+        "inspection_authority": [
+            "/ agencies",
+        ],
+    }
+
+    return any(
+        token in value
+        for token in stale_patterns.get(
+            fieldname,
+            []
+        )
+    )
+
+
+def _apply_business_review_enrichment(
+    tender,
+    extracted,
+    previous_parsed=None,
+):
+    """
+    Enrich business-review fields without overwriting an intentional,
+    sensible user-reviewed value.
+    """
+    previous_parsed = (
+        previous_parsed
+        or {}
+    )
+
+    mapping = {
+        "factory_name":
+            "factory_name",
+
+        "nomenclature":
+            "nomenclature",
+
+        "specification_drawing_reference":
+            "specification_drawing_reference",
+
+        "delivery_period_requirement":
+            "delivery_period_requirement",
+
+        "documents_required_from_bidders":
+            "documents_required_from_bidders",
+
+        "inspection_type":
+            "inspection_type",
+
+        "inspection_authority":
+            "inspection_authority",
+
+        "tender_participation_type":
+            "tender_participation_type",
+    }
+
+    for source_key, fieldname in mapping.items():
+        value = extracted.get(
+            source_key
+        )
+
+        if value in {
+            None,
+            "",
+            "Not Detected",
+        }:
+            continue
+
+        current = getattr(
+            tender,
+            fieldname,
+            None,
+        )
+
+        previous = previous_parsed.get(
+            source_key
+        )
+
+        if _business_field_is_safe_to_refresh(
+            fieldname,
+            current,
+            previous,
+        ):
+            setattr(
+                tender,
+                fieldname,
+                value,
+            )
+
+    status_mapping = {
+        "reverse_auction":
+            "reverse_auction_status",
+
+        "advance_sample":
+            "advance_sample_status",
+
+        "option_clause":
+            "option_clause_status",
+
+        "inspection_required":
+            "inspection_status",
+
+        "mii_purchase_preference":
+            "mii_purchase_preference_status",
+
+        "mse_purchase_preference":
+            "mse_purchase_preference_status",
+    }
+
+    for source_key, fieldname in status_mapping.items():
+        raw = extracted.get(
+            source_key
+        )
+
+        if raw in {
+            None,
+            "",
+        }:
+            continue
+
+        value = _business_yes_no_status(
+            raw
+        )
+
+        if value == "Not Detected":
+            continue
+
+        current = getattr(
+            tender,
+            fieldname,
+            None,
+        )
+
+        previous = (
+            _business_yes_no_status(
+                previous_parsed.get(
+                    source_key
+                )
+            )
+        )
+
+        if _business_field_is_safe_to_refresh(
+            fieldname,
+            current,
+            previous,
+        ):
+            setattr(
+                tender,
+                fieldname,
+                value,
+            )
+
+
+def _enrich_business_review_from_documents(
+    tender,
+):
+    """
+    Re-evaluate Tender business values using both the primary Tender text
+    and downloaded tender-specific supporting documents.
+
+    GeM GTC text is deliberately excluded because it is generic policy text.
+    """
+    payload = _load_tender_extraction_payload(
+        tender
+    )
+
+    previous_parsed = payload.get(
+        "parsed"
+    )
+
+    if not isinstance(
+        previous_parsed,
+        dict,
+    ):
+        previous_parsed = {}
+
+    blocks = []
+
+    for page in payload.get(
+        "pages"
+    ) or []:
+        if not isinstance(
+            page,
+            dict,
+        ):
+            continue
+
+        value = page.get(
+            "text"
+        )
+
+        if value:
+            blocks.append(
+                value
+            )
+
+    permitted_classifications = {
+        "Buyer ATC",
+        "Buyer Specification",
+        "Drawing",
+        "Specification",
+        "MSE / MII Document",
+        "Supporting Tender Document",
+        "Pre Integrity Pact",
+        "Vendor Registration",
+        "PQC",
+        "Quality",
+    }
+
+    for row in (
+        tender.tender_source_links
+        or []
+    ):
+        if (
+            row.document_read_status
+            not in {
+                "Read",
+                "Read with Warnings",
+            }
+        ):
+            continue
+
+        if (
+            row.document_classification
+            not in permitted_classifications
+        ):
+            continue
+
+        if row.document_text:
+            blocks.append(
+                row.document_text
+            )
+
+    if not blocks:
+        return {}
+
+    combined_text = "\n\n".join(
+        blocks
+    )
+
+    extracted = (
+        _extract_tender_business_review(
+            combined_text,
+            previous_parsed,
+        )
+    )
+
+    _apply_business_review_enrichment(
+        tender,
+        extracted,
+        previous_parsed,
+    )
+
+    return extracted
 
 
 def _build_business_review(tender, parsed):
@@ -1811,14 +2429,14 @@ def _extract_primary_document_titles(tender):
     return []
 
 
+
 def _classify_supporting_document(
     filename,
     text_content,
     source_url=None,
     preferred_classification=None,
 ):
-    """Classify a Tender document using source metadata first."""
-
+    """Classify a Tender document using strong source metadata first."""
     if preferred_classification:
         return preferred_classification
 
@@ -1829,6 +2447,11 @@ def _classify_supporting_document(
 
     filename_lower = (
         filename
+        or ""
+    ).lower()
+
+    text_lower = (
+        text_content
         or ""
     ).lower()
 
@@ -1845,9 +2468,32 @@ def _classify_supporting_document(
     ):
         return "Buyer Specification"
 
+    # GeM fulfilment ATC links are commonly PDF files, not only DOCX.
+    # Detect them before generic content classification.
     if (
         "fulfilment.gem.gov.in" in source_url
-        and filename_lower.endswith(".docx")
+        and (
+            "atc" in filename_lower
+            or "atc" in source_url
+            or (
+                "compliance statement for the tender"
+                in text_lower
+            )
+        )
+    ):
+        return "Buyer ATC"
+
+    if (
+        "atc - compliance statement"
+        in text_lower
+        or (
+            "gem bid no."
+            in text_lower
+            and "clause description"
+            in text_lower
+            and "compliance by bidder"
+            in text_lower
+        )
     ):
         return "Buyer ATC"
 
@@ -1856,9 +2502,18 @@ def _classify_supporting_document(
         f"{text_content or ''}"
     ).lower()
 
-    # More specific classifications must be checked
-    # before broad words such as drawing/specification.
+    # Source-specific and document-purpose classifications come before
+    # generic keywords that may occur inside a large ATC bundle.
     rules = [
+        (
+            "Buyer ATC",
+            [
+                "buyer uploaded atc",
+                "buyer added bid specific atc",
+                "additional terms and conditions",
+                "atc compliance statement",
+            ],
+        ),
         (
             "Pre Integrity Pact",
             [
@@ -1889,14 +2544,6 @@ def _classify_supporting_document(
                 "annexure q",
                 "quality assurance",
                 "quality requirement",
-            ],
-        ),
-        (
-            "Buyer ATC",
-            [
-                "buyer uploaded atc",
-                "buyer added bid specific atc",
-                "additional terms and conditions",
             ],
         ),
         (
@@ -1938,7 +2585,6 @@ def _classify_supporting_document(
                 return classification
 
     return "Supporting Tender Document"
-
 
 
 def _extract_pdf_supporting_document(content):
@@ -2246,6 +2892,7 @@ def _read_supporting_file(file_url):
 
 
 @frappe.whitelist()
+
 def read_supporting_tender_documents(
     tender_name,
 ):
@@ -2398,6 +3045,12 @@ def read_supporting_tender_documents(
 
             failed_count += 1
 
+    enriched = (
+        _enrich_business_review_from_documents(
+            tender
+        )
+    )
+
     tender.save()
 
     return {
@@ -2406,6 +3059,9 @@ def read_supporting_tender_documents(
         "manual_review": manual_count,
         "failed": failed_count,
         "skipped": skipped_count,
+        "business_review_enriched": bool(
+            enriched
+        ),
     }
 
 
