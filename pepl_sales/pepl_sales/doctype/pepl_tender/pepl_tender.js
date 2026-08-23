@@ -1105,6 +1105,13 @@ function pepl_render_tender_bid_readiness(frm) {
 }
 
 
+function pepl_escape_tender_value(value) {
+    const element = document.createElement("div");
+    element.textContent = String(value);
+    return element.innerHTML;
+}
+
+
 // PEPL TENDER AUTOMATIC READING / EDITABLE WORD WORKFLOW
 frappe.ui.form.on("PEPL Tender", {
     refresh(frm) {
@@ -1136,6 +1143,20 @@ function pepl_add_tender_ingestion_actions(frm) {
                     callback(r) {
                         const result = r.message || {};
 
+                        const review =
+                            result.business_review || {};
+
+                        const value = function (input) {
+                            return pepl_escape_tender_value(
+                                input
+                                === undefined
+                                || input === null
+                                || input === ""
+                                    ? __("Not Detected")
+                                    : input
+                            );
+                        };
+
                         frappe.msgprint({
                             title: __("Tender Reading Completed"),
                             indicator: (
@@ -1143,18 +1164,145 @@ function pepl_add_tender_ingestion_actions(frm) {
                                     ? "orange"
                                     : "green"
                             ),
-                            message: __(
-                                "Pages read: {0}<br>"
-                                + "Hyperlinks discovered: {1}<br>"
-                                + "Warnings: {2}<br><br>"
-                                + "Review the extracted fields against "
-                                + "the original Tender before proceeding.",
-                                [
-                                    result.page_count || 0,
-                                    result.link_count || 0,
-                                    result.warning_count || 0
-                                ]
-                            )
+                            message: [
+                                "<b>",
+                                __("Factory / Unit"),
+                                ":</b> ",
+                                value(review.factory_name),
+                                "<br>",
+
+                                "<b>",
+                                __("Nomenclature"),
+                                ":</b> ",
+                                value(review.nomenclature),
+                                "<br>",
+
+                                "<b>",
+                                __("Specification / Drawing"),
+                                ":</b> ",
+                                value(
+                                    review.specification_drawing_reference
+                                ),
+                                "<br>",
+
+                                "<b>",
+                                __("Splitting"),
+                                ":</b> ",
+                                value(review.splitting),
+                                "<br>",
+
+                                "<b>",
+                                __("Reverse Auction"),
+                                ":</b> ",
+                                value(review.reverse_auction),
+                                "<br>",
+
+                                "<b>",
+                                __("Tender Type"),
+                                ":</b> ",
+                                value(review.tender_type),
+                                "<br>",
+
+                                "<b>",
+                                __("Advance Sample"),
+                                ":</b> ",
+                                value(review.advance_sample),
+                                "<br>",
+
+                                "<b>",
+                                __("Delivery Period / DP"),
+                                ":</b> ",
+                                value(review.delivery_period),
+                                "<br>",
+
+                                "<b>",
+                                __("EMD Required"),
+                                ":</b> ",
+                                value(review.emd_required),
+                                "<br>",
+
+                                "<b>",
+                                __("Option Clause"),
+                                ":</b> ",
+                                value(review.option_clause),
+                                "<br>",
+
+                                "<b>",
+                                __("Documents Required from All Bidders"),
+                                ":</b> ",
+                                value(review.documents_required),
+                                "<br>",
+
+                                "<b>",
+                                __("Inspection"),
+                                ":</b> ",
+                                value(review.inspection),
+                                "<br>",
+
+                                "<b>",
+                                __("Inspection Type"),
+                                ":</b> ",
+                                value(review.inspection_type),
+                                "<br>",
+
+                                "<b>",
+                                __("Inspection Authority"),
+                                ":</b> ",
+                                value(review.inspection_authority),
+                                "<br>",
+
+                                "<b>",
+                                __("ePBG"),
+                                ":</b> ",
+                                value(review.epbg_percentage),
+                                "% / ",
+                                value(
+                                    review.epbg_duration_months
+                                ),
+                                " ",
+                                __("months"),
+                                "<br>",
+
+                                "<b>",
+                                __("MII Purchase Preference"),
+                                ":</b> ",
+                                value(
+                                    review.mii_purchase_preference
+                                ),
+                                "<br>",
+
+                                "<b>",
+                                __("MSE Purchase Preference"),
+                                ":</b> ",
+                                value(
+                                    review.mse_purchase_preference
+                                ),
+                                "<br>",
+
+                                "<b>",
+                                __("Drawing Status"),
+                                ":</b> ",
+                                value(review.drawing_status),
+                                "<br><br>",
+
+                                "<b>",
+                                __("Supporting Links Found"),
+                                ":</b> ",
+                                value(result.link_count || 0),
+                                "<br>",
+
+                                "<b>",
+                                __("Warnings"),
+                                ":</b> ",
+                                value(result.warning_count || 0),
+                                "<br><br>",
+
+                                __(
+                                    "Review all automatically detected "
+                                    + "values against the original Tender "
+                                    + "before applying reviewed extraction."
+                                )
+                            ].join("")
                         });
 
                         frm.reload_doc();
@@ -1171,6 +1319,13 @@ function pepl_add_tender_ingestion_actions(frm) {
             row =>
                 row.link_type === "GeM Document"
                 && !row.downloaded_file
+                && [
+                    "",
+                    "Discovered",
+                    "Failed"
+                ].includes(
+                    row.retrieval_status || ""
+                )
         )
     ) {
         frm.add_custom_button(
@@ -1197,10 +1352,16 @@ function pepl_add_tender_ingestion_actions(frm) {
                             ),
                             message: __(
                                 "Downloaded: {0}<br>"
-                                + "Failed: {1}<br>"
-                                + "Skipped: {2}",
+                                + "Portal / Reference Links: {1}<br>"
+                                + "Manual Download Required: {2}<br>"
+                                + "Unavailable: {3}<br>"
+                                + "Failed: {4}<br>"
+                                + "Already Processed / Skipped: {5}",
                                 [
                                     result.downloaded || 0,
+                                    result.portal_reference || 0,
+                                    result.manual_download || 0,
+                                    result.unavailable || 0,
                                     result.failed || 0,
                                     result.skipped || 0
                                 ]

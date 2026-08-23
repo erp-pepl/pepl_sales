@@ -158,6 +158,397 @@ def _first_match(patterns, text, flags=re.IGNORECASE):
     return None
 
 
+def _business_yes_no_status(value):
+    """Return the client-facing four-state review value."""
+    value = str(value or "").strip().lower()
+
+    if value in {"yes", "y", "true", "1"}:
+        return "Yes"
+
+    if value in {"no", "n", "false", "0"}:
+        return "No"
+
+    return "Not Detected"
+
+
+def _detect_tender_participation_type(text):
+    """Detect Tender type only from explicit wording.
+
+    Do not infer Tender type merely because the document is publicly
+    available on GeM.
+    """
+    value = text or ""
+
+    if re.search(
+        r"\bsource\s+development\b",
+        value,
+        re.IGNORECASE,
+    ):
+        return "Source Development"
+
+    if re.search(
+        r"\blimited\s+(?:tender|bid)\b",
+        value,
+        re.IGNORECASE,
+    ):
+        return "Limited"
+
+    if re.search(
+        r"\bopen\s+(?:tender|bid)\b",
+        value,
+        re.IGNORECASE,
+    ):
+        return "Open"
+
+    return "Not Detected"
+
+
+def _extract_tender_business_review(text, parsed):
+    """Extract conservative business-facing Tender information.
+
+    The rules deliberately prefer Not Detected over guessing.
+    Generic GeM policy / disclaimer text must not create a Yes value.
+    """
+    result = {}
+
+    result["factory_name"] = _first_match(
+        [
+            r"Beneficiary\s*Name"
+            r"\s*(?::|-)?\s*([^\n]+)",
+
+            r"Consignee\s*Name"
+            r"\s*(?::|-)?\s*([^\n]+)",
+
+            r"Factory\s*(?:Name)?"
+            r"\s*(?::|-)?\s*([^\n]+)",
+        ],
+        text,
+    )
+
+    result["nomenclature"] = (
+        _first_match(
+            [
+                r"Nomenclature"
+                r"\s*(?::|-)?\s*([^\n]+)",
+            ],
+            text,
+        )
+        or parsed.get("item_category")
+    )
+
+    result["specification_drawing_reference"] = (
+        _first_match(
+            [
+                r"(?:Drawing|Drg\.?)"
+                r"\s*(?:No\.?|Number|Reference|Ref\.?)?"
+                r"\s*(?::|-)?\s*"
+                r"([A-Z0-9][A-Z0-9./()\- ]{2,120})",
+
+                r"Specification"
+                r"\s*(?:No\.?|Number|Reference|Ref\.?)?"
+                r"\s*(?::|-)?\s*"
+                r"([A-Z0-9][A-Z0-9./()\- ]{2,120})",
+            ],
+            text,
+        )
+    )
+
+    result["reverse_auction"] = _first_match(
+        [
+            r"Bid\s*to\s*RA\s*enabled"
+            r"\s*(?::|-)?\s*(Yes|No)",
+
+            r"Reverse\s*Auction"
+            r"\s*(?:Applicable|Enabled)?"
+            r"\s*(?::|-)?\s*(Yes|No)",
+        ],
+        text,
+    )
+
+    # Deliberately only match explicit Advance Sample labels.
+    # Generic GeM sample-policy paragraphs are not evidence.
+    result["advance_sample"] = _first_match(
+        [
+            r"Advance\s*Sample"
+            r"\s*(?:Required)?"
+            r"\s*(?::|-)?\s*(Yes|No)",
+
+            r"Advance\s*Sample\s*Requirement"
+            r"\s*(?::|-)?\s*(Yes|No)",
+        ],
+        text,
+    )
+
+    result["delivery_period_requirement"] = (
+        _first_match(
+            [
+                r"Delivery\s*Period"
+                r"\s*(?::|-)?\s*([^\n]+)",
+
+                r"Delivery\s*Schedule"
+                r"\s*(?::|-)?\s*([^\n]+)",
+            ],
+            text,
+        )
+    )
+
+    result["option_clause"] = _first_match(
+        [
+            r"Option\s*Clause"
+            r"\s*(?:Applicable)?"
+            r"\s*(?::|-)?\s*(Yes|No)",
+        ],
+        text,
+    )
+
+    result["documents_required_from_bidders"] = (
+        _first_match(
+            [
+                r"Documents\s*Required\s*From\s*All\s*Bidders"
+                r"\s*(?::|-)?\s*([^\n]+)",
+
+                r"Documents\s*required\s*from\s*all\s*bidders"
+                r".*?\s*(?::|-)\s*([^\n]+)",
+            ],
+            text,
+        )
+    )
+
+    result["inspection_required"] = _first_match(
+        [
+            r"Inspection\s*Required"
+            r"\s*(?::|-)?\s*(Yes|No)",
+        ],
+        text,
+    )
+
+    result["inspection_type"] = _first_match(
+        [
+            r"Inspection\s*Type"
+            r"\s*(?::|-)?\s*([^\n]+)",
+
+            r"Type\s*of\s*Inspection"
+            r"\s*(?::|-)?\s*([^\n]+)",
+        ],
+        text,
+    )
+
+    result["inspection_authority"] = _first_match(
+        [
+            r"Inspection\s*(?:Agency|Authority)"
+            r"\s*(?::|-)?\s*([^\n]+)",
+
+            r"Inspection\s*Agency\s*Name"
+            r"\s*(?::|-)?\s*([^\n]+)",
+        ],
+        text,
+    )
+
+    result["mii_purchase_preference"] = _first_match(
+        [
+            r"MII\s*Purchase\s*Preference"
+            r"\s*(?::|-)?\s*(Yes|No)",
+
+            r"Make\s*in\s*India\s*Purchase\s*Preference"
+            r"\s*(?::|-)?\s*(Yes|No)",
+        ],
+        text,
+    )
+
+    result["mse_purchase_preference"] = _first_match(
+        [
+            r"MSE\s*Purchase\s*Preference"
+            r"\s*(?::|-)?\s*(Yes|No)",
+
+            r"Purchase\s*Preference\s*to\s*MSE"
+            r"\s*(?::|-)?\s*(Yes|No)",
+        ],
+        text,
+    )
+
+    result["tender_participation_type"] = (
+        _detect_tender_participation_type(
+            text
+        )
+    )
+
+    return result
+
+
+def _build_business_review(tender, parsed):
+    """Return a safe, serialisable Tender Review payload."""
+    emd_status = _business_yes_no_status(
+        parsed.get("emd_required")
+    )
+
+    split_status = _business_yes_no_status(
+        parsed.get("splitting_applied")
+    )
+
+    epbg_percentage = (
+        parsed.get("epbg_percentage")
+        or getattr(
+            tender,
+            "epbg_percentage",
+            None,
+        )
+    )
+
+    epbg_duration = (
+        parsed.get("epbg_duration_months")
+        or getattr(
+            tender,
+            "epbg_duration_months",
+            None,
+        )
+    )
+
+    return {
+        "factory_name":
+            getattr(
+                tender,
+                "factory_name",
+                None,
+            )
+            or "Not Detected",
+
+        "nomenclature":
+            getattr(
+                tender,
+                "nomenclature",
+                None,
+            )
+            or "Not Detected",
+
+        "specification_drawing_reference":
+            getattr(
+                tender,
+                "specification_drawing_reference",
+                None,
+            )
+            or "Not Detected",
+
+        "splitting":
+            (
+                f"{split_status} - "
+                f"{parsed.get('splitting_ratio')}"
+                if (
+                    split_status == "Yes"
+                    and parsed.get("splitting_ratio")
+                )
+                else split_status
+            ),
+
+        "reverse_auction":
+            getattr(
+                tender,
+                "reverse_auction_status",
+                None,
+            )
+            or "Not Detected",
+
+        "tender_type":
+            getattr(
+                tender,
+                "tender_participation_type",
+                None,
+            )
+            or "Not Detected",
+
+        "advance_sample":
+            getattr(
+                tender,
+                "advance_sample_status",
+                None,
+            )
+            or "Not Detected",
+
+        "delivery_period":
+            getattr(
+                tender,
+                "delivery_period_requirement",
+                None,
+            )
+            or "Not Detected",
+
+        "emd_required": emd_status,
+
+        "option_clause":
+            getattr(
+                tender,
+                "option_clause_status",
+                None,
+            )
+            or "Not Detected",
+
+        "documents_required":
+            getattr(
+                tender,
+                "documents_required_from_bidders",
+                None,
+            )
+            or "Not Detected",
+
+        "inspection":
+            getattr(
+                tender,
+                "inspection_status",
+                None,
+            )
+            or "Not Detected",
+
+        "inspection_type":
+            getattr(
+                tender,
+                "inspection_type",
+                None,
+            )
+            or "Not Detected",
+
+        "inspection_authority":
+            getattr(
+                tender,
+                "inspection_authority",
+                None,
+            )
+            or "Not Detected",
+
+        "epbg_percentage":
+            epbg_percentage
+            if epbg_percentage not in {None, ""}
+            else "Not Detected",
+
+        "epbg_duration_months":
+            epbg_duration
+            if epbg_duration not in {None, ""}
+            else "Not Detected",
+
+        "mii_purchase_preference":
+            getattr(
+                tender,
+                "mii_purchase_preference_status",
+                None,
+            )
+            or "Not Detected",
+
+        "mse_purchase_preference":
+            getattr(
+                tender,
+                "mse_purchase_preference_status",
+                None,
+            )
+            or "Not Detected",
+
+        "drawing_status":
+            getattr(
+                tender,
+                "drawing_status",
+                None,
+            )
+            or "Not Detected",
+    }
+
+
 def _parse_gem_tender(text):
     """Extract stable GeM Tender header information.
 
@@ -359,6 +750,15 @@ def _parse_gem_tender(text):
         ],
         text,
         flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    business_review = _extract_tender_business_review(
+        text,
+        result,
+    )
+
+    result.update(
+        business_review
     )
 
     return result
@@ -775,12 +1175,15 @@ def _populate_source_links(tender, links):
         )
 
 
+
 def _set_safe_extracted_fields(tender, parsed):
     """
-    Only populate blank, non-Link values.
+    Populate deterministic Tender identification and the dedicated
+    Tender Business Review fields.
 
-    Customer, Sector, Items and commercial fields are intentionally
-    never inferred or overwritten here.
+    Customer, Sector, Items and operational commercial fields are not
+    inferred or overwritten here. Existing user-reviewed business
+    values are also preserved.
     """
 
     if (
@@ -811,6 +1214,217 @@ def _set_safe_extracted_fields(tender, parsed):
     ):
         tender.bid_opening_date = _parse_datetime(
             parsed["bid_opening"]
+        )
+
+    def set_if_unreviewed(
+        fieldname,
+        value,
+        *,
+        empty_values=None,
+    ):
+        if value in {None, ""}:
+            return
+
+        if empty_values is None:
+            empty_values = {
+                None,
+                "",
+                "Not Detected",
+            }
+
+        current = getattr(
+            tender,
+            fieldname,
+            None,
+        )
+
+        if current in empty_values:
+            setattr(
+                tender,
+                fieldname,
+                value,
+            )
+
+    set_if_unreviewed(
+        "factory_name",
+        parsed.get("factory_name"),
+    )
+
+    set_if_unreviewed(
+        "nomenclature",
+        parsed.get("nomenclature"),
+    )
+
+    set_if_unreviewed(
+        "specification_drawing_reference",
+        parsed.get(
+            "specification_drawing_reference"
+        ),
+    )
+
+    set_if_unreviewed(
+        "tender_participation_type",
+        parsed.get(
+            "tender_participation_type"
+        ),
+    )
+
+    set_if_unreviewed(
+        "reverse_auction_status",
+        _business_yes_no_status(
+            parsed.get("reverse_auction")
+        ),
+    )
+
+    set_if_unreviewed(
+        "advance_sample_status",
+        _business_yes_no_status(
+            parsed.get("advance_sample")
+        ),
+    )
+
+    set_if_unreviewed(
+        "delivery_period_requirement",
+        parsed.get(
+            "delivery_period_requirement"
+        ),
+    )
+
+    set_if_unreviewed(
+        "option_clause_status",
+        _business_yes_no_status(
+            parsed.get("option_clause")
+        ),
+    )
+
+    set_if_unreviewed(
+        "documents_required_from_bidders",
+        parsed.get(
+            "documents_required_from_bidders"
+        ),
+    )
+
+    emd_status = _business_yes_no_status(
+        parsed.get("emd_required")
+    )
+
+    emd_detection = {
+        "Yes": "Required",
+        "No": "Not Required",
+    }.get(
+        emd_status,
+        "Not Detected",
+    )
+
+    set_if_unreviewed(
+        "emd_detection_status",
+        emd_detection,
+    )
+
+    set_if_unreviewed(
+        "inspection_status",
+        _business_yes_no_status(
+            parsed.get("inspection_required")
+        ),
+    )
+
+    set_if_unreviewed(
+        "inspection_type",
+        parsed.get("inspection_type"),
+    )
+
+    set_if_unreviewed(
+        "inspection_authority",
+        parsed.get(
+            "inspection_authority"
+        ),
+    )
+
+    epbg_percentage = parsed.get(
+        "epbg_percentage"
+    )
+
+    if epbg_percentage not in {
+        None,
+        "",
+    }:
+        try:
+            set_if_unreviewed(
+                "epbg_percentage",
+                float(epbg_percentage),
+                empty_values={
+                    None,
+                    "",
+                    0,
+                    0.0,
+                },
+            )
+        except (TypeError, ValueError):
+            pass
+
+    epbg_duration = parsed.get(
+        "epbg_duration_months"
+    )
+
+    if epbg_duration not in {
+        None,
+        "",
+    }:
+        try:
+            set_if_unreviewed(
+                "epbg_duration_months",
+                int(
+                    float(
+                        epbg_duration
+                    )
+                ),
+                empty_values={
+                    None,
+                    "",
+                    0,
+                },
+            )
+        except (TypeError, ValueError):
+            pass
+
+    set_if_unreviewed(
+        "mii_purchase_preference_status",
+        _business_yes_no_status(
+            parsed.get(
+                "mii_purchase_preference"
+            )
+        ),
+    )
+
+    set_if_unreviewed(
+        "mse_purchase_preference_status",
+        _business_yes_no_status(
+            parsed.get(
+                "mse_purchase_preference"
+            )
+        ),
+    )
+
+    # A drawing/specification reference does not prove that a
+    # downloadable drawing exists. Keep this separate until supporting
+    # Tender documents are actually processed.
+    if (
+        parsed.get(
+            "specification_drawing_reference"
+        )
+        and getattr(
+            tender,
+            "drawing_status",
+            None,
+        )
+        in {
+            None,
+            "",
+            "Not Detected",
+        }
+    ):
+        tender.drawing_status = (
+            "Manual Review Required"
         )
 
 
@@ -872,7 +1486,7 @@ def read_tender_pdf(tender_name):
         )
 
         extraction = {
-            "engine_version": "1.0",
+            "engine_version": "1.1",
             "source_file": tender.tender_source_pdf,
             "page_count": len(reader.pages),
             "parsed": parsed,
@@ -928,6 +1542,10 @@ def read_tender_pdf(tender_name):
             "page_count": len(reader.pages),
             "link_count": len(links),
             "parsed": parsed,
+            "business_review": _build_business_review(
+                tender,
+                parsed,
+            ),
             "warning_count": len(warnings),
             "warnings": warnings,
         }
@@ -953,6 +1571,7 @@ def read_tender_pdf(tender_name):
         raise
 
 
+
 @frappe.whitelist()
 def download_discovered_gem_documents(
     tender_name,
@@ -970,6 +1589,9 @@ def download_discovered_gem_documents(
         )
 
     downloaded = 0
+    portal_reference = 0
+    manual_download = 0
+    unavailable = 0
     failed = 0
     skipped = 0
 
@@ -979,6 +1601,14 @@ def download_discovered_gem_documents(
             continue
 
         if row.downloaded_file:
+            skipped += 1
+            continue
+
+        if row.retrieval_status in {
+            "Portal / Reference Link",
+            "Manual Download Required",
+            "Unavailable",
+        }:
             skipped += 1
             continue
 
@@ -995,41 +1625,96 @@ def download_discovered_gem_documents(
 
             row.downloaded_file = file_url
             row.retrieval_status = "Downloaded"
+            row.document_classification = (
+                _classify_supporting_document(
+                    result["filename"],
+                    "",
+                    source_url=row.source_url,
+                    preferred_classification=(
+                        row.document_classification
+                        or None
+                    ),
+                )
+            )
             row.remarks = (
                 "Downloaded securely from approved GeM host."
             )
+
+            if (
+                row.document_classification == "Drawing"
+            ):
+                tender.drawing_status = "Available"
+                tender.drawing_supporting_file = (
+                    file_url
+                )
+
             downloaded += 1
 
         except Exception as exc:
             message = str(exc)
+            lower_message = message.lower()
 
             if (
-                "text/html" in message.lower()
-                or "not approved" in message.lower()
+                "text/html" in lower_message
+                or "browser/session" in lower_message
+                or "login" in lower_message
+                or "authentication" in lower_message
+                or "authorisation" in lower_message
+                or "authorization" in lower_message
             ):
                 row.retrieval_status = (
-                    "Manual Review Required"
+                    "Manual Download Required"
                 )
                 row.remarks = (
-                    "GeM returned a browser/session response "
-                    "instead of a downloadable document. "
-                    "Open this URL manually and attach the "
-                    "supporting document to the Tender if required."
+                    "GeM requires browser/session interaction "
+                    "for this resource. Open the URL manually "
+                    "and attach the supporting document if it "
+                    "is required for this Tender."
                 )
+                manual_download += 1
+
+            elif (
+                "not approved" in lower_message
+                or "unsupported content" in lower_message
+            ):
+                row.retrieval_status = (
+                    "Portal / Reference Link"
+                )
+                row.remarks = (
+                    "The GeM URL resolved to a reference or "
+                    "non-downloadable portal resource rather "
+                    "than an approved Tender attachment."
+                )
+                portal_reference += 1
+
+            elif (
+                "404" in lower_message
+                or "410" in lower_message
+                or "not found" in lower_message
+                or "no longer available" in lower_message
+            ):
+                row.retrieval_status = "Unavailable"
+                row.remarks = (
+                    "The GeM resource is currently unavailable. "
+                    + message[:350]
+                )
+                unavailable += 1
+
             else:
                 row.retrieval_status = "Failed"
                 row.remarks = message[:500]
-
-            failed += 1
+                failed += 1
 
     tender.save()
 
     return {
         "downloaded": downloaded,
+        "portal_reference": portal_reference,
+        "manual_download": manual_download,
+        "unavailable": unavailable,
         "failed": failed,
         "skipped": skipped,
     }
-
 
 
 def _extract_primary_document_titles(tender):
