@@ -1,16 +1,15 @@
 """
-Compatibility patch for historical PEPL Tender access-control migration.
+Compatibility shim for a retired historical PEPL Tender migration.
 
-The original implementation modified Role Profiles and User assignments.
-Those migration-time Role Profile changes were intentionally retired by
-commit 4387550 ("Remove Role Profile changes from migration").
+The original patch modified Role Profiles and User assignments.
+Those migration-time changes were intentionally removed from PEPL Sales
+by commit 4387550 ("Remove Role Profile changes from migration").
 
-Some existing sites may still have this historical patch pending in their
-migration state. Keeping this module as a no-op allows those sites to finish
-migration safely without recreating the retired Role Profile mutations.
+This no-op module exists only so sites with the historical patch still
+pending can complete migration safely without recreating the retired
+Role Profile behavior.
 """
 
 
 def execute():
-    """Complete the retired historical migration without changing data."""
     return
