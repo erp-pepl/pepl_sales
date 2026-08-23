@@ -2343,6 +2343,10 @@ def read_tender_pdf(tender_name):
             now_datetime()
         )
 
+        _evaluate_drawing_availability(
+            tender
+        )
+
         tender.save()
 
         return {
@@ -2378,6 +2382,549 @@ def read_tender_pdf(tender_name):
 
         raise
 
+
+
+def _evaluate_drawing_availability(tender):
+    """
+    Determine Drawing availability conservatively from processed Tender
+    evidence.
+
+    A technical drawing/specification reference is not proof that the
+    actual drawing file was supplied.
+    """
+
+    current_status = (
+        getattr(
+            tender,
+            "drawing_status",
+            None,
+        )
+        or "Not Detected"
+    )
+
+    supporting_file = getattr(
+        tender,
+        "drawing_supporting_file",
+        None,
+    )
+
+    # Respect an explicit user decision.
+    if current_status == "Not Applicable":
+        return {
+            "status": current_status,
+            "file_url": supporting_file,
+            "reason": "Drawing explicitly marked Not Applicable.",
+        }
+
+    # Respect a manually confirmed Available state when a supporting
+    # file has actually been attached.
+    if (
+        current_status == "Available"
+        and supporting_file
+    ):
+        return {
+            "status": current_status,
+            "file_url": supporting_file,
+            "reason": "Drawing availability already confirmed.",
+        }
+
+    rows = list(
+        tender.tender_source_links
+        or []
+    )
+
+    # Highest-confidence evidence: an actual downloaded document
+    # classified specifically as Drawing.
+    drawing_rows = [
+        row
+        for row in rows
+        if (
+            row.document_classification == "Drawing"
+            and row.downloaded_file
+        )
+    ]
+
+    if drawing_rows:
+        file_url = (
+            drawing_rows[0].downloaded_file
+        )
+
+        tender.drawing_status = "Available"
+        tender.drawing_supporting_file = (
+            file_url
+        )
+
+        return {
+            "status": "Available",
+            "file_url": file_url,
+            "reason": (
+                "Downloaded Tender supporting document "
+                "classified as Drawing."
+            ),
+        }
+
+    technical_reference = (
+        getattr(
+            tender,
+            "specification_drawing_reference",
+            None,
+        )
+        or ""
+    ).strip()
+
+    # Without a drawing/specification reference there is not enough
+    # evidence to automatically declare either Not Applicable or
+    # Not Available.
+    if not technical_reference:
+        if current_status not in {
+            "Not Applicable",
+            "Available",
+        }:
+            tender.drawing_status = (
+                "Not Detected"
+            )
+
+        return {
+            "status": tender.drawing_status,
+            "file_url": supporting_file,
+            "reason": (
+                "No explicit technical drawing/specification "
+                "reference was detected."
+            ),
+        }
+
+    unresolved_rows = []
+
+    for row in rows:
+        retrieval_status = (
+            row.retrieval_status
+            or ""
+        )
+
+        read_status = (
+            row.document_read_status
+            or "Not Read"
+        )
+
+        if retrieval_status in {
+            "",
+            "Discovered",
+            "Failed",
+            "Manual Download Required",
+        }:
+            unresolved_rows.append(
+                row
+            )
+            continue
+
+        if (
+            row.downloaded_file
+            and read_status
+            in {
+                "Not Read",
+                "Read with Warnings",
+                "Manual Review Required",
+                "Failed",
+            }
+        ):
+            unresolved_rows.append(
+                row
+            )
+
+    if unresolved_rows:
+        tender.drawing_status = (
+            "Manual Review Required"
+        )
+        tender.drawing_supporting_file = None
+
+        return {
+            "status": "Manual Review Required",
+            "file_url": None,
+            "reason": (
+                "A drawing/specification reference exists, but "
+                "one or more Tender supporting resources still "
+                "require visual/manual review."
+            ),
+        }
+
+    # At this point every discovered supporting resource is in a
+    # terminal/processed state and none is an actual Drawing.
+    tender.drawing_status = (
+        "Not Available in Tender Documents"
+    )
+    tender.drawing_supporting_file = None
+
+    return {
+        "status": (
+            "Not Available in Tender Documents"
+        ),
+        "file_url": None,
+        "reason": (
+            "Tender technical references were found, all available "
+            "supporting documents were processed, and no standalone "
+            "Drawing document was identified."
+        ),
+    }
+
+
+@frappe.whitelist()
+def refresh_tender_drawing_status(
+    tender_name,
+):
+    tender = frappe.get_doc(
+        "PEPL Tender",
+        tender_name,
+    )
+
+    tender.check_permission("write")
+
+    if tender.docstatus != 0:
+        frappe.throw(
+            _(
+                "Drawing availability can be evaluated "
+                "only while the Tender is Draft."
+            )
+        )
+
+    result = _evaluate_drawing_availability(
+        tender
+    )
+
+    tender.save()
+
+    return result
+
+
+@frappe.whitelist()
+def generate_tender_nda(
+    tender_name,
+):
+    """
+    Generate an editable NDA / confidentiality undertaking for obtaining
+    missing Tender drawing / specification material.
+
+    This is an operational editable template. It deliberately identifies
+    that PEPL approval is required before external issue.
+    """
+
+    tender = frappe.get_doc(
+        "PEPL Tender",
+        tender_name,
+    )
+
+    tender.check_permission("write")
+
+    if tender.docstatus != 0:
+        frappe.throw(
+            _(
+                "Editable NDA can be generated only "
+                "while the Tender is Draft."
+            )
+        )
+
+    if (
+        tender.tender_ingestion_status
+        != "Reviewed"
+    ):
+        frappe.throw(
+            _(
+                "Complete Tender extraction review before "
+                "generating the editable NDA."
+            )
+        )
+
+    drawing_result = (
+        _evaluate_drawing_availability(
+            tender
+        )
+    )
+
+    allowed_statuses = {
+        "Manual Review Required",
+        "Not Available in Tender Documents",
+    }
+
+    if (
+        drawing_result["status"]
+        not in allowed_statuses
+    ):
+        frappe.throw(
+            _(
+                "Editable NDA is intended only when the "
+                "Tender drawing is unavailable or requires "
+                "manual review. Current Drawing Status: {0}"
+            ).format(
+                drawing_result["status"]
+            )
+        )
+
+    factory_name = (
+        tender.factory_name
+        or "____________________________"
+    )
+
+    nomenclature = (
+        tender.nomenclature
+        or "____________________________"
+    )
+
+    technical_reference = (
+        tender.specification_drawing_reference
+        or "____________________________"
+    )
+
+    tender_reference = (
+        tender.nit_number
+        or tender.name
+    )
+
+    document = _load_word_letterhead()
+    _set_docx_defaults(
+        document
+    )
+
+    _add_docx_heading(
+        document,
+        (
+            "EDITABLE NON-DISCLOSURE UNDERTAKING / "
+            "REQUEST FOR DRAWING & TECHNICAL DOCUMENTS"
+        ),
+        level=1,
+        centered=True,
+    )
+
+    warning = document.add_paragraph()
+
+    run = warning.add_run(
+        "EDITABLE TEMPLATE — PEPL APPROVAL REQUIRED "
+        "BEFORE EXTERNAL ISSUE"
+    )
+    run.bold = True
+
+    document.add_paragraph(
+        (
+            "This document has been generated from PEPL Tender "
+            "information to support the controlled request for an "
+            "unavailable drawing/specification. Legal, commercial "
+            "and authorised-signatory review must be completed "
+            "before the document is issued externally."
+        )
+    )
+
+    _add_docx_heading(
+        document,
+        "1. Tender / Technical Reference",
+        level=2,
+    )
+
+    _add_key_value_table(
+        document,
+        [
+            (
+                "PEPL Tender",
+                tender.name,
+            ),
+            (
+                "Tender / Bid Reference",
+                tender_reference,
+            ),
+            (
+                "Factory / Unit",
+                factory_name,
+            ),
+            (
+                "Nomenclature",
+                nomenclature,
+            ),
+            (
+                "Drawing / Specification Reference",
+                technical_reference,
+            ),
+            (
+                "Drawing Status",
+                tender.drawing_status,
+            ),
+            (
+                "Publication Date",
+                tender.publication_date,
+            ),
+        ],
+    )
+
+    _add_docx_heading(
+        document,
+        "2. Addressee",
+        level=2,
+    )
+
+    document.add_paragraph(
+        f"To:\n{factory_name}\n"
+        "Attention: ______________________________\n"
+        "Designation: ____________________________"
+    )
+
+    _add_docx_heading(
+        document,
+        "3. Subject",
+        level=2,
+    )
+
+    document.add_paragraph(
+        (
+            "Request for Drawing / Specification and "
+            "Confidentiality Undertaking against Tender "
+            f"{tender_reference}"
+        )
+    )
+
+    _add_docx_heading(
+        document,
+        "4. Purpose of Request",
+        level=2,
+    )
+
+    document.add_paragraph(
+        (
+            "PEPL requests access to the drawing, specification "
+            "and/or related controlled technical information "
+            "referenced in the above Tender solely for legitimate "
+            "technical evaluation, bid preparation, source "
+            "development, manufacturing feasibility and activities "
+            "connected with the Tender."
+        )
+    )
+
+    _add_docx_heading(
+        document,
+        "5. Editable Confidentiality Undertaking",
+        level=2,
+    )
+
+    clauses = [
+        (
+            "PEPL will use the disclosed drawing/specification "
+            "only for the authorised Tender-related purpose stated "
+            "above, subject to the final terms approved by the "
+            "parties."
+        ),
+        (
+            "PEPL will maintain reasonable controls intended to "
+            "prevent unauthorised disclosure, copying or use of "
+            "controlled technical information."
+        ),
+        (
+            "Access will be limited to personnel, consultants or "
+            "approved parties having a legitimate need to know for "
+            "the authorised Tender-related purpose and who are "
+            "subject to applicable confidentiality obligations."
+        ),
+        (
+            "Ownership and intellectual-property rights in the "
+            "drawing/specification remain with their lawful owner; "
+            "this editable undertaking does not itself transfer any "
+            "ownership right."
+        ),
+        (
+            "Any return, destruction, retention period, governing "
+            "law, confidentiality duration, permitted disclosure "
+            "and other legal terms must be reviewed and completed "
+            "by authorised PEPL personnel before issue."
+        ),
+    ]
+
+    for clause in clauses:
+        _add_docx_bullet(
+            document,
+            clause,
+        )
+
+    _add_docx_heading(
+        document,
+        "6. PEPL Review / Completion Fields",
+        level=2,
+    )
+
+    fields = [
+        "Approved confidentiality period: __________________________",
+        "Permitted purpose / project: ______________________________",
+        "Permitted recipients: _____________________________________",
+        "Return / destruction requirement: _________________________",
+        "Governing law / jurisdiction: _____________________________",
+        "Additional approved terms: ________________________________",
+        "___________________________________________________________",
+    ]
+
+    for value in fields:
+        document.add_paragraph(
+            value
+        )
+
+    _add_docx_heading(
+        document,
+        "7. Authorisation",
+        level=2,
+    )
+
+    document.add_paragraph(
+        "For PEPL\n\n"
+        "Authorised Signatory: ______________________________\n"
+        "Name: _____________________________________________\n"
+        "Designation: ______________________________________\n"
+        "Date: _____________________________________________\n"
+        "Place: ____________________________________________"
+    )
+
+    document.add_paragraph(
+        "\nAcknowledged / Accepted by Recipient (where required)\n\n"
+        "Authorised Signatory: ______________________________\n"
+        "Name: _____________________________________________\n"
+        "Designation: ______________________________________\n"
+        "Date: _____________________________________________"
+    )
+
+    output = BytesIO()
+    document.save(
+        output
+    )
+    output.seek(0)
+
+    safe_reference = re.sub(
+        r"[^A-Za-z0-9._-]+",
+        "_",
+        tender_reference,
+    )
+
+    filename = (
+        f"PEPL_Editable_NDA_{safe_reference}.docx"
+    )
+
+    file_url = _attach_content(
+        content=output.getvalue(),
+        filename=filename,
+        tender_name=tender.name,
+        attached_to_field="generated_nda_word",
+    )
+
+    tender.db_set(
+        "generated_nda_word",
+        file_url,
+        update_modified=True,
+    )
+
+    tender.add_comment(
+        "Comment",
+        text=(
+            "Editable Drawing / Technical Document NDA "
+            "generated by "
+            f"{frappe.session.user}: {file_url}"
+        ),
+    )
+
+    return {
+        "file_url": file_url,
+        "filename": filename,
+        "drawing_status": tender.drawing_status,
+    }
 
 
 @frappe.whitelist()
@@ -2512,6 +3059,10 @@ def download_discovered_gem_documents(
                 row.retrieval_status = "Failed"
                 row.remarks = message[:500]
                 failed += 1
+
+    _evaluate_drawing_availability(
+        tender
+    )
 
     tender.save()
 
@@ -3239,6 +3790,10 @@ def read_supporting_tender_documents(
         _enrich_business_review_from_documents(
             tender
         )
+    )
+
+    _evaluate_drawing_availability(
+        tender
     )
 
     tender.save()

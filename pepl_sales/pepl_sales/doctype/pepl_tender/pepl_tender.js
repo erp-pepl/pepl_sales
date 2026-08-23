@@ -1719,6 +1719,141 @@ function pepl_add_tender_ingestion_actions(frm) {
         );
     }
 
+    if (
+        frm.doc.docstatus === 0
+        && (
+            frm.doc.specification_drawing_reference
+            || (frm.doc.tender_source_links || []).length
+        )
+    ) {
+        frm.add_custom_button(
+            __("Evaluate Drawing Availability"),
+            function () {
+                frappe.call({
+                    method: "pepl_sales.pepl_sales.api.tender_ingestion.refresh_tender_drawing_status",
+                    args: {
+                        tender_name: frm.doc.name
+                    },
+                    freeze: true,
+                    freeze_message: __(
+                        "Evaluating Tender drawing availability..."
+                    ),
+                    callback(r) {
+                        const result = r.message || {};
+
+                        frappe.msgprint({
+                            title: __("Drawing Availability"),
+                            indicator: (
+                                result.status === "Available"
+                                    ? "green"
+                                    : (
+                                        result.status
+                                        === "Not Available in Tender Documents"
+                                            ? "orange"
+                                            : "blue"
+                                    )
+                            ),
+                            message: [
+                                "<b>",
+                                __("Drawing Status"),
+                                ":</b> ",
+                                pepl_escape_tender_value(
+                                    result.status
+                                    || __("Not Detected")
+                                ),
+                                "<br><br>",
+                                pepl_escape_tender_value(
+                                    result.reason || ""
+                                )
+                            ].join("")
+                        });
+
+                        frm.reload_doc();
+                    }
+                });
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (
+        frm.doc.docstatus === 0
+        && frm.doc.tender_ingestion_status === "Reviewed"
+        && [
+            "Manual Review Required",
+            "Not Available in Tender Documents"
+        ].includes(
+            frm.doc.drawing_status
+        )
+    ) {
+        frm.add_custom_button(
+            __("Generate Editable NDA"),
+            function () {
+                frappe.confirm(
+                    __(
+                        "Generate an editable NDA / confidentiality "
+                        + "undertaking for the missing or unconfirmed "
+                        + "Tender drawing/specification? The generated "
+                        + "template requires PEPL approval before "
+                        + "external issue."
+                    ),
+                    function () {
+                        frappe.call({
+                            method: "pepl_sales.pepl_sales.api.tender_ingestion.generate_tender_nda",
+                            args: {
+                                tender_name: frm.doc.name
+                            },
+                            freeze: true,
+                            freeze_message: __(
+                                "Generating editable NDA..."
+                            ),
+                            callback(r) {
+                                const result = r.message || {};
+
+                                if (!result.file_url) {
+                                    frappe.msgprint(
+                                        __(
+                                            "Editable NDA could not be generated."
+                                        )
+                                    );
+                                    return;
+                                }
+
+                                frappe.show_alert({
+                                    message: __(
+                                        "Editable NDA generated successfully."
+                                    ),
+                                    indicator: "green"
+                                });
+
+                                window.open(
+                                    result.file_url,
+                                    "_blank"
+                                );
+
+                                frm.reload_doc();
+                            }
+                        });
+                    }
+                );
+            },
+            __("Tender Automation")
+        );
+    }
+
+    if (frm.doc.generated_nda_word) {
+        frm.add_custom_button(
+            __("Open Generated NDA"),
+            function () {
+                window.open(
+                    frm.doc.generated_nda_word,
+                    "_blank"
+                );
+            },
+            __("Tender Automation")
+        );
+    }
+
     if (frm.doc.generated_tender_word) {
         frm.add_custom_button(
             __("Open Generated Word"),
