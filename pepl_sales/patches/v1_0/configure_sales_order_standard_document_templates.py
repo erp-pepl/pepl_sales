@@ -321,7 +321,7 @@ HTML_TEMPLATE = """
         </thead>
 
         <tbody>
-            {% for item in sales_order.items or [] %}
+            {% for item in sales_order['items'] or [] %}
             <tr>
                 <td>{{ loop.index }}</td>
                 <td>{{ item.item_code or "-" }}</td>

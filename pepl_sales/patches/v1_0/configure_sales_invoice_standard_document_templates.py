@@ -370,7 +370,7 @@ BASE_HTML = """
         </thead>
 
         <tbody>
-            {% for item in sales_invoice.items or [] %}
+            {% for item in sales_invoice['items'] or [] %}
             <tr>
                 <td>{{ loop.index }}</td>
                 <td>{{ item.item_code or "-" }}</td>
