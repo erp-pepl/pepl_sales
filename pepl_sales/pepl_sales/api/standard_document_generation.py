@@ -177,6 +177,14 @@ FOOTER_SPACER_PT = 62
 
 def _wrap_with_letterhead_spacing(html):
     """
+    RETIRED. Kept for reference only; no longer called.
+
+    Reserving space through a repeating thead/tfoot placed all content
+    inside one table cell, which Chrome will not break across pages.
+    Taller documents were relocated to a fresh page, leaving the first
+    page blank, and overflow escaped the reserved band entirely.
+    Page margins are used instead.
+
     Wrap rendered content in a table whose empty thead and tfoot
     repeat on every page, reserving space for the letterhead artwork
     without relying on backend-specific margin options.
@@ -1132,6 +1140,7 @@ def generate_pdf(
 
             @page {
                 size: A4;
+                margin: 47mm 14mm 30mm 14mm;
             }
         </style>
         """
@@ -1144,23 +1153,18 @@ def generate_pdf(
         # The supplied PEPL letterhead occupies both the upper corporate
         # header and the lower certification/footer band. These margins
         # reserve those areas on every business-content page.
-        rendered_html = (
-            _wrap_with_letterhead_spacing(
-                rendered_html
-            )
-        )
-
-        # Header and footer clearance is reserved in the HTML above,
-        # so only modest page margins are requested here. The active
-        # backend is resolved through the pdf_generator hook and does
-        # not necessarily honour wkhtmltopdf-style margin keys, which
-        # is why layout must not depend on them.
+        # Clearance for the letterhead artwork is reserved by the
+        # @page margins declared above AND by the options below, set
+        # to identical values so the layout is correct whichever the
+        # active pdf_generator backend honours. Page margins apply to
+        # every page and do not interfere with pagination, unlike the
+        # earlier table-based spacer.
         pdf_content = get_pdf(
             rendered_html,
             options={
                 "page-size": "A4",
-                "margin-top": "15mm",
-                "margin-bottom": "15mm",
+                "margin-top": "47mm",
+                "margin-bottom": "30mm",
                 "margin-left": "14mm",
                 "margin-right": "14mm",
             },
