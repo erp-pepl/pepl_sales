@@ -87,6 +87,37 @@ def _apply_official_pepl_letterhead(pdf_content):
                 _("Generated business PDF contains no pages.")
             )
 
+        business_pages = list(
+            business_reader.pages
+        )
+
+        # wkhtmltopdf emits a trailing blank page whenever the content
+        # height marginally exceeds the text block, which happens as
+        # soon as a template's length changes. Because the letterhead
+        # is stamped onto every page, that blank sheet would arrive at
+        # the customer looking like a real page of the document.
+        #
+        # Trailing pages carrying no extractable text are discarded
+        # here, before the merge. At this point the business PDF holds
+        # text only - the letterhead has not been applied yet - so an
+        # empty text layer means a genuinely empty page. At least one
+        # page is always retained.
+        while len(business_pages) > 1:
+            try:
+                tail_text = (
+                    business_pages[-1].extract_text()
+                    or ""
+                ).strip()
+            except Exception:
+                # Never let a text-extraction problem block document
+                # generation; keep the page and carry on.
+                break
+
+            if tail_text:
+                break
+
+            business_pages.pop()
+
         probe_reader = PdfReader(
             BytesIO(letterhead_bytes)
         )
@@ -108,7 +139,7 @@ def _apply_official_pepl_letterhead(pdf_content):
 
         writer = PdfWriter()
 
-        for business_page in business_reader.pages:
+        for business_page in business_pages:
             business_width = float(
                 business_page.mediabox.width
             )
