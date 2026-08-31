@@ -43,13 +43,21 @@ def _get_official_letterhead_path():
 
 def _apply_official_pepl_letterhead(pdf_content):
     """
-    Apply only the exact approved PEPL header and footer regions from
-    PEPL_Letterhead_Plain.pdf to every generated PDF page.
+    Place the approved PEPL letterhead BEHIND the generated business
+    content on every page.
 
-    The official source PDF contains a full-page white background.
-    Therefore we intentionally crop the source to the header and footer
-    bands before merging, so the white centre of the source letterhead
-    cannot cover business-document content.
+    The earlier implementation cropped the source letterhead into a
+    header band and a footer band and merged those OVER the business
+    page. Because the source PDF carries an opaque white background,
+    each band painted a solid rectangle across the top and bottom of
+    the page and silently hid any content beneath it.
+
+    Merging in the opposite direction removes that failure mode
+    completely. The letterhead becomes the base layer and business
+    content is drawn on top of it, so no generated content can ever
+    be concealed. Vertical clearance for the header and footer
+    artwork is reserved in the HTML instead, which both the Chrome
+    and wkhtmltopdf backends honour.
     """
 
     letterhead_path = _get_official_letterhead_path()
@@ -74,11 +82,16 @@ def _apply_official_pepl_letterhead(pdf_content):
             BytesIO(pdf_content)
         )
 
-        source_reader = PdfReader(
+        if not business_reader.pages:
+            frappe.throw(
+                _("Generated business PDF contains no pages.")
+            )
+
+        probe_reader = PdfReader(
             BytesIO(letterhead_bytes)
         )
 
-        if not source_reader.pages:
+        if not probe_reader.pages:
             frappe.throw(
                 _(
                     "Official PEPL letterhead PDF "
@@ -86,36 +99,12 @@ def _apply_official_pepl_letterhead(pdf_content):
                 )
             )
 
-        if not business_reader.pages:
-            frappe.throw(
-                _("Generated business PDF contains no pages.")
-            )
-
-        source_page = source_reader.pages[0]
-
         source_width = float(
-            source_page.mediabox.width
+            probe_reader.pages[0].mediabox.width
         )
         source_height = float(
-            source_page.mediabox.height
+            probe_reader.pages[0].mediabox.height
         )
-
-        # The supplied source is A4, approximately 596 x 842 pt.
-        #
-        # Header contains:
-        # - PEPL logo and corporate identity
-        # - address, CIN, GSTIN and email
-        # - blue/gold divider
-        #
-        # Footer contains:
-        # - blue divider
-        # - Defence & Aerospace / Railways / Automobile strapline
-        # - certification logos
-        #
-        # Keep the crop slightly generous so the source appearance
-        # remains byte-for-byte visually represented within those bands.
-        HEADER_HEIGHT_PT = 165
-        FOOTER_HEIGHT_PT = 95
 
         writer = PdfWriter()
 
@@ -138,51 +127,21 @@ def _apply_official_pepl_letterhead(pdf_content):
                     )
                 )
 
-            # Use fresh readers because merge_page mutates page content.
-            header_reader = PdfReader(
+            # A fresh reader per page because merge_page mutates
+            # the page it is called on.
+            base_reader = PdfReader(
                 BytesIO(letterhead_bytes)
             )
-            header_page = header_reader.pages[0]
 
-            header_page.cropbox.lower_left = (
-                0,
-                source_height - HEADER_HEIGHT_PT,
-            )
-            header_page.cropbox.upper_right = (
-                source_width,
-                source_height,
-            )
+            base_page = base_reader.pages[0]
 
-            footer_reader = PdfReader(
-                BytesIO(letterhead_bytes)
-            )
-            footer_page = footer_reader.pages[0]
-
-            footer_page.cropbox.lower_left = (
-                0,
-                0,
-            )
-            footer_page.cropbox.upper_right = (
-                source_width,
-                FOOTER_HEIGHT_PT,
-            )
-
-            # pypdf clips merged content to each source page's cropbox.
-            # Thus only the official top and bottom regions are overlaid;
-            # the blank white middle area is never placed over the
-            # generated business document.
-            business_page.merge_page(
-                header_page,
-                over=True,
-            )
-
-            business_page.merge_page(
-                footer_page,
+            base_page.merge_page(
+                business_page,
                 over=True,
             )
 
             writer.add_page(
-                business_page
+                base_page
             )
 
         output = BytesIO()
@@ -205,6 +164,48 @@ def _apply_official_pepl_letterhead(pdf_content):
                 "letterhead: {0}"
             ).format(exc)
         )
+
+
+# Vertical clearance reserved inside the HTML for the letterhead
+# artwork. These are ADDITIONAL to the page margin the renderer
+# applies, so the effective offset is renderer margin + spacer.
+# Calibrated against PEPL_Letterhead_Plain.pdf: the header artwork
+# ends near 165pt and the footer band occupies about 95pt.
+HEADER_SPACER_PT = 132
+FOOTER_SPACER_PT = 62
+
+
+def _wrap_with_letterhead_spacing(html):
+    """
+    Wrap rendered content in a table whose empty thead and tfoot
+    repeat on every page, reserving space for the letterhead artwork
+    without relying on backend-specific margin options.
+    """
+
+    frame_css = (
+        "<style>"
+        ".pepl-lh-frame{width:100%;border-collapse:collapse;}"
+        ".pepl-lh-frame>thead>tr>td{height:"
+        + str(HEADER_SPACER_PT)
+        + "pt;border:0;padding:0;}"
+        ".pepl-lh-frame>tfoot>tr>td{height:"
+        + str(FOOTER_SPACER_PT)
+        + "pt;border:0;padding:0;}"
+        ".pepl-lh-frame>tbody>tr>td{"
+        "border:0;padding:0;vertical-align:top;}"
+        "</style>"
+    )
+
+    return (
+        frame_css
+        + '<table class="pepl-lh-frame">'
+        + "<thead><tr><td></td></tr></thead>"
+        + "<tfoot><tr><td></td></tr></tfoot>"
+        + "<tbody><tr><td>"
+        + html
+        + "</td></tr></tbody>"
+        + "</table>"
+    )
 
 
 def _clean_filename(value):
@@ -1143,12 +1144,23 @@ def generate_pdf(
         # The supplied PEPL letterhead occupies both the upper corporate
         # header and the lower certification/footer band. These margins
         # reserve those areas on every business-content page.
+        rendered_html = (
+            _wrap_with_letterhead_spacing(
+                rendered_html
+            )
+        )
+
+        # Header and footer clearance is reserved in the HTML above,
+        # so only modest page margins are requested here. The active
+        # backend is resolved through the pdf_generator hook and does
+        # not necessarily honour wkhtmltopdf-style margin keys, which
+        # is why layout must not depend on them.
         pdf_content = get_pdf(
             rendered_html,
             options={
                 "page-size": "A4",
-                "margin-top": "52mm",
-                "margin-bottom": "35mm",
+                "margin-top": "15mm",
+                "margin-bottom": "15mm",
                 "margin-left": "14mm",
                 "margin-right": "14mm",
             },
