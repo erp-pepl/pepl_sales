@@ -1088,9 +1088,10 @@ def generate_pdf(
         audit_footer = frappe.render_template(
             """
             <div style="
-                margin-top: 24px;
-                padding-top: 8px;
+                margin-top: 10px;
+                padding-top: 5px;
                 border-top: 1px solid #999;
+                page-break-inside: avoid;
                 font-family: Arial, sans-serif;
                 font-size: 8px;
                 color: #666;
@@ -1156,8 +1157,8 @@ def generate_pdf(
                37mm bottom clears the certification footer (95pt).
             */
             .print-format {
-                margin-top: 62mm;
-                margin-bottom: 37mm;
+                margin-top: 60mm;
+                margin-bottom: 34mm;
                 margin-left: 14mm;
                 margin-right: 14mm;
             }
@@ -1186,8 +1187,8 @@ def generate_pdf(
             rendered_html,
             options={
                 "page-size": "A4",
-                "margin-top": "62mm",
-                "margin-bottom": "37mm",
+                "margin-top": "60mm",
+                "margin-bottom": "34mm",
                 "margin-left": "14mm",
                 "margin-right": "14mm",
             },
