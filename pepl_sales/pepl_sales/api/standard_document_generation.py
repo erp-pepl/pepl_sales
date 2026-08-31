@@ -1138,9 +1138,32 @@ def generate_pdf(
                 margin-bottom: 16px !important;
             }
 
+            /*
+               wkhtmltopdf receives its page margins from
+               frappe.utils.pdf.prepare_options, which OVERWRITES any
+               margins passed by the caller with values derived from
+               the HTML itself.
+
+               Because this document supplies no #header-html or
+               #footer-html element, prepare_header_footer() forces
+               margin-top and margin-bottom to 15mm. Those defaults
+               are applied first; rules whose selector is exactly
+               ".print-format" are merged afterwards and therefore
+               win (see get_print_format_styles). This is the only
+               reliable way to reserve the letterhead band.
+
+               62mm top clears the header artwork (165pt) plus a gap;
+               37mm bottom clears the certification footer (95pt).
+            */
+            .print-format {
+                margin-top: 62mm;
+                margin-bottom: 37mm;
+                margin-left: 14mm;
+                margin-right: 14mm;
+            }
+
             @page {
                 size: A4;
-                margin: 47mm 14mm 30mm 14mm;
             }
         </style>
         """
@@ -1163,8 +1186,8 @@ def generate_pdf(
             rendered_html,
             options={
                 "page-size": "A4",
-                "margin-top": "47mm",
-                "margin-bottom": "30mm",
+                "margin-top": "62mm",
+                "margin-bottom": "37mm",
                 "margin-left": "14mm",
                 "margin-right": "14mm",
             },
