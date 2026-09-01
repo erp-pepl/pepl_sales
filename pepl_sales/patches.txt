@@ -33,3 +33,4 @@ pepl_sales.patches.v1_0.remove_standard_sales_invoice_document_status_report
 pepl_sales.patches.backfill_tender_cost_sheets_v1
 pepl_sales.patches.v1_0.approve_standard_document_templates
 pepl_sales.patches.v1_0.fix_document_template_items_iteration
+pepl_sales.patches.v1_0.rationalise_psd_template_required_fields

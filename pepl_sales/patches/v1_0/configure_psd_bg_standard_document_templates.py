@@ -78,6 +78,10 @@ BASE_STYLE = """
 """
 
 
+# NOTE: superseded by
+# pepl_sales.patches.v1_0.rationalise_psd_template_required_fields
+# Each template now declares only the fields without which the letter
+# would be meaningless. Retained here for historical reference.
 COMMON_REQUIRED_FIELDS = [
     "source_doctype",
     "source_document",
