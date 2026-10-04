@@ -5,7 +5,7 @@ from frappe.model.naming import make_autoname
 from frappe.utils import flt, getdate, today
 
 
-FINAL_TENDER_STATUSES = ("Won", "Lost", "Partially Won")
+FINAL_TENDER_STATUSES = ("Won", "Lost", "Partially Won", "Order Received")
 
 
 class PEPLCSTCostSheet(Document):
@@ -503,6 +503,10 @@ def _get_matching_tenders(cst):
     )
 
     for match_level, filters in priorities:
+        # A Cost Sheet's own Tender is never its own history.
+        if cst.linked_tender:
+            filters = dict(filters, name=["!=", cst.linked_tender])
+
         tenders = frappe.get_all(
             "PEPL Tender",
             filters=filters,
@@ -643,41 +647,64 @@ def fetch_competitor_history(cst_name):
     seen_keys = set()
 
     for tender, item_row in tender_item_pairs:
-        competitor_rows = frappe.get_all(
-            "PEPL Tender Item Competitor",
-            filters={
-                "parent": item_row.name,
-                "parenttype": "PEPL Tender Item",
-            },
-            fields=[
-                "name",
-                "competitor_name",
-                "competitor_price",
-                "rank",
-                "rank_number",
-                "is_pepl",
-                "is_l1",
-                "is_winner",
-                "buyer_selected",
-                "consignee",
-                "evaluation_basis",
-                "bid_id",
-                "bid_datetime",
-                "basic_rate",
-                "gst_percent",
-                "evaluated_unit_rate",
-                "total_bid_value",
-                "difference_from_pepl",
-                "difference_from_pepl_percent",
-                "is_msme",
-                "is_mii",
-                "award_share_percent",
-                "awarded_quantity",
-                "remarks",
-            ],
-            order_by="idx asc",
-            limit_page_length=0,
+        # Competitor rows live in the Tender's "competitor_entries" table
+        # (parent = Tender). Rows without an Item belong to single-item
+        # Tenders, so they are kept only when the Tender has one item.
+        tender_item_count = len(
+            set(
+                frappe.get_all(
+                    "PEPL Tender Item",
+                    filters={
+                        "parent": tender.name,
+                        "parenttype": "PEPL Tender",
+                    },
+                    pluck="item",
+                )
+            )
         )
+
+        competitor_rows = [
+            row
+            for row in frappe.get_all(
+                "PEPL Tender Item Competitor",
+                filters={
+                    "parent": tender.name,
+                    "parenttype": "PEPL Tender",
+                    "parentfield": "competitor_entries",
+                },
+                fields=[
+                    "name",
+                    "item",
+                    "competitor_name",
+                    "competitor_price",
+                    "rank",
+                    "rank_number",
+                    "is_pepl",
+                    "is_l1",
+                    "is_winner",
+                    "buyer_selected",
+                    "consignee",
+                    "evaluation_basis",
+                    "bid_id",
+                    "bid_datetime",
+                    "basic_rate",
+                    "gst_percent",
+                    "evaluated_unit_rate",
+                    "total_bid_value",
+                    "difference_from_pepl",
+                    "difference_from_pepl_percent",
+                    "is_msme",
+                    "is_mii",
+                    "award_share_percent",
+                    "awarded_quantity",
+                    "remarks",
+                ],
+                order_by="idx asc",
+                limit_page_length=0,
+            )
+            if row.item == item_row.item
+            or (not row.item and tender_item_count == 1)
+        ]
 
         groups = _group_competitor_rows(competitor_rows)
         group_prices = {}

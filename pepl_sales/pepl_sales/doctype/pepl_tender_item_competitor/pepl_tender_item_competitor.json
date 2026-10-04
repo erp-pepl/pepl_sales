@@ -7,6 +7,7 @@
  "field_order": [
   "identity_section",
   "competitor_name",
+  "item",
   "is_pepl",
   "bid_id",
   "bid_datetime",
@@ -64,6 +65,14 @@
    "in_list_view": 1,
    "label": "Competitor Name",
    "reqd": 1
+  },
+  {
+   "description": "Tender item this bid is for. Filled automatically when the Tender has only one item.",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item"
   },
   {
    "fieldname": "competitor_price",
@@ -359,7 +368,7 @@
  "index_web_pages_for_search": 0,
  "istable": 1,
  "links": [],
- "modified": "2026-04-28 17:00:00",
+ "modified": "2026-10-04 17:00:00.000000",
  "modified_by": "Administrator",
  "module": "PEPL Sales",
  "name": "PEPL Tender Item Competitor",
