@@ -27,7 +27,7 @@
    "is_query_report": 1,
    "label": "Tender Win Loss Analysis",
    "link_count": 0,
-   "link_to": "PEPL Tender Win Loss Analysis",
+   "link_to": "PEPL Tender Win Loss Analytics",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -38,7 +38,7 @@
    "is_query_report": 1,
    "label": "Competitor Bid Comparison",
    "link_count": 0,
-   "link_to": "PEPL Competitor Bid Comparison",
+   "link_to": "PEPL Competitor Bid Comp",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -57,7 +57,7 @@
    "is_query_report": 1,
    "label": "Pending Customer Documents",
    "link_count": 0,
-   "link_to": "PEPL Pending Customer Documents",
+   "link_to": "PEPL Pending Cust Documents",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -68,7 +68,7 @@
    "is_query_report": 1,
    "label": "Material Receipt Pending",
    "link_count": 0,
-   "link_to": "PEPL Material Receipt Pending",
+   "link_to": "PEPL Material Receipt Pend",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -87,7 +87,7 @@
    "is_query_report": 1,
    "label": "Payment Ageing and Overdue",
    "link_count": 0,
-   "link_to": "PEPL Payment Ageing and Overdue",
+   "link_to": "PEPL Pymnt Ageing and Overdue",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -98,7 +98,7 @@
    "is_query_report": 1,
    "label": "Customer Sales-to-Cash Status",
    "link_count": 0,
-   "link_to": "PEPL Customer Sales-to-Cash Status",
+   "link_to": "PEPL Cust Sales-to-Cash Status",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -183,7 +183,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-07-13 00:00:00.000000",
+ "modified": "2026-10-04 17:00:00.000000",
  "modified_by": "Administrator",
  "module": "PEPL Sales",
  "name": "PEPL Sales",

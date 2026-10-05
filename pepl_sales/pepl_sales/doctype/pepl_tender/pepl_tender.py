@@ -99,6 +99,7 @@ def _get_historical_tender_rows_for_item(
                 [
                     "Won",
                     "Partially Won",
+                    "Order Received",
                     "Lost",
                     "Cancelled",
                 ],
@@ -622,6 +623,14 @@ class PEPLTender(Document):
             for row in self.items or []
             if row.item
         }
+
+        # Single-item Tender: stamp the item on every competitor row so
+        # history, reports and Cost Sheets can match rows by item.
+        if len(item_rows_by_code) == 1:
+            only_item = next(iter(item_rows_by_code))
+            for row in competitor_rows:
+                if not row.get("item"):
+                    row.item = only_item
 
         if competitor_rows and len(item_rows_by_code) > 1:
             missing_item_rows = [

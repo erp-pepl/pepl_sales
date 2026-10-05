@@ -848,6 +848,21 @@ function pepl_add_competitor_guidance(frm) {
 }
 
 frappe.ui.form.on("PEPL Tender", {
+    setup(frm) {
+        // Competitor rows may only point at items listed in this Tender.
+        frm.set_query("item", "competitor_entries", function (doc) {
+            const items = (doc.items || [])
+                .map(row => row.item)
+                .filter(Boolean);
+
+            return {
+                filters: {
+                    name: ["in", items.length ? items : [""]]
+                }
+            };
+        });
+    },
+
     refresh(frm) {
         pepl_add_competitor_actions(frm);
         pepl_add_competitor_guidance(frm);
