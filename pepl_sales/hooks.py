@@ -150,8 +150,8 @@ doc_events = {
     "Sales Order": {
         "validate": "pepl_sales.events.validate_sales_order_sector",
         "on_submit": "pepl_sales.events.on_sales_order_submit",
-        "validate": "pepl_sales.pepl_sales.overrides.sales_order.set_item_summary",
-        "on_update_after_submit": "pepl_sales.pepl_sales.overrides.sales_order.sync_item_summary",
+        "validate": "pepl_sales.overrides.sales_order.set_item_summary",
+        "on_update_after_submit": "pepl_sales.overrides.sales_order.sync_item_summary",
     },
 
     "Sales Invoice": {

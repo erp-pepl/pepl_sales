@@ -1,5 +1,5 @@
 import frappe
-from pepl_sales.pepl_sales.overrides.sales_order import build_item_summary
+from pepl_sales.overrides.sales_order import build_item_summary
 
 
 def execute():
