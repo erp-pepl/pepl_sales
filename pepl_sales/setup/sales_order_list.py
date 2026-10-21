@@ -7,18 +7,24 @@ from pepl_sales.overrides.sales_order import build_item_summary
 DOCTYPE = "Sales Order"
 FIELDNAME = "custom_item_summary"
 
+# Fields shown in the hover preview card
+PREVIEW_FIELDS = ("customer_name", "delivery_date", "grand_total", "status")
+
 
 def setup_sales_order_list_view():
 	"""Runs on after_install and after_migrate. Safe to run any number of times."""
 	_create_item_summary_field()
 	frappe.clear_cache(doctype=DOCTYPE)
 
-	_set_doctype_property("title_field", FIELDNAME)
-	_set_doctype_property("search_fields", _search_fields_with_summary())
-	make_property_setter(
-		DOCTYPE, "customer_name", "in_list_view", 1, "Check",
-		validate_fields_for_doctype=False,
-	)
+	# List view: item summary as title, customer as a column, searchable by item
+	_set_doctype_property("title_field", FIELDNAME, "Data")
+	_set_doctype_property("search_fields", _search_fields_with_summary(), "Data")
+	_set_field_property("customer_name", "in_list_view", 1)
+
+	# Hover preview card
+	_set_doctype_property("show_preview_popup", 1, "Check")
+	for fieldname in PREVIEW_FIELDS:
+		_set_field_property(fieldname, "in_preview", 1)
 
 	frappe.clear_cache(doctype=DOCTYPE)
 	_backfill_item_summary()
@@ -38,6 +44,7 @@ def _create_item_summary_field():
 					"no_copy": 1,
 					"allow_on_submit": 1,
 					"in_standard_filter": 1,
+					"in_preview": 1,
 					"translatable": 0,
 				}
 			]
@@ -46,10 +53,17 @@ def _create_item_summary_field():
 	)
 
 
-def _set_doctype_property(prop, value):
+def _set_doctype_property(prop, value, prop_type):
 	make_property_setter(
-		DOCTYPE, None, prop, value, "Data",
+		DOCTYPE, None, prop, value, prop_type,
 		for_doctype=True, validate_fields_for_doctype=False,
+	)
+
+
+def _set_field_property(fieldname, prop, value):
+	make_property_setter(
+		DOCTYPE, fieldname, prop, value, "Check",
+		validate_fields_for_doctype=False,
 	)
 
 
