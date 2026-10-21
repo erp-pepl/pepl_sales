@@ -27,6 +27,7 @@ required_apps = ["erpnext"]
 # include js, css files in header of desk.html
 # app_include_css = "/assets/pepl_sales/css/pepl_sales.css"
 # app_include_js = "/assets/pepl_sales/js/pepl_sales.js"
+app_include_js = ["pepl_list_hover.bundle.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/pepl_sales/css/pepl_sales.css"
@@ -154,9 +155,11 @@ before_migrate = "pepl_sales.setup.mom_phase1.before_migrate"
 
 doc_events = {
     "Sales Order": {
-        "validate": "pepl_sales.events.validate_sales_order_sector",
+        "validate": [
+            "pepl_sales.events.validate_sales_order_sector",
+            "pepl_sales.overrides.sales_order.set_item_summary",
+        ],
         "on_submit": "pepl_sales.events.on_sales_order_submit",
-        "validate": "pepl_sales.overrides.sales_order.set_item_summary",
         "on_update_after_submit": "pepl_sales.overrides.sales_order.sync_item_summary",
     },
 
