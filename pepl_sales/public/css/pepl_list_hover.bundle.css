@@ -1,0 +1,186 @@
+/* PEPL - List View hover preview ("Option B" card).
+   Surface, border, shadow and open animation come from Frappe v16's .es-popover shell. The left strip and the
+   status take the exact colours of the record's status badge in the list. Theme variables keep light and dark
+   mode right. */
+
+.pepl-hp.es-popover {
+	z-index: 1040; /* above the list, under dialogs */
+	overflow-x: hidden;
+	overflow-y: auto;
+	padding: 16px 18px 16px 20px;
+	border-left: 5px solid var(--pepl-hp-strip, var(--outline-gray-3));
+	color: var(--text-color);
+	font-size: var(--text-base);
+}
+.pepl-hp:not(.pepl-hp-has-status) {
+	--pepl-hp-strip: var(--outline-gray-3);
+}
+
+.pepl-hp-close {
+	position: absolute;
+	top: 8px;
+	right: 10px;
+	padding: 0 7px;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	color: var(--text-muted);
+	font-size: 20px;
+	line-height: 1.4;
+	cursor: pointer;
+}
+.pepl-hp-close:hover {
+	background: var(--subtle-fg);
+}
+
+/* ---- header: number + document type on the left, status on the right */
+.pepl-hp-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	padding-right: 28px;
+}
+.pepl-hp-id {
+	min-width: 0;
+}
+.pepl-hp-name {
+	display: block;
+	overflow: hidden;
+	font-size: var(--text-lg);
+	font-weight: 650;
+	color: var(--ink-blue-link, var(--ink-blue-7));
+	text-decoration: none;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pepl-hp-name:hover {
+	text-decoration: underline;
+}
+.pepl-hp-type {
+	margin-top: 1px;
+	font-size: var(--text-sm);
+	color: var(--text-muted);
+}
+.pepl-hp-status {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 3px;
+	color: var(--pepl-hp-status, var(--text-muted));
+	font-size: var(--text-sm);
+	font-weight: 600;
+	white-space: nowrap;
+}
+.pepl-hp-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--pepl-hp-strip);
+}
+
+.pepl-hp-sub {
+	margin-top: 8px;
+	overflow: hidden;
+	color: var(--ink-gray-7);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ---- grey chips with the main fields */
+.pepl-hp-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 12px;
+}
+.pepl-hp-chip {
+	padding: 5px 10px;
+	border-radius: 8px;
+	background: var(--surface-gray-2);
+	color: var(--text-color);
+	white-space: nowrap;
+}
+.pepl-hp-chip-label {
+	margin-right: 6px;
+	color: var(--text-muted);
+}
+
+/* ---- the amount in large type */
+.pepl-hp-amount {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 16px;
+	margin-top: 14px;
+}
+.pepl-hp-amount-label {
+	color: var(--text-muted);
+}
+.pepl-hp-amount-value {
+	color: var(--heading-color);
+	font-size: 22px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+/* ---- tables: rounded, light row shading, tinted Total row; numbers never wrap */
+.pepl-hp-section {
+	margin-top: 14px;
+}
+.pepl-hp-section-title {
+	margin-bottom: 6px;
+	color: var(--heading-color);
+	font-weight: 600;
+}
+.pepl-hp-tablewrap {
+	overflow-x: auto;
+	border: 1px solid var(--border-color);
+	border-radius: 10px;
+}
+.pepl-hp-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-variant-numeric: tabular-nums;
+}
+.pepl-hp-table th {
+	padding: 8px 10px;
+	background: var(--surface-gray-1);
+	color: var(--text-muted);
+	font-size: var(--text-sm);
+	font-weight: 600;
+	text-align: left;
+	white-space: nowrap;
+}
+.pepl-hp-table td {
+	padding: 8px 10px;
+	border-top: 1px solid var(--border-color);
+	vertical-align: top;
+}
+.pepl-hp-table tbody tr:nth-child(even) td {
+	background: var(--surface-gray-1);
+}
+.pepl-hp-table .pepl-hp-num {
+	text-align: right;
+	white-space: nowrap; /* amounts and quantities never break onto two lines */
+}
+.pepl-hp-table .pepl-hp-first {
+	max-width: 220px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap; /* item / account name on one line; the full name shows on mouse-over */
+}
+.pepl-hp-table tfoot td {
+	background: var(--surface-blue-1);
+	color: var(--heading-color);
+	font-weight: 700;
+}
+
+.pepl-hp-more,
+.pepl-hp-loading {
+	color: var(--text-muted);
+}
+.pepl-hp-more {
+	margin-top: 4px;
+	font-size: var(--text-sm);
+}

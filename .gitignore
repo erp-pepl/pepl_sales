@@ -5,3 +5,5 @@
 tags
 node_modules
 __pycache__
+# built by bench build / Frappe Cloud on every deploy; never committed
+pepl_sales/public/dist/

@@ -1,201 +1,316 @@
-// PEPL: hover anywhere on a list row to see a preview card of that record.
-// One white card (Frappe preview styling), works on every DocType's list view.
+// PEPL - List View hover preview ("Option B" card).
+// Rest the mouse anywhere on a row of any List View: after half a second a card shows that record -
+// a status-coloured strip, number + status, grey chips with the main fields, the amount in large type,
+// the item table with a Total row and, on submitted documents, GL Entries / Stock Movement.
+// Data: pepl_sales.list_preview.get_preview (permission-checked on the server).
+// Built as a Frappe bundle, so every change gets a new file name and no browser keeps an old copy.
 (() => {
-	if (window.__pepl_row_preview_bound) return;
-	window.__pepl_row_preview_bound = true;
+	if (window.__pepl_list_preview_bound) return;
+	window.__pepl_list_preview_bound = true;
 
-	const SHOW_DELAY_MS = 150;
-	const MAX_FIELDS = 8;
-	const MAX_VALUE_LEN = 120;
-	const ROW_SELECTOR = ".list-row-container, .list-row";
-	const SKIP_TYPES = [
-		"Section Break", "Column Break", "Tab Break", "Fold", "Heading",
-		"HTML", "Button", "Table", "Table MultiSelect", "Image", "Attach Image",
-		"Signature", "Text Editor", "HTML Editor", "Markdown Editor", "Code",
-		"Geolocation", "JSON", "Password",
-	];
+	const METHOD = "pepl_sales.list_preview.get_preview";
+	const ROW = ".frappe-list .list-row-container";
+	const SHOW_DELAY = 500; // resting time before the card opens, so passing over the list opens nothing
+	const SWITCH_DELAY = 150; // quicker when a card is already open and the cursor moves to another row
+	const HIDE_DELAY = 300; // time to move the cursor from the row onto the card (to click its link)
+	const MAX_WIDTH = 560;
 
-	let $card = null;
-	let current_row = null;
+	const esc = (v) => frappe.utils.escape_html(v == null ? "" : String(v));
+
+	let cache = new Map(); // "doctype::name::modified" -> server reply
+	let cache_owner = null; // the list data the cache belongs to; a list refresh starts a new cache
+	let hover_row = null;
 	let show_timer = null;
+	let hide_timer = null;
+	let active_key = null;
+	let card = null;
 
-	const esc = (v) => frappe.utils.escape_html(String(v ?? ""));
-	const slug = (doctype) =>
-		frappe.router && frappe.router.slug
-			? frappe.router.slug(doctype)
-			: doctype.toLowerCase().replace(/ /g, "-");
-
-	function active_list() {
+	function enabled() {
+		if (window.matchMedia && !window.matchMedia("(hover: hover)").matches) return false; // touch
+		if (frappe.is_mobile && frappe.is_mobile()) return false;
+		if (document.querySelector(".modal.show")) return false;
 		const list = window.cur_list;
-		const route = frappe.get_route ? frappe.get_route() : [];
-		if (!list || !list.doctype || !Array.isArray(list.data)) return null;
-		return route[0] === "List" ? list : null;
+		return !!(list && list.doctype && list.view_name === "List");
 	}
 
-	function get_row_name(row_el, list) {
-		const cb = row_el.querySelector(".list-row-checkbox[data-name]");
-		if (cb && cb.getAttribute("data-name")) return cb.getAttribute("data-name");
-
-		const marker = `/${slug(list.doctype)}/`;
-		for (const a of row_el.querySelectorAll("a[href]")) {
-			const href = a.getAttribute("href") || "";
-			const pos = href.indexOf(marker);
-			if (pos === -1) continue;
-			const name = decodeURIComponent(href.slice(pos + marker.length).split(/[?#]/)[0]);
-			if (name) return name;
-		}
-		return null;
-	}
-
-	// Stop the browser's black tooltip and Frappe's own link card on this row.
-	function silence_native(row_el) {
-		row_el.querySelectorAll("a[data-doctype]").forEach((el) => {
-			el.setAttribute("data-pepl-doctype", el.getAttribute("data-doctype"));
-			el.removeAttribute("data-doctype");
-		});
-		row_el.querySelectorAll("a[title]").forEach((el) => {
-			el.setAttribute("data-pepl-title", el.getAttribute("title"));
-			el.removeAttribute("title");
-		});
-	}
-
-	function to_text(value, df, row) {
-		if (df.fieldtype === "Check") return cint(value) ? __("Yes") : __("No");
-		let html;
+	// v16 keeps the plain name on the row checkbox (older releases URI-encoded it)
+	function row_name(row) {
+		const box = row.querySelector(".list-row-checkbox");
+		const raw = (box && box.dataset.name) || row.querySelector("a[data-name]")?.dataset.name;
+		if (!raw) return null;
+		if ((window.cur_list?.data || []).some((d) => d.name === raw)) return raw;
 		try {
-			html = frappe.format(value, df, { inline: true }, row);
-		} catch (e) {
-			html = value;
+			return decodeURIComponent(raw);
+		} catch {
+			return raw;
 		}
-		return $("<div>").html(String(html ?? "")).text().trim();
 	}
 
-	function build_card_html(list, row) {
-		const meta = frappe.get_meta(list.doctype);
-		const fields = [];
-		const shown = new Set();
-
-		let title = row.name;
-		if (meta && meta.title_field && row[meta.title_field]) {
-			const tdf = meta.fields.find((f) => f.fieldname === meta.title_field);
-			title = tdf ? to_text(row[meta.title_field], tdf, row) || row.name : String(row[meta.title_field]);
-			shown.add(meta.title_field);
-		}
-
-		(meta ? meta.fields : []).forEach((df) => {
-			if (fields.length >= MAX_FIELDS || shown.has(df.fieldname)) return;
-			if (!(df.in_list_view || df.in_preview)) return;
-			if (df.hidden || SKIP_TYPES.includes(df.fieldtype)) return;
-			const value = row[df.fieldname];
-			if (value === undefined || value === null || value === "") return;
-			const text = to_text(value, df, row);
-			if (!text) return;
-			fields.push({ label: df.label || df.fieldname, text });
-			shown.add(df.fieldname);
-		});
-
-		if (!shown.has("status") && row.status && fields.length < MAX_FIELDS) {
-			fields.push({ label: "Status", text: String(row.status) });
-		}
-
-		const fields_html = fields
-			.map(
-				(f) => `
-				<div class="preview-field">
-					<div class="preview-label text-muted">${esc(__(f.label))}</div>
-					<div class="preview-value">${esc(frappe.ellipsis(f.text, MAX_VALUE_LEN))}</div>
-				</div>`
-			)
-			.join("");
-
-		return `
-			<div class="preview-popover-header">
-				<div class="preview-header">
-					<div class="preview-image">${frappe.get_avatar("avatar-medium", title)}</div>
-					<div class="preview-name"><a>${esc(title)}</a></div>
-					${title !== row.name ? `<div class="text-muted preview-title">${esc(row.name)}</div>` : ""}
-				</div>
-			</div>
-			${fields_html ? `<hr><div class="popover-body"><div class="preview-table">${fields_html}</div></div>` : ""}
-		`;
+	function row_modified(name) {
+		const doc = (window.cur_list?.data || []).find((d) => d.name === name);
+		return doc ? doc.modified || "" : "";
 	}
 
-	function ensure_card() {
-		if ($card) return $card;
-		$card = $(`
-			<div class="link-preview-popover popover pepl-row-preview" role="tooltip">
-				<div class="popover-body popover-content"></div>
-			</div>
-		`)
-			.css({
-				position: "absolute",
-				display: "none",
-				"pointer-events": "none",
-				"min-width": "280px",
-				"max-width": "420px",
-				"z-index": 1070,
-			})
-			.appendTo(document.body);
-		return $card;
+	// The status Frappe already drew in the row: its text and its exact colours (any theme, light or dark)
+	function row_status(row) {
+		const badge =
+			row.querySelector('[data-fieldname="status_field"] .es-badge') ||
+			row.querySelector(".es-badge[data-filter]") ||
+			row.querySelector(".indicator-pill");
+		if (!badge) return null;
+		const label = (badge.querySelector(".es-badge__label") || badge).textContent.trim();
+		if (!label) return null;
+		const css = getComputedStyle(badge);
+		const text = css.getPropertyValue("--c-fg").trim() || css.color;
+		const strip = css.getPropertyValue("--c-solid-bg").trim() || text;
+		return { label, text, strip };
 	}
 
-	function place(row_el) {
-		const r = row_el.getBoundingClientRect();
-		const h = $card.outerHeight();
-		const w = $card.outerWidth();
-
-		let top = r.bottom + 6;
-		if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
-
-		let left = Math.min(r.left + 24, window.innerWidth - w - 8);
-		left = Math.max(8, left);
-
-		$card.css({ top: top + window.scrollY, left: left + window.scrollX });
+	function get_card() {
+		if (!card) {
+			card = document.createElement("div");
+			// v16 popover shell (surface, border, shadow, open animation) + the PEPL layout
+			card.className = "es-popover pepl-hp";
+			card.hidden = true;
+			card.addEventListener("mouseenter", () => {
+				clearTimeout(hide_timer);
+				clearTimeout(show_timer);
+			});
+			card.addEventListener("mouseleave", schedule_hide);
+			card.addEventListener("click", (e) => {
+				if (e.target.closest(".pepl-hp-close")) hide();
+				else if (e.target.closest("a")) setTimeout(hide, 0);
+			});
+			document.body.appendChild(card);
+		}
+		return card;
 	}
 
 	function hide() {
 		clearTimeout(show_timer);
-		current_row = null;
-		if ($card) $card.hide();
+		clearTimeout(hide_timer);
+		active_key = null;
+		if (card) {
+			card.hidden = true;
+			card.removeAttribute("data-state");
+			card.innerHTML = "";
+		}
 	}
 
-	// Capture phase: runs before Frappe's own hover handlers.
+	function schedule_hide() {
+		clearTimeout(hide_timer);
+		hide_timer = setTimeout(hide, HIDE_DELAY);
+	}
+
+	function place(row) {
+		const c = get_card();
+		const rect = row.getBoundingClientRect();
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+		const gap = 6;
+		const margin = 12;
+		const width = Math.min(MAX_WIDTH, vw - 2 * margin);
+
+		c.style.width = width + "px";
+		c.style.maxHeight = Math.round(vh * 0.75) + "px";
+		const h = c.offsetHeight;
+
+		let top = rect.bottom + gap; // below the row when it fits
+		let side = "bottom";
+		if (top + h > vh - margin) {
+			top = Math.max(margin, rect.top - gap - h); // else above it
+			side = "top";
+		}
+		const left = Math.min(Math.max(margin, rect.left + 24), vw - width - margin);
+
+		c.style.top = top + "px";
+		c.style.left = left + "px";
+		c.setAttribute("data-side", side);
+	}
+
+	function table_html(t, with_title) {
+		const num = (i) => !!(t.columns[i] && t.columns[i].numeric);
+		const cell = (v, i, tag) => {
+			const cls = num(i) ? "pepl-hp-num" : i === 0 ? "pepl-hp-first" : "";
+			const tip = i === 0 && v ? ` title="${esc(v)}"` : "";
+			return `<${tag}${cls ? ` class="${cls}"` : ""}${tip}>${esc(v)}</${tag}>`;
+		};
+		const head = t.columns.map((c, i) => cell(c.label, i, "th")).join("");
+		const body = t.rows.map((r) => `<tr>${r.map((v, i) => cell(v, i, "td")).join("")}</tr>`).join("");
+		const foot = t.totals
+			? `<tfoot><tr>${t.totals.map((v, i) => cell(v, i, "td")).join("")}</tr></tfoot>`
+			: "";
+		const more = t.more ? `<div class="pepl-hp-more">${esc(__("+ {0} more rows", [t.more]))}</div>` : "";
+		return `
+			<div class="pepl-hp-section">
+				${with_title ? `<div class="pepl-hp-section-title">${esc(t.label)}</div>` : ""}
+				<div class="pepl-hp-tablewrap">
+					<table class="pepl-hp-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody>${foot}</table>
+				</div>
+				${more}
+			</div>`;
+	}
+
+	function render(data, doctype, name, status) {
+		if (!data || data.hidden || data.missing || data.denied) return false;
+		const c = get_card();
+
+		// the status line already shows the status; leave out any chip that repeats it
+		let fields = data.header || [];
+		if (status) fields = fields.filter((f) => f.value !== status.label);
+
+		const values = new Set(fields.map((f) => f.value));
+		const subtitle =
+			data.title && data.title !== name && !values.has(data.title)
+				? `<div class="pepl-hp-sub" title="${esc(data.title)}">${esc(data.title)}</div>`
+				: "";
+		const chips = fields
+			.map(
+				(f) =>
+					`<span class="pepl-hp-chip"><span class="pepl-hp-chip-label">${esc(
+						f.label
+					)}</span>${esc(f.value)}</span>`
+			)
+			.join("");
+		const amount = data.highlight
+			? `<div class="pepl-hp-amount"><span class="pepl-hp-amount-label">${esc(
+					data.highlight.label
+			  )}</span><span class="pepl-hp-amount-value">${esc(data.highlight.value)}</span></div>`
+			: "";
+		const sections = [...(data.tables || []), ...(data.ledgers || [])];
+
+		c.style.setProperty("--pepl-hp-strip", status ? status.strip : "");
+		c.style.setProperty("--pepl-hp-status", status ? status.text : "");
+		c.classList.toggle("pepl-hp-has-status", !!status);
+		c.innerHTML = `
+			<button type="button" class="pepl-hp-close" aria-label="${esc(__("Close"))}">&times;</button>
+			<div class="pepl-hp-head">
+				<div class="pepl-hp-id">
+					<a class="pepl-hp-name" href="${esc(frappe.utils.get_form_link(doctype, name))}">${esc(name)}</a>
+					<div class="pepl-hp-type">${esc(__(doctype))}</div>
+				</div>
+				${
+					status
+						? `<div class="pepl-hp-status"><span class="pepl-hp-dot"></span>${esc(status.label)}</div>`
+						: ""
+				}
+			</div>
+			${subtitle}
+			${chips ? `<div class="pepl-hp-chips">${chips}</div>` : ""}
+			${amount}
+			${sections.map((t) => table_html(t, sections.length > 1)).join("")}
+		`;
+		return true;
+	}
+
+	function show(row) {
+		const c = get_card();
+		c.hidden = false;
+		place(row);
+		c.setAttribute("data-state", "open");
+	}
+
+	function open_for(row) {
+		if (!enabled() || !row.isConnected) return;
+		const list = window.cur_list;
+		const doctype = list.doctype;
+		const name = row_name(row);
+		if (!name) return;
+
+		if (cache_owner !== list.data) {
+			cache = new Map();
+			cache_owner = list.data;
+		}
+
+		const key = `${doctype}::${name}::${row_modified(name)}`;
+		if (key === active_key && card && !card.hidden) return;
+		active_key = key;
+		const status = row_status(row);
+
+		if (cache.has(key)) {
+			if (render(cache.get(key), doctype, name, status)) show(row);
+			else hide();
+			return;
+		}
+
+		const c = get_card();
+		c.style.setProperty("--pepl-hp-strip", status ? status.strip : "");
+		c.classList.toggle("pepl-hp-has-status", !!status);
+		c.innerHTML = `<div class="pepl-hp-loading">${esc(__("Loading..."))}</div>`;
+		show(row);
+
+		frappe.call({
+			method: METHOD,
+			type: "GET",
+			args: { doctype, name },
+			freeze: false,
+			callback(r) {
+				cache.set(key, r.message);
+				if (active_key !== key) return; // the cursor has already moved on
+				if (render(r.message, doctype, name, status) && row.isConnected) place(row);
+				else hide();
+			},
+			error() {
+				if (active_key === key) hide();
+			},
+		});
+	}
+
+	// ---- events (capture phase, so this runs before Frappe's own hover handlers)
+
 	document.addEventListener(
 		"mouseover",
 		(e) => {
-			const list = active_list();
-			if (!list) return hide();
-
-			const row_el = e.target && e.target.closest ? e.target.closest(ROW_SELECTOR) : null;
-			if (!row_el) return hide();
-
-			silence_native(row_el);
-			if (row_el === current_row) return;
-
-			const name = get_row_name(row_el, list);
-			const row = name ? list.data.find((d) => d.name === name) : null;
-			if (!row) return hide();
-
-			current_row = row_el;
+			const row = e.target instanceof Element ? e.target.closest(ROW) : null;
+			if (!row || !enabled()) return;
+			// One card only: Frappe's own link preview (DocTypes with "Show Preview Popup") stays out of list rows
+			if (e.target.closest("a[data-doctype]")) e.stopPropagation();
+			if (row === hover_row) return;
+			hover_row = row;
+			clearTimeout(hide_timer);
 			clearTimeout(show_timer);
-			if ($card) $card.hide();
-
-			show_timer = setTimeout(() => {
-				if (current_row !== row_el) return;
-				const $c = ensure_card();
-				$c.find(".popover-content").html(build_card_html(list, row));
-				$c.css({ display: "block", visibility: "hidden" });
-				place(row_el);
-				$c.css("visibility", "visible");
-			}, SHOW_DELAY_MS);
+			show_timer = setTimeout(() => open_for(row), active_key ? SWITCH_DELAY : SHOW_DELAY);
 		},
 		true
 	);
 
-	document.addEventListener("mouseout", (e) => {
-		if (!e.relatedTarget) hide();
+	document.addEventListener(
+		"mouseout",
+		(e) => {
+			const row = e.target instanceof Element ? e.target.closest(ROW) : null;
+			if (!row || (e.relatedTarget instanceof Node && row.contains(e.relatedTarget))) return;
+			if (hover_row === row) hover_row = null;
+			clearTimeout(show_timer);
+			if (active_key) schedule_hide();
+		},
+		true
+	);
+
+	// clicking a row (to open it or tick it) closes the card
+	document.addEventListener(
+		"mousedown",
+		(e) => {
+			if (e.target instanceof Element && e.target.closest(ROW)) hide();
+		},
+		true
+	);
+
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") hide();
 	});
-	document.addEventListener("mousedown", hide, true);
-	window.addEventListener("scroll", hide, true);
-	if (frappe.router && frappe.router.on) frappe.router.on("change", hide);
+
+	// scrolling the list moves the row away from the card; scrolling inside the card is fine
+	document.addEventListener(
+		"scroll",
+		(e) => {
+			if (!active_key) return;
+			if (card && e.target instanceof Node && card.contains(e.target)) return;
+			hide();
+		},
+		{ capture: true, passive: true }
+	);
+
+	window.addEventListener("resize", hide);
+	$(document).on("page-change", hide);
+	if (frappe.router && typeof frappe.router.on === "function") frappe.router.on("change", hide);
 })();

@@ -7,8 +7,9 @@ from pepl_sales.overrides.sales_order import build_item_summary
 DOCTYPE = "Sales Order"
 FIELDNAME = "custom_item_summary"
 
-# Fields shown in the hover preview card
-PREVIEW_FIELDS = ("customer_name", "delivery_date", "grand_total", "status")
+# Frappe's own preview popup was switched on here before; the PEPL hover card (pepl_sales/list_preview.py)
+# replaces it on every list, so those settings are removed again to keep one card only.
+OLD_PREVIEW_FIELDS = ("customer_name", "delivery_date", "grand_total", "status")
 
 
 def setup_sales_order_list_view():
@@ -21,10 +22,8 @@ def setup_sales_order_list_view():
 	_set_doctype_property("search_fields", _search_fields_with_summary(), "Data")
 	_set_field_property("customer_name", "in_list_view", 1)
 
-	# Hover preview card
-	_set_doctype_property("show_preview_popup", 1, "Check")
-	for fieldname in PREVIEW_FIELDS:
-		_set_field_property(fieldname, "in_preview", 1)
+	# One hover card only: the PEPL card. Remove Frappe's own preview settings made earlier.
+	_remove_old_preview_settings()
 
 	frappe.clear_cache(doctype=DOCTYPE)
 	_backfill_item_summary()
@@ -44,7 +43,7 @@ def _create_item_summary_field():
 					"no_copy": 1,
 					"allow_on_submit": 1,
 					"in_standard_filter": 1,
-					"in_preview": 1,
+					"in_preview": 0,
 					"translatable": 0,
 				}
 			]
@@ -64,6 +63,15 @@ def _set_field_property(fieldname, prop, value):
 	make_property_setter(
 		DOCTYPE, fieldname, prop, value, "Check",
 		validate_fields_for_doctype=False,
+	)
+
+
+def _remove_old_preview_settings():
+	"""Deleted, not set to 0: Frappe treats a 0 setter on a DocType without a built-in preview as 'on'."""
+	frappe.db.delete("Property Setter", {"doc_type": DOCTYPE, "property": "show_preview_popup"})
+	frappe.db.delete(
+		"Property Setter",
+		{"doc_type": DOCTYPE, "property": "in_preview", "field_name": ("in", OLD_PREVIEW_FIELDS)},
 	)
 
 
