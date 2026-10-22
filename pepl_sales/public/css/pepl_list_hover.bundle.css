@@ -1,19 +1,42 @@
 /* PEPL - List View hover preview ("Option B" card).
-   Surface, border, shadow and open animation come from Frappe v16's .es-popover shell. The left strip and the
-   status take the exact colours of the record's status badge in the list. Theme variables keep light and dark
-   mode right. */
+   Self-contained: it does not rely on any Frappe popover styles (Frappe 16.36 has none), so the card always
+   floats over the list, centred across the list area. The left strip and the status take the exact colour of
+   the record's status in the list. Frappe theme variables keep light and dark mode right. */
 
-.pepl-hp.es-popover {
+div.pepl-hp {
+	position: fixed;
 	z-index: 1040; /* above the list, under dialogs */
+	box-sizing: border-box;
+	max-width: calc(100vw - 24px);
 	overflow-x: hidden;
 	overflow-y: auto;
 	padding: 16px 18px 16px 20px;
-	border-left: 5px solid var(--pepl-hp-strip, var(--outline-gray-3));
-	color: var(--text-color);
-	font-size: var(--text-base);
+	background: var(--card-bg, #fff);
+	border: 1px solid var(--border-color, #ededed);
+	border-left: 5px solid var(--pepl-hp-strip, var(--border-color, #c7c7c7));
+	border-radius: 12px;
+	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08);
+	color: var(--text-color, #383838);
+	font-size: 13px;
+	line-height: 1.45;
+	text-align: left;
+	animation: pepl-hp-in 140ms ease-out;
 }
-.pepl-hp:not(.pepl-hp-has-status) {
-	--pepl-hp-strip: var(--outline-gray-3);
+div.pepl-hp[hidden] {
+	display: none;
+}
+div.pepl-hp:not(.pepl-hp-has-status) {
+	--pepl-hp-strip: var(--border-color, #c7c7c7);
+}
+@keyframes pepl-hp-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
 }
 
 .pepl-hp-close {
@@ -24,13 +47,13 @@
 	border: 0;
 	border-radius: 6px;
 	background: none;
-	color: var(--text-muted);
+	color: var(--text-muted, #7c7c7c);
 	font-size: 20px;
 	line-height: 1.4;
 	cursor: pointer;
 }
 .pepl-hp-close:hover {
-	background: var(--subtle-fg);
+	background: var(--subtle-fg, #f3f3f3);
 }
 
 /* ---- header: number + document type on the left, status on the right */
@@ -47,28 +70,29 @@
 .pepl-hp-name {
 	display: block;
 	overflow: hidden;
-	font-size: var(--text-lg);
+	font-size: 16px;
 	font-weight: 650;
-	color: var(--ink-blue-link, var(--ink-blue-7));
+	color: var(--primary, #0289f7);
 	text-decoration: none;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 .pepl-hp-name:hover {
+	color: var(--primary, #0289f7);
 	text-decoration: underline;
 }
 .pepl-hp-type {
 	margin-top: 1px;
-	font-size: var(--text-sm);
-	color: var(--text-muted);
+	font-size: 12px;
+	color: var(--text-muted, #7c7c7c);
 }
 .pepl-hp-status {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 	margin-top: 3px;
-	color: var(--pepl-hp-status, var(--text-muted));
-	font-size: var(--text-sm);
+	color: var(--pepl-hp-status, var(--text-muted, #7c7c7c));
+	font-size: 12.5px;
 	font-weight: 600;
 	white-space: nowrap;
 }
@@ -82,7 +106,7 @@
 .pepl-hp-sub {
 	margin-top: 8px;
 	overflow: hidden;
-	color: var(--ink-gray-7);
+	color: var(--text-color, #525252);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -97,13 +121,13 @@
 .pepl-hp-chip {
 	padding: 5px 10px;
 	border-radius: 8px;
-	background: var(--surface-gray-2);
-	color: var(--text-color);
+	background: var(--subtle-fg, #f3f3f3);
+	color: var(--text-color, #383838);
 	white-space: nowrap;
 }
 .pepl-hp-chip-label {
 	margin-right: 6px;
-	color: var(--text-muted);
+	color: var(--text-muted, #7c7c7c);
 }
 
 /* ---- the amount in large type */
@@ -115,10 +139,10 @@
 	margin-top: 14px;
 }
 .pepl-hp-amount-label {
-	color: var(--text-muted);
+	color: var(--text-muted, #7c7c7c);
 }
 .pepl-hp-amount-value {
-	color: var(--heading-color);
+	color: var(--heading-color, #171717);
 	font-size: 22px;
 	font-weight: 700;
 	white-space: nowrap;
@@ -130,35 +154,36 @@
 }
 .pepl-hp-section-title {
 	margin-bottom: 6px;
-	color: var(--heading-color);
+	color: var(--heading-color, #171717);
 	font-weight: 600;
 }
 .pepl-hp-tablewrap {
 	overflow-x: auto;
-	border: 1px solid var(--border-color);
+	border: 1px solid var(--border-color, #ededed);
 	border-radius: 10px;
 }
 .pepl-hp-table {
 	width: 100%;
+	margin: 0;
 	border-collapse: collapse;
 	font-variant-numeric: tabular-nums;
 }
 .pepl-hp-table th {
 	padding: 8px 10px;
-	background: var(--surface-gray-1);
-	color: var(--text-muted);
-	font-size: var(--text-sm);
+	background: var(--surface-gray-1, #f8f8f8);
+	color: var(--text-muted, #7c7c7c);
+	font-size: 12px;
 	font-weight: 600;
 	text-align: left;
 	white-space: nowrap;
 }
 .pepl-hp-table td {
 	padding: 8px 10px;
-	border-top: 1px solid var(--border-color);
+	border-top: 1px solid var(--border-color, #ededed);
 	vertical-align: top;
 }
 .pepl-hp-table tbody tr:nth-child(even) td {
-	background: var(--surface-gray-1);
+	background: var(--surface-gray-1, #f8f8f8);
 }
 .pepl-hp-table .pepl-hp-num {
 	text-align: right;
@@ -171,16 +196,16 @@
 	white-space: nowrap; /* item / account name on one line; the full name shows on mouse-over */
 }
 .pepl-hp-table tfoot td {
-	background: var(--surface-blue-1);
-	color: var(--heading-color);
+	background: var(--surface-blue-1, #f2f9ff);
+	color: var(--heading-color, #171717);
 	font-weight: 700;
 }
 
 .pepl-hp-more,
 .pepl-hp-loading {
-	color: var(--text-muted);
+	color: var(--text-muted, #7c7c7c);
 }
 .pepl-hp-more {
 	margin-top: 4px;
-	font-size: var(--text-sm);
+	font-size: 12px;
 }

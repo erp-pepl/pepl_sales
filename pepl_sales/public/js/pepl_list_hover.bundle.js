@@ -14,6 +14,10 @@
 	const SWITCH_DELAY = 150; // quicker when a card is already open and the cursor moves to another row
 	const HIDE_DELAY = 300; // time to move the cursor from the row onto the card (to click its link)
 	const MAX_WIDTH = 560;
+	// Where the card opens. Across: always centred over the list area (never at the screen edge).
+	// Up/down: "row" = just below the row (above it near the bottom of the screen), so it never covers the row
+	// under the mouse; "center" = in the middle of the screen.
+	const VERTICAL = "row";
 
 	const esc = (v) => frappe.utils.escape_html(v == null ? "" : String(v));
 
@@ -69,8 +73,8 @@
 	function get_card() {
 		if (!card) {
 			card = document.createElement("div");
-			// v16 popover shell (surface, border, shadow, open animation) + the PEPL layout
-			card.className = "es-popover pepl-hp";
+			// self-contained styling (pepl_list_hover.bundle.css); no dependency on Frappe popover styles
+			card.className = "pepl-hp";
 			card.hidden = true;
 			card.addEventListener("mouseenter", () => {
 				clearTimeout(hide_timer);
@@ -92,7 +96,6 @@
 		active_key = null;
 		if (card) {
 			card.hidden = true;
-			card.removeAttribute("data-state");
 			card.innerHTML = "";
 		}
 	}
@@ -107,25 +110,34 @@
 		const rect = row.getBoundingClientRect();
 		const vw = window.innerWidth;
 		const vh = window.innerHeight;
-		const gap = 6;
+		const gap = 8;
 		const margin = 12;
 		const width = Math.min(MAX_WIDTH, vw - 2 * margin);
 
 		c.style.width = width + "px";
-		c.style.maxHeight = Math.round(vh * 0.75) + "px";
+		c.style.maxHeight = Math.round(vh * 0.8) + "px";
 		const h = c.offsetHeight;
 
-		let top = rect.bottom + gap; // below the row when it fits
-		let side = "bottom";
-		if (top + h > vh - margin) {
-			top = Math.max(margin, rect.top - gap - h); // else above it
-			side = "top";
-		}
-		const left = Math.min(Math.max(margin, rect.left + 24), vw - width - margin);
+		// across: centred over the list (the page's main area), kept inside the window
+		const area = (row.closest(".frappe-list") || document.body).getBoundingClientRect();
+		let left = area.left + (area.width - width) / 2;
+		left = Math.min(Math.max(margin, left), vw - width - margin);
 
-		c.style.top = top + "px";
-		c.style.left = left + "px";
-		c.setAttribute("data-side", side);
+		// up/down
+		let top;
+		if (VERTICAL === "center") {
+			top = (vh - h) / 2;
+		} else if (rect.bottom + gap + h <= vh - margin) {
+			top = rect.bottom + gap; // below the row
+		} else if (rect.top - gap - h >= margin) {
+			top = rect.top - gap - h; // above the row
+		} else {
+			top = (vh - h) / 2; // no room either side: middle of the screen
+		}
+		top = Math.max(margin, top);
+
+		c.style.top = Math.round(top) + "px";
+		c.style.left = Math.round(left) + "px";
 	}
 
 	function table_html(t, with_title) {
@@ -156,8 +168,10 @@
 		const c = get_card();
 
 		// the status line already shows the status; leave out any chip that repeats it
+		// the status line at the top already shows the status (as the list shows it, e.g. "Overdue"),
+		// so no Status chip
 		let fields = data.header || [];
-		if (status) fields = fields.filter((f) => f.value !== status.label);
+		if (status) fields = fields.filter((f) => f.fieldname !== "status" && f.value !== status.label);
 
 		const values = new Set(fields.map((f) => f.value));
 		const subtitle =
@@ -207,7 +221,6 @@
 		const c = get_card();
 		c.hidden = false;
 		place(row);
-		c.setAttribute("data-state", "open");
 	}
 
 	function open_for(row) {
